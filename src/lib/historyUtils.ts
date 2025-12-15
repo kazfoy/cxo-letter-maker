@@ -18,6 +18,7 @@ export interface LetterHistory {
     solution: string;
     caseStudy: string;
     offer: string;
+    freeformInput?: string;
   };
 }
 

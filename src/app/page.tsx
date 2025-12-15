@@ -7,7 +7,7 @@ import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
 import { saveToHistory, type LetterHistory } from '@/lib/historyUtils';
 
-interface FormData {
+interface LetterFormData {
   myCompanyName: string;
   myName: string;
   myServiceDescription: string;
@@ -25,7 +25,7 @@ interface FormData {
 export default function Home() {
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
     myServiceDescription: '',
@@ -40,7 +40,7 @@ export default function Home() {
     freeformInput: '',
   });
 
-  const handleGenerate = (letter: string, data: FormData) => {
+  const handleGenerate = (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);
     // 履歴に保存
     saveToHistory(data, letter);

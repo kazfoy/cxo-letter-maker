@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 
 // PDF.jsを使用するため、SSRを無効化して動的インポート
@@ -13,7 +13,7 @@ interface AISuggestion {
   suggestions: string[];
 }
 
-interface FormData {
+interface LetterFormData {
   myCompanyName: string;
   myName: string;
   myServiceDescription: string;
@@ -29,10 +29,10 @@ interface FormData {
 }
 
 interface InputFormProps {
-  onGenerate: (letter: string, formData: FormData) => void;
+  onGenerate: (letter: string, formData: LetterFormData) => void;
   setIsGenerating: (isGenerating: boolean) => void;
-  formData: FormData;
-  setFormData: (data: FormData) => void;
+  formData: LetterFormData;
+  setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 }
 
 export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }: InputFormProps) {

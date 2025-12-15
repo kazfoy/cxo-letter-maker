@@ -9,6 +9,12 @@ const MultiSourceModal = dynamic(
   { ssr: false }
 );
 
+// StructureSuggestionModalのインポート
+const StructureSuggestionModal = dynamic(
+  () => import('./StructureSuggestionModal').then(mod => ({ default: mod.StructureSuggestionModal })),
+  { ssr: false }
+);
+
 interface AISuggestion {
   suggestions: string[];
 }
@@ -44,6 +50,7 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
   const [sourceInputType, setSourceInputType] = useState<'own' | 'target'>('own');
   const [isAnalyzingSource, setIsAnalyzingSource] = useState(false);
   const [inputMode, setInputMode] = useState<'step' | 'freeform'>('step'); // タブ切り替え用
+  const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -145,6 +152,18 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
     } finally {
       setIsAnalyzingSource(false);
     }
+  };
+
+  const handleOpenStructureSuggestion = () => {
+    if (!formData.companyName || !formData.myServiceDescription) {
+      alert('構成案を提案するには、企業名と自社サービスの概要を入力してください。');
+      return;
+    }
+    setStructureSuggestionModalOpen(true);
+  };
+
+  const handleSelectApproach = (draftText: string) => {
+    setFormData((prev) => ({ ...prev, freeformInput: draftText }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -476,9 +495,19 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
           {/* まとめて入力モード */}
           {inputMode === 'freeform' && (
             <div>
-              <label htmlFor="freeformInput" className="block text-sm font-medium text-gray-700 mb-2">
-                手紙の内容をまとめて入力 <span className="text-red-500">*</span>
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="freeformInput" className="block text-sm font-medium text-gray-700">
+                  手紙の内容をまとめて入力 <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleOpenStructureSuggestion}
+                  className="text-sm bg-purple-50 text-purple-700 border border-purple-300 px-4 py-1.5 rounded-md hover:bg-purple-100 transition-colors font-medium flex items-center gap-1"
+                  aria-label="構成案を相談する"
+                >
+                  💡 構成案を相談する
+                </button>
+              </div>
               <textarea
                 id="freeformInput"
                 name="freeformInput"
@@ -562,6 +591,16 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
         onAnalyze={handleAnalyzeMultiSource}
         type={sourceInputType}
         isAnalyzing={isAnalyzingSource}
+      />
+
+      {/* 構成案提案モーダル */}
+      <StructureSuggestionModal
+        isOpen={structureSuggestionModalOpen}
+        onClose={() => setStructureSuggestionModalOpen(false)}
+        onSelectApproach={handleSelectApproach}
+        companyName={formData.companyName}
+        myServiceDescription={formData.myServiceDescription}
+        background={formData.background}
       />
     </div>
   );

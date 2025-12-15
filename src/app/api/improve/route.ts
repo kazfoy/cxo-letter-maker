@@ -1,7 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+console.log("API Key configured (improve):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
+
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
 
 export async function POST(request: Request) {
   try {
@@ -9,7 +15,7 @@ export async function POST(request: Request) {
     const { content } = body;
 
     // Gemini Pro を使用（品質改善）
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = google('gemini-2.0-flash-exp');
 
     const improvePrompt = `あなたは一流のビジネスライターです。
 以下の営業手紙を、より説得力があり、経営層の心に響く内容に改善してください。
@@ -28,8 +34,11 @@ ${content}
 
 【改善版の手紙】`;
 
-    const result = await model.generateContent(improvePrompt);
-    const improvedLetter = result.response.text();
+    const result = await generateText({
+      model: model,
+      prompt: improvePrompt,
+    });
+    const improvedLetter = result.text;
 
     return NextResponse.json({ improvedLetter });
   } catch (error) {

@@ -1,14 +1,20 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+console.log("API Key configured (edit):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
+
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { content, editType } = body;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = google('gemini-2.0-flash-exp');
 
     let editPrompt = '';
 
@@ -96,8 +102,11 @@ ${content}
         );
     }
 
-    const result = await model.generateContent(editPrompt);
-    const editedLetter = result.response.text();
+    const result = await generateText({
+      model: model,
+      prompt: editPrompt,
+    });
+    const editedLetter = result.text;
 
     return NextResponse.json({ editedLetter });
   } catch (error) {

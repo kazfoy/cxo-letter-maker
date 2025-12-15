@@ -1,14 +1,20 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+console.log("API Key configured (assist):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
+
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { field, companyName, myServiceDescription } = body;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = google('gemini-2.0-flash-exp');
 
     let assistPrompt = '';
 
@@ -140,8 +146,11 @@ JSON形式で3つの候補を返してください：
         );
     }
 
-    const result = await model.generateContent(assistPrompt);
-    const responseText = result.response.text();
+    const result = await generateText({
+      model: model,
+      prompt: assistPrompt,
+    });
+    const responseText = result.text;
 
     // JSONを抽出（```json で囲まれている場合があるため）
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);

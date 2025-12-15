@@ -1,8 +1,20 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+// APIキーが読み込めているか確認するログを追加
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+console.log("API Key configured (analyze-source):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
+
+if (!apiKey) {
+  console.error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+}
+
+// Googleプロバイダーを初期化（APIキーを明示的に渡す）
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
 
 export async function POST(request: Request) {
   try {
@@ -122,7 +134,7 @@ export async function POST(request: Request) {
     const combinedText = extractedTexts.join('\n\n').substring(0, 10000);
 
     // Gemini APIで情報を抽出
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = google('gemini-2.0-flash-exp');
 
     const extractPrompt = `以下の複数のソース（WebページとPDF）から企業情報を抽出してJSON形式で返してください。
 
@@ -146,8 +158,11 @@ JSON形式で返してください（説明文は不要）：
 
 ※ JSONのみを返してください。説明文は不要です。`;
 
-    const result = await model.generateContent(extractPrompt);
-    const responseText = result.response.text();
+    const result = await generateText({
+      model: model,
+      prompt: extractPrompt,
+    });
+    const responseText = result.text;
 
     // JSONを抽出
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);

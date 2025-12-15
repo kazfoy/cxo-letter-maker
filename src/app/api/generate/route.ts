@@ -1,7 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
+// APIキーが読み込めているか確認するログを追加
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+console.log("API Key configured:", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
+
+if (!apiKey) {
+  console.error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+}
+
+// Googleプロバイダーを初期化（APIキーを明示的に渡す）
+const google = createGoogleGenerativeAI({
+  apiKey: apiKey,
+});
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +36,7 @@ export async function POST(request: Request) {
 
     // モデル選択
     const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
-    const geminiModel = genAI.getGenerativeModel({ model: modelName });
+    const geminiModel = google(modelName);
 
     // まとめて入力モードの場合
     if (freeformInput) {
@@ -60,8 +72,11 @@ ${freeformInput}
 
 それでは、手紙本文を作成してください。`;
 
-      const result = await geminiModel.generateContent(prompt);
-      const letter = result.response.text();
+      const result = await generateText({
+        model: geminiModel,
+        prompt: prompt,
+      });
+      const letter = result.text;
       return NextResponse.json({ letter });
     }
 
@@ -98,8 +113,11 @@ ${freeformInput}
 
 それでは、手紙本文を作成してください。`;
 
-    const result = await geminiModel.generateContent(prompt);
-    const letter = result.response.text();
+    const result = await generateText({
+      model: geminiModel,
+      prompt: prompt,
+    });
+    const letter = result.text;
 
     return NextResponse.json({ letter });
   } catch (error) {

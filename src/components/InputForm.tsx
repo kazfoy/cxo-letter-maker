@@ -142,7 +142,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         return;
       }
 
-      const { companyName, personName, summary, context } = data.data;
+      const { companyName, personName, personPosition, summary, context } = data.data;
 
       if (sourceInputType === 'own') {
         // 自社情報を埋める
@@ -153,12 +153,30 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         }));
       } else {
         // ターゲット情報を埋める
-        setFormData((prev) => ({
-          ...prev,
-          companyName: companyName || prev.companyName,
-          name: personName || prev.name,
-          background: context || prev.background,
-        }));
+        if (mode === 'event') {
+          // イベントモードの場合
+          setFormData((prev) => ({
+            ...prev,
+            companyName: companyName || prev.companyName,
+            name: personName || prev.name,
+            position: personPosition || prev.position,
+            // 招待の背景（Why You?）にcontextを反映（既存の内容がある場合は追記）
+            invitationReason: context
+              ? prev.invitationReason
+                ? `${prev.invitationReason}\n\n${context}`
+                : context
+              : prev.invitationReason,
+          }));
+        } else {
+          // セールスモードの場合
+          setFormData((prev) => ({
+            ...prev,
+            companyName: companyName || prev.companyName,
+            name: personName || prev.name,
+            position: personPosition || prev.position,
+            background: context || prev.background,
+          }));
+        }
       }
 
       setMultiSourceModalOpen(false);
@@ -332,7 +350,19 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
         {/* ターゲット情報 */}
         <div className="border-b pb-4">
-          <h3 className="font-medium text-gray-700 mb-3">ターゲット情報</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium text-gray-700">ターゲット情報</h3>
+            {mode === 'event' && (
+              <button
+                type="button"
+                onClick={() => handleOpenMultiSourceModal('target')}
+                className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+                aria-label="相手の記事/HPから入力"
+              >
+                🔍 相手HP/記事から入力
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
             <div>
               <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">

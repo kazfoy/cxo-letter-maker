@@ -2,6 +2,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors';
 
 // APIキーが読み込めているか確認するログを追加
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -25,10 +26,8 @@ export async function POST(request: Request) {
     const isEventUrl = formData.get('isEventUrl') === 'true'; // イベントURL解析フラグ
 
     if (!urlsJson && !pdfText) {
-      return NextResponse.json(
-        { error: 'URLまたはPDFテキストを指定してください' },
-        { status: 400 }
-      );
+      const error = createErrorResponse(ErrorCodes.MISSING_REQUIRED_FIELD);
+      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.MISSING_REQUIRED_FIELD) });
     }
 
     let urls: string[] = [];
@@ -39,10 +38,8 @@ export async function POST(request: Request) {
           throw new Error('Invalid URLs format');
         }
       } catch (error) {
-        return NextResponse.json(
-          { error: 'URL形式が不正です' },
-          { status: 400 }
-        );
+        const errorResponse = createErrorResponse(ErrorCodes.INVALID_URL_FORMAT);
+        return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INVALID_URL_FORMAT) });
       }
     }
 
@@ -60,7 +57,7 @@ export async function POST(request: Request) {
             });
 
             if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
+              throw new Error(`URL_NOT_ACCESSIBLE:HTTP ${response.status}`);
             }
 
             const html = await response.text();
@@ -92,7 +89,7 @@ export async function POST(request: Request) {
               .substring(0, 5000);
 
             if (cleanedText.length < 50) {
-              throw new Error('有効なコンテンツが見つかりません');
+              throw new Error('CONTENT_NOT_FOUND:有効なコンテンツが見つかりません');
             }
 
             return {
@@ -101,7 +98,15 @@ export async function POST(request: Request) {
             };
           } catch (error) {
             console.warn(`URL ${index + 1} extraction failed:`, error);
-            throw error;
+            // エラータイプを判別してthrow
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('URL_NOT_ACCESSIBLE')) {
+              throw new Error(`URL_NOT_ACCESSIBLE:${url}`);
+            } else if (errorMessage.includes('CONTENT_NOT_FOUND')) {
+              throw new Error(`CONTENT_NOT_FOUND:${url}`);
+            } else {
+              throw new Error(`SCRAPING_FAILED:${url}`);
+            }
           }
         })
       );
@@ -125,10 +130,27 @@ export async function POST(request: Request) {
 
     // すべてのソースが失敗した場合
     if (extractedTexts.length === 0) {
-      return NextResponse.json(
-        { error: 'すべてのソースからの情報抽出に失敗しました' },
-        { status: 500 }
+      // 失敗したURLのエラー詳細を収集
+      const failedUrls = urlResults
+        ?.filter((r) => r.status === 'rejected')
+        .map((r: any) => {
+          const reason = r.reason?.message || '';
+          if (reason.includes('URL_NOT_ACCESSIBLE')) {
+            return 'URLにアクセスできませんでした';
+          } else if (reason.includes('CONTENT_NOT_FOUND')) {
+            return '有効なコンテンツが見つかりませんでした';
+          } else {
+            return 'スクレイピングに失敗しました';
+          }
+        });
+
+      const error = createErrorResponse(
+        ErrorCodes.ALL_SOURCES_FAILED,
+        undefined,
+        undefined,
+        { failedUrls }
       );
+      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.ALL_SOURCES_FAILED) });
     }
 
     // テキストを結合（最大10,000文字）
@@ -202,10 +224,8 @@ JSON形式で返してください（説明文は不要）：
     // JSONを抽出
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json(
-        { error: 'AI解析結果のJSON抽出に失敗しました' },
-        { status: 500 }
-      );
+      const error = createErrorResponse(ErrorCodes.AI_RESPONSE_INVALID);
+      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.AI_RESPONSE_INVALID) });
     }
 
     const extractedData = JSON.parse(jsonMatch[0]);
@@ -220,9 +240,12 @@ JSON形式で返してください（説明文は不要）：
     });
   } catch (error) {
     console.error('ソース解析エラー:', error);
-    return NextResponse.json(
-      { error: 'ソース解析に失敗しました' },
-      { status: 500 }
+    const errorResponse = createErrorResponse(
+      ErrorCodes.INTERNAL_ERROR,
+      'ソース解析に失敗しました',
+      undefined,
+      { originalError: error instanceof Error ? error.message : String(error) }
     );
+    return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INTERNAL_ERROR) });
   }
 }

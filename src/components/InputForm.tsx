@@ -71,9 +71,30 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // エラーを表示するヘルパー関数
+  const showError = (message: string, suggestion?: string) => {
+    setErrorDisplay({ message, suggestion, show: true });
+    // 5秒後に自動で消す
+    setTimeout(() => {
+      setErrorDisplay(prev => ({ ...prev, show: false }));
+    }, 8000);
+  };
+
+  // APIエラーレスポンスを処理するヘルパー関数
+  const handleApiErrorData = (errorData: any) => {
+    if (errorData.error) {
+      // 構造化エラーレスポンス
+      showError(errorData.message || 'エラーが発生しました', errorData.suggestion);
+    } else if (errorData.error || typeof errorData === 'string') {
+      showError(errorData.error || errorData || 'エラーが発生しました');
+    } else {
+      showError('エラーが発生しました');
+    }
+  };
+
   const handleAIAssist = async (field: string) => {
     if (!formData.companyName || !formData.myServiceDescription) {
-      alert('AIアシストを使用するには、企業名と自社サービスの概要を入力してください。');
+      showError('AIアシストを使用するには、企業名と自社サービスの概要を入力してください。');
       return;
     }
 
@@ -105,7 +126,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       }
     } catch (error) {
       console.error('AIアシストエラー:', error);
-      alert('AIアシストに失敗しました。');
+      showError('AIアシストに失敗しました。', 'もう一度お試しください。');
       setAiModalOpen(false);
     } finally {
       setIsLoadingAI(false);
@@ -141,7 +162,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       const data = await response.json();
 
       if (!response.ok || data.error) {
-        alert(data.error || 'ソース解析に失敗しました。');
+        handleApiErrorData(data);
         return;
       }
 
@@ -185,7 +206,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       setMultiSourceModalOpen(false);
     } catch (error) {
       console.error('ソース解析エラー:', error);
-      alert('ソース解析に失敗しました。もう一度お試しください。');
+      showError('ソース解析に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsAnalyzingSource(false);
     }
@@ -193,7 +214,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
   const handleOpenStructureSuggestion = () => {
     if (!formData.companyName || !formData.myServiceDescription) {
-      alert('構成案を提案するには、企業名と自社サービスの概要を入力してください。');
+      showError('構成案を提案するには、企業名と自社サービスの概要を入力してください。');
       return;
     }
     setStructureSuggestionModalOpen(true);
@@ -217,10 +238,12 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       const data = await response.json();
       if (data.letter) {
         onGenerate(data.letter, formData);
+      } else if (data.error) {
+        handleApiErrorData(data);
       }
     } catch (error) {
       console.error('生成エラー:', error);
-      alert('手紙の生成に失敗しました。もう一度お試しください。');
+      showError('手紙の生成に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsGenerating(false);
     }
@@ -229,7 +252,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   // イベントURL解析ハンドラー
   const handleAnalyzeEventUrl = async () => {
     if (!formData.eventUrl) {
-      alert('イベントURLを入力してください。');
+      showError('イベントURLを入力してください。');
       return;
     }
 
@@ -247,7 +270,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       const data = await response.json();
 
       if (!response.ok || data.error) {
-        alert(data.error || 'イベントURL解析に失敗しました。');
+        handleApiErrorData(data);
         return;
       }
 
@@ -260,10 +283,10 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         eventSpeakers: eventSpeakers || prev.eventSpeakers,
       }));
 
-      alert('イベント情報を自動入力しました。');
+      // 成功メッセージは不要（フォームが更新されるため）
     } catch (error) {
       console.error('イベントURL解析エラー:', error);
-      alert('イベントURL解析に失敗しました。');
+      showError('イベントURL解析に失敗しました。', 'URLを確認して、もう一度お試しください。');
     } finally {
       setIsAnalyzingSource(false);
     }
@@ -274,6 +297,38 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
         {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
+
+      {/* エラー表示 */}
+      {errorDisplay.show && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md animate-fade-in">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                {errorDisplay.message}
+              </h3>
+              {errorDisplay.suggestion && (
+                <p className="mt-1 text-sm text-red-700">
+                  💡 {errorDisplay.suggestion}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setErrorDisplay({ message: '', show: false })}
+              className="ml-4 flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+              aria-label="閉じる"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 入力複雑度切り替えタブ（セールスモードのみ） */}
       {mode === 'sales' && (

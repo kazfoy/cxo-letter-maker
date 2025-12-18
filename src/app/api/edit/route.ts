@@ -16,6 +16,16 @@ export async function POST(request: Request) {
 
     const model = google('gemini-2.0-flash-exp');
 
+    const formatConstraints = `
+
+【フォーマット制約】
+- **重要**: Markdown記法を一切使用しないこと
+  * 太字（**text**）、斜体（*text*）、見出し（#）などは禁止
+  * プレーンテキストのみで出力すること
+- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
+- 箇条書きが必要な場合は、ハイフン（-）やアスタリスク（*）を使わず、全角中黒（・）または改行のみを使用すること
+- 手紙として自然で読みやすいプレーンテキスト形式にすること`;
+
     let editPrompt = '';
 
     switch (editType) {
@@ -26,6 +36,7 @@ export async function POST(request: Request) {
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【カジュアル版の手紙】`;
         break;
@@ -37,6 +48,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【事例強調版の手紙】`;
         break;
@@ -47,6 +59,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【短縮版の手紙】`;
         break;
@@ -58,6 +71,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【情熱的な手紙】`;
         break;
@@ -69,6 +83,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【簡潔版の手紙】`;
         break;
@@ -80,6 +95,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【ビジネスライク版の手紙】`;
         break;
@@ -91,6 +107,7 @@ ${content}
 
 【元の手紙】
 ${content}
+${formatConstraints}
 
 【校正後の手紙】`;
         break;

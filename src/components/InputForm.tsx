@@ -272,32 +272,20 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
 
-      {/* URL自動入力ボタン（セールスモードのみ） */}
-      {mode === 'sales' && (
-        <div className="mb-4 flex gap-3">
-          <button
-            type="button"
-            onClick={() => handleOpenMultiSourceModal('own')}
-            className="flex-1 bg-green-50 text-green-700 border border-green-300 py-2 px-4 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
-            aria-label="自社HPから入力"
-          >
-            🏢 自社HPから入力
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenMultiSourceModal('target')}
-            className="flex-1 bg-purple-50 text-purple-700 border border-purple-300 py-2 px-4 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
-            aria-label="相手の記事/HPから入力"
-          >
-            🔍 相手の記事/HPから入力
-          </button>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 自社情報 */}
         <div className="border-b pb-4">
-          <h3 className="font-medium text-gray-700 mb-3">差出人（自社）情報</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium text-gray-700">差出人（自社）情報</h3>
+            <button
+              type="button"
+              onClick={() => handleOpenMultiSourceModal('own')}
+              className="bg-green-50 text-green-700 border border-green-300 px-3 py-1.5 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
+              aria-label="自社HPから入力"
+            >
+              🏢 自社HP/資料から入力
+            </button>
+          </div>
           <div className="space-y-3">
             <div>
               <label htmlFor="myCompanyName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -352,16 +340,14 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         <div className="border-b pb-4">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-medium text-gray-700">ターゲット情報</h3>
-            {mode === 'event' && (
-              <button
-                type="button"
-                onClick={() => handleOpenMultiSourceModal('target')}
-                className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
-                aria-label="相手の記事/HPから入力"
-              >
-                🔍 相手HP/記事から入力
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => handleOpenMultiSourceModal('target')}
+              className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+              aria-label="相手の記事/HPから入力"
+            >
+              🔍 相手HP/記事から入力
+            </button>
           </div>
           <div className="space-y-3">
             <div>

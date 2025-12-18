@@ -60,7 +60,7 @@ export default function Home() {
   const handleGenerate = (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);
     // 履歴に保存
-    saveToHistory(data, letter);
+    saveToHistory(data, letter, mode);
   };
 
   const handleRestore = (history: LetterHistory) => {
@@ -70,7 +70,7 @@ export default function Home() {
 
   const handleSaveAndReset = () => {
     // 履歴に保存（未生成でもOK）
-    saveToHistory(formData, generatedLetter);
+    saveToHistory(formData, generatedLetter, mode);
 
     // フォームリセット
     setFormData({

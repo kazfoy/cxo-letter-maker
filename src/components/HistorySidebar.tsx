@@ -10,6 +10,7 @@ interface LetterHistory {
   targetName: string;
   content: string;
   isPinned?: boolean;
+  mode?: 'sales' | 'event'; // セールスレターまたはイベント招待
   inputs: {
     myCompanyName: string;
     myName: string;
@@ -103,10 +104,20 @@ export function HistorySidebar({ onRestore }: HistorySidebarProps) {
                 onClick={() => onRestore(history)}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-medium text-sm text-gray-800 line-clamp-1">
-                    {history.targetCompany}
-                  </h3>
-                  <div className="flex gap-1 ml-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <h3 className="font-medium text-sm text-gray-800 line-clamp-1">
+                      {history.targetCompany}
+                    </h3>
+                    {/* モードバッジ */}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${
+                      (history.mode || 'sales') === 'event'
+                        ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                        : 'bg-blue-100 text-blue-800 border border-blue-200'
+                    }`}>
+                      {(history.mode || 'sales') === 'event' ? 'Event' : 'Letter'}
+                    </span>
+                  </div>
+                  <div className="flex gap-1 ml-2 flex-shrink-0">
                     <button
                       onClick={(e) => handleTogglePin(history.id, e)}
                       className={`text-sm hover:scale-110 transition-transform ${

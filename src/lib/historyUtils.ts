@@ -7,6 +7,7 @@ export interface LetterHistory {
   targetName: string;
   content: string;
   isPinned?: boolean; // ピン留め状態
+  mode?: 'sales' | 'event'; // セールスレターまたはイベント招待
   inputs: {
     myCompanyName: string;
     myName: string;
@@ -25,7 +26,8 @@ export interface LetterHistory {
 
 export function saveToHistory(
   inputs: LetterHistory['inputs'],
-  content: string
+  content: string,
+  mode?: 'sales' | 'event'
 ): void {
   try {
     const history: LetterHistory = {
@@ -36,6 +38,7 @@ export function saveToHistory(
       content,
       inputs,
       isPinned: false,
+      mode: mode || 'sales', // デフォルトはsales
     };
 
     const stored = localStorage.getItem('letterHistories');

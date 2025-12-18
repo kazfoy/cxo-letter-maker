@@ -32,13 +32,67 @@ export async function POST(request: Request) {
       offer,
       freeformInput,
       model = 'flash',
+      mode = 'sales',
+      // イベントモード用フィールド
+      eventUrl,
+      eventName,
+      eventDateTime,
+      eventSpeakers,
+      invitationReason,
     } = body;
 
     // モデル選択
     const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
     const geminiModel = google(modelName);
 
-    // まとめて入力モードの場合
+    // イベント招待モードの場合
+    if (mode === 'event') {
+      const prompt = `あなたはイベント招待状の専門家です。
+以下の情報を基に、丁寧でありながらも相手の時間を尊重した、魅力的なイベント招待状を作成してください。
+
+【差出人（自社）情報】
+会社名: ${myCompanyName}
+氏名: ${myName}
+自社について: ${myServiceDescription}
+
+【招待先情報】
+企業名: ${companyName}
+役職: ${position || ''}
+氏名: ${name}
+
+【イベント情報】
+イベント名: ${eventName}
+開催日時・場所: ${eventDateTime}
+主要登壇者/ゲスト: ${eventSpeakers || 'なし'}
+イベントURL: ${eventUrl || 'なし'}
+
+【招待の背景（Why You?）】
+${invitationReason}
+
+【作成ルール】
+- 構成:
+  1. 特別なお誘いであることの提示（一斉配信ではない雰囲気）
+  2. イベントの価値（対象者にとってのメリット、登壇者の魅力）
+  3. なぜ貴殿を招待したか（招待の背景を活用）
+  4. 物流情報（日時・場所・URL）
+  5. オファー（席を確保している、ぜひ来てほしい等の熱意）
+- 文字数: 600〜900文字程度
+- トーン: 丁寧かつ、相手の時間を尊重したもの
+- 売り込み感を抑え、相手にとっての価値を前面に
+- 宛名は「${companyName} ${position ? position + ' ' : ''}${name}様」で始める
+- 末尾は「${myCompanyName}\n${myName}」で締める
+
+それでは、イベント招待状の本文を作成してください。`;
+
+      const result = await generateText({
+        model: geminiModel,
+        prompt: prompt,
+      });
+      const letter = result.text;
+      return NextResponse.json({ letter });
+    }
+
+    // まとめて入力モードの場合（セールスモード）
     if (freeformInput) {
       const prompt = `あなたはCxO向けセールスレターの専門家です。
 提供されたテキストから、CxOレターの5つの要素（背景・課題・解決策・実績・オファー）を抽出し、形式に沿って営業手紙を作成してください。

@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const urlsJson = formData.get('urls') as string;
     const pdfText = formData.get('pdfText') as string | null; // PDFファイルではなくテキストを受け取る
+    const isEventUrl = formData.get('isEventUrl') === 'true'; // イベントURL解析フラグ
 
     if (!urlsJson && !pdfText) {
       return NextResponse.json(
@@ -136,7 +137,32 @@ export async function POST(request: Request) {
     // Gemini APIで情報を抽出
     const model = google('gemini-2.0-flash-exp');
 
-    const extractPrompt = `以下の複数のソース（WebページとPDF）から企業情報を抽出してJSON形式で返してください。
+    let extractPrompt: string;
+
+    if (isEventUrl) {
+      // イベントURL解析用プロンプト
+      extractPrompt = `以下のソース（WebページまたはPDF）からイベント情報を抽出してJSON形式で返してください。
+
+【ソーステキスト】
+${combinedText}
+
+【抽出する情報】
+- eventName: イベント名（見つからない場合は空文字）
+- eventDateTime: 開催日時と場所の情報（例: "2025年1月15日（水）14:00-17:00 / 東京国際フォーラム"、見つからない場合は空文字）
+- eventSpeakers: 主要登壇者やゲストのリスト（例: "山田太郎氏（〇〇株式会社CEO）、田中花子氏（△△大学教授）"、見つからない場合は空文字）
+
+【出力形式】
+JSON形式で返してください（説明文は不要）：
+{
+  "eventName": "イベント名",
+  "eventDateTime": "開催日時・場所",
+  "eventSpeakers": "主要登壇者/ゲスト"
+}
+
+※ JSONのみを返してください。説明文は不要です。`;
+    } else {
+      // 通常の企業情報抽出プロンプト
+      extractPrompt = `以下の複数のソース（WebページとPDF）から企業情報を抽出してJSON形式で返してください。
 
 【ソーステキスト】
 ${combinedText}
@@ -157,6 +183,7 @@ JSON形式で返してください（説明文は不要）：
 }
 
 ※ JSONのみを返してください。説明文は不要です。`;
+    }
 
     const result = await generateText({
       model: model,

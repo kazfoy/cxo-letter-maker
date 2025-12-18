@@ -20,11 +20,20 @@ interface LetterFormData {
   caseStudy: string;
   offer: string;
   freeformInput?: string; // まとめて入力用
+  // イベント招待モード用フィールド
+  eventUrl?: string; // イベントURL
+  eventName?: string; // イベント名
+  eventDateTime?: string; // 開催日時・場所
+  eventSpeakers?: string; // 主要登壇者/ゲスト
+  invitationReason?: string; // 招待の背景（Why You?）
 }
+
+export type LetterMode = 'sales' | 'event';
 
 export default function Home() {
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mode, setMode] = useState<LetterMode>('sales');
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -38,6 +47,11 @@ export default function Home() {
     caseStudy: '',
     offer: '',
     freeformInput: '',
+    eventUrl: '',
+    eventName: '',
+    eventDateTime: '',
+    eventSpeakers: '',
+    invitationReason: '',
   });
 
   const handleGenerate = (letter: string, data: LetterFormData) => {
@@ -69,6 +83,11 @@ export default function Home() {
       caseStudy: '',
       offer: '',
       freeformInput: '',
+      eventUrl: '',
+      eventName: '',
+      eventDateTime: '',
+      eventSpeakers: '',
+      invitationReason: '',
     });
 
     setGeneratedLetter('');
@@ -78,6 +97,35 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+
+      {/* モード切り替えUI */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setMode('sales')}
+              className={`px-6 py-3 font-medium transition-all ${
+                mode === 'sales'
+                  ? 'bg-blue-600 text-white border-b-2 border-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              📧 セールスレターモード
+            </button>
+            <button
+              onClick={() => setMode('event')}
+              className={`px-6 py-3 font-medium transition-all ${
+                mode === 'event'
+                  ? 'bg-purple-600 text-white border-b-2 border-purple-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              🎫 イベント招待モード
+            </button>
+          </div>
+        </div>
+      </div>
+
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* 左側: 履歴サイドバー */}
@@ -102,6 +150,7 @@ export default function Home() {
               {/* 中央: 入力フォーム */}
               <div className="lg:col-span-5">
                 <InputForm
+                  mode={mode}
                   onGenerate={handleGenerate}
                   setIsGenerating={setIsGenerating}
                   formData={formData}

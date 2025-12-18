@@ -32,16 +32,25 @@ interface LetterFormData {
   caseStudy: string;
   offer: string;
   freeformInput?: string;
+  // イベント招待モード用フィールド
+  eventUrl?: string;
+  eventName?: string;
+  eventDateTime?: string;
+  eventSpeakers?: string;
+  invitationReason?: string;
 }
 
+type LetterMode = 'sales' | 'event';
+
 interface InputFormProps {
+  mode: LetterMode;
   onGenerate: (letter: string, formData: LetterFormData) => void;
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 }
 
-export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }: InputFormProps) {
+export function InputForm({ mode, onGenerate, setIsGenerating, formData, setFormData }: InputFormProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [currentField, setCurrentField] = useState<string>('');
@@ -77,6 +86,13 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
           field,
           companyName: formData.companyName,
           myServiceDescription: formData.myServiceDescription,
+          mode,
+          // イベントモードの場合、追加情報を送信
+          ...(mode === 'event' && {
+            eventName: formData.eventName,
+            eventDateTime: formData.eventDateTime,
+            eventSpeakers: formData.eventSpeakers,
+          }),
         }),
       });
 
@@ -174,7 +190,7 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, model: 'flash' }),
+        body: JSON.stringify({ ...formData, model: 'flash', mode }),
       });
 
       const data = await response.json();
@@ -189,31 +205,76 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
     }
   };
 
+  // イベントURL解析ハンドラー
+  const handleAnalyzeEventUrl = async () => {
+    if (!formData.eventUrl) {
+      alert('イベントURLを入力してください。');
+      return;
+    }
+
+    setIsAnalyzingSource(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('urls', JSON.stringify([formData.eventUrl]));
+      formDataToSend.append('isEventUrl', 'true'); // イベントURL解析フラグ
+
+      const response = await fetch('/api/analyze-source', {
+        method: 'POST',
+        body: formDataToSend,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        alert(data.error || 'イベントURL解析に失敗しました。');
+        return;
+      }
+
+      const { eventName, eventDateTime, eventSpeakers } = data.data;
+
+      setFormData((prev) => ({
+        ...prev,
+        eventName: eventName || prev.eventName,
+        eventDateTime: eventDateTime || prev.eventDateTime,
+        eventSpeakers: eventSpeakers || prev.eventSpeakers,
+      }));
+
+      alert('イベント情報を自動入力しました。');
+    } catch (error) {
+      console.error('イベントURL解析エラー:', error);
+      alert('イベントURL解析に失敗しました。');
+    } finally {
+      setIsAnalyzingSource(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
-        手紙の情報を入力
+        {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
 
-      {/* URL自動入力ボタン */}
-      <div className="mb-4 flex gap-3">
-        <button
-          type="button"
-          onClick={() => handleOpenMultiSourceModal('own')}
-          className="flex-1 bg-green-50 text-green-700 border border-green-300 py-2 px-4 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
-          aria-label="自社HPから入力"
-        >
-          🏢 自社HPから入力
-        </button>
-        <button
-          type="button"
-          onClick={() => handleOpenMultiSourceModal('target')}
-          className="flex-1 bg-purple-50 text-purple-700 border border-purple-300 py-2 px-4 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
-          aria-label="相手の記事/HPから入力"
-        >
-          🔍 相手の記事/HPから入力
-        </button>
-      </div>
+      {/* URL自動入力ボタン（セールスモードのみ） */}
+      {mode === 'sales' && (
+        <div className="mb-4 flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleOpenMultiSourceModal('own')}
+            className="flex-1 bg-green-50 text-green-700 border border-green-300 py-2 px-4 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
+            aria-label="自社HPから入力"
+          >
+            🏢 自社HPから入力
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenMultiSourceModal('target')}
+            className="flex-1 bg-purple-50 text-purple-700 border border-purple-300 py-2 px-4 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+            aria-label="相手の記事/HPから入力"
+          >
+            🔍 相手の記事/HPから入力
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 自社情報 */}
@@ -322,7 +383,116 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
           </div>
         </div>
 
-        {/* CxOレター構成 5要素 */}
+        {/* イベント情報セクション（イベントモードのみ） */}
+        {mode === 'event' && (
+          <div className="border-b pb-4">
+            <h3 className="font-medium text-gray-700 mb-3">イベント情報</h3>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="eventUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                  イベントURL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    id="eventUrl"
+                    name="eventUrl"
+                    value={formData.eventUrl || ''}
+                    onChange={handleChange}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="例: https://example.com/event"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeEventUrl}
+                    disabled={!formData.eventUrl || isAnalyzingSource}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+                  >
+                    {isAnalyzingSource ? '解析中...' : '自動解析'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="eventName" className="block text-sm font-medium text-gray-700 mb-1">
+                  イベント名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="eventName"
+                  name="eventName"
+                  value={formData.eventName || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: AI活用セミナー 2025"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="eventDateTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  開催日時・場所 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="eventDateTime"
+                  name="eventDateTime"
+                  value={formData.eventDateTime || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 2025年1月15日（水）14:00-17:00 / 東京国際フォーラム"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="eventSpeakers" className="block text-sm font-medium text-gray-700 mb-1">
+                  主要登壇者/ゲスト
+                </label>
+                <textarea
+                  id="eventSpeakers"
+                  name="eventSpeakers"
+                  value={formData.eventSpeakers || ''}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 山田太郎氏（〇〇株式会社CEO）、田中花子氏（△△大学教授）"
+                  maxLength={300}
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="invitationReason" className="block text-sm font-medium text-gray-700">
+                    招待の背景（Why You?） <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleAIAssist('invitationReason')}
+                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    aria-label="AIアシスト"
+                  >
+                    🪄 AIアシスト
+                  </button>
+                </div>
+                <textarea
+                  id="invitationReason"
+                  name="invitationReason"
+                  value={formData.invitationReason || ''}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="なぜこの方をイベントに招待したいのか、その理由や期待することを記入してください"
+                  maxLength={500}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CxOレター構成 5要素（セールスモードのみ） */}
+        {mode === 'sales' && (
         <div className="space-y-4">
           <h3 className="font-medium text-gray-700 mb-3">CxOレター構成（5要素）</h3>
 
@@ -524,13 +694,14 @@ export function InputForm({ onGenerate, setIsGenerating, formData, setFormData }
             </div>
           )}
         </div>
+        )}
 
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="手紙を生成"
         >
-          手紙を生成
+          {mode === 'sales' ? '手紙を生成' : 'イベント招待状を生成'}
         </button>
       </form>
 

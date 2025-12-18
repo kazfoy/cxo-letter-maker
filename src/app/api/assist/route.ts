@@ -12,13 +12,56 @@ const google = createGoogleGenerativeAI({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { field, companyName, myServiceDescription } = body;
+    const {
+      field,
+      companyName,
+      myServiceDescription,
+      mode,
+      // イベントモード用フィールド
+      eventName,
+      eventDateTime,
+      eventSpeakers,
+    } = body;
 
     const model = google('gemini-2.0-flash-exp');
 
     let assistPrompt = '';
 
-    switch (field) {
+    // イベントモードの招待理由
+    if (field === 'invitationReason' && mode === 'event') {
+      assistPrompt = `【タスク】
+イベント招待状の「招待の背景（Why You?）」セクションの候補を3つ提案してください。
+
+【招待先企業】
+${companyName}
+
+【自社サービス/事業】
+${myServiceDescription}
+
+【イベント情報】
+イベント名: ${eventName || '未入力'}
+開催日時・場所: ${eventDateTime || '未入力'}
+主要登壇者/ゲスト: ${eventSpeakers || '未入力'}
+
+【招待の背景（Why You?）とは】
+なぜその人をイベントに招待したいのか、その理由や期待することを記述する。以下の切り口を参考に：
+- 学びの提供（イベント内容が相手の事業や課題に役立つ理由）
+- ネットワーキング（参加者や登壇者との出会いの価値）
+- 意見交換（相手の知見や視点を求めている）
+- 業界への貢献（相手の参加が業界にとって意義がある）
+
+【出力形式】
+JSON形式で3つの候補を返してください：
+{
+  "suggestions": [
+    "候補1のテキスト",
+    "候補2のテキスト",
+    "候補3のテキスト"
+  ]
+}`;
+    } else {
+      // セールスモード用のswitch文
+      switch (field) {
       case 'background':
         assistPrompt = `【タスク】
 営業手紙の「背景・フック」セクションの候補を3つ提案してください。
@@ -144,6 +187,7 @@ JSON形式で3つの候補を返してください：
           { error: '無効なフィールドです' },
           { status: 400 }
         );
+      }
     }
 
     const result = await generateText({

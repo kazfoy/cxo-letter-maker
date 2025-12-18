@@ -6,6 +6,7 @@ export interface LetterHistory {
   targetCompany: string;
   targetName: string;
   content: string;
+  isPinned?: boolean; // ピン留め状態
   inputs: {
     myCompanyName: string;
     myName: string;
@@ -34,6 +35,7 @@ export function saveToHistory(
       targetName: inputs.name,
       content,
       inputs,
+      isPinned: false,
     };
 
     const stored = localStorage.getItem('letterHistories');
@@ -42,11 +44,38 @@ export function saveToHistory(
     // 新しい履歴を先頭に追加
     histories.unshift(history);
 
-    // 最大10件まで保存
-    const trimmed = histories.slice(0, 10);
+    // ピン留めされたアイテムとされていないアイテムを分離
+    const pinnedItems = histories.filter(h => h.isPinned);
+    const unpinnedItems = histories.filter(h => !h.isPinned);
+
+    // ピン留めされていないアイテムのみを最大10件に制限
+    const trimmedUnpinned = unpinnedItems.slice(0, 10);
+
+    // ピン留めされたアイテムと結合（ピン留めされたアイテムは上限に含めない）
+    const trimmed = [...pinnedItems, ...trimmedUnpinned];
 
     localStorage.setItem('letterHistories', JSON.stringify(trimmed));
   } catch (error) {
     console.error('履歴保存エラー:', error);
+  }
+}
+
+/**
+ * 指定IDの履歴のピン留め状態を切り替える
+ */
+export function togglePin(id: string): LetterHistory[] {
+  try {
+    const stored = localStorage.getItem('letterHistories');
+    const histories: LetterHistory[] = stored ? JSON.parse(stored) : [];
+
+    const updated = histories.map(h =>
+      h.id === id ? { ...h, isPinned: !h.isPinned } : h
+    );
+
+    localStorage.setItem('letterHistories', JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.error('ピン留め切り替えエラー:', error);
+    return [];
   }
 }

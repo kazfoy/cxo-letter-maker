@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { togglePin } from '@/lib/historyUtils';
 
 interface LetterHistory {
   id: string;
@@ -8,6 +9,7 @@ interface LetterHistory {
   targetCompany: string;
   targetName: string;
   content: string;
+  isPinned?: boolean;
   inputs: {
     myCompanyName: string;
     myName: string;
@@ -60,6 +62,23 @@ export function HistorySidebar({ onRestore }: HistorySidebarProps) {
     }
   };
 
+  const handleTogglePin = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // クリックイベントの伝播を止める
+    try {
+      const updated = togglePin(id);
+      setHistories(updated);
+    } catch (error) {
+      console.error('ピン留め切り替えエラー:', error);
+    }
+  };
+
+  // ピン留めされたアイテムを上部に表示
+  const sortedHistories = [...histories].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return 0; // 同じピン状態内では元の順序を保持
+  });
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 h-full overflow-hidden flex flex-col">
       <h2 className="text-lg font-semibold mb-3 text-gray-800">
@@ -67,29 +86,45 @@ export function HistorySidebar({ onRestore }: HistorySidebarProps) {
       </h2>
 
       <div className="overflow-y-auto flex-1">
-        {histories.length === 0 ? (
+        {sortedHistories.length === 0 ? (
           <p className="text-gray-500 text-sm text-center py-4">
             履歴がありません
           </p>
         ) : (
           <div className="space-y-2">
-            {histories.map((history) => (
+            {sortedHistories.map((history) => (
               <div
                 key={history.id}
-                className="border rounded-md p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                className={`border rounded-md p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  history.isPinned
+                    ? 'bg-amber-50 border-amber-300'
+                    : ''
+                }`}
                 onClick={() => onRestore(history)}
               >
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="font-medium text-sm text-gray-800 line-clamp-1">
                     {history.targetCompany}
                   </h3>
-                  <button
-                    onClick={(e) => handleDelete(history.id, e)}
-                    className="text-xs text-red-600 hover:text-red-700 ml-2"
-                    aria-label="削除"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex gap-1 ml-2">
+                    <button
+                      onClick={(e) => handleTogglePin(history.id, e)}
+                      className={`text-sm hover:scale-110 transition-transform ${
+                        history.isPinned ? 'text-amber-600' : 'text-gray-400'
+                      }`}
+                      aria-label={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
+                      title={history.isPinned ? 'ピン留め解除' : 'ピン留めすると自動削除されません'}
+                    >
+                      📌
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(history.id, e)}
+                      className="text-xs text-red-600 hover:text-red-700"
+                      aria-label="削除"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-600 mb-1">
                   {history.targetName}様

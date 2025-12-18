@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // PDF.jsを使用するため、SSRを無効化して動的インポート
@@ -60,9 +60,23 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   const [multiSourceModalOpen, setMultiSourceModalOpen] = useState(false);
   const [sourceInputType, setSourceInputType] = useState<'own' | 'target'>('own');
   const [isAnalyzingSource, setIsAnalyzingSource] = useState(false);
-  const [inputMode, setInputMode] = useState<'step' | 'freeform'>('step'); // タブ切り替え用
+  // モードに応じた初期値: セールス=freeform, イベント=step
+  const [inputMode, setInputMode] = useState<'step' | 'freeform'>(mode === 'sales' ? 'freeform' : 'step');
   const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
-  const [inputComplexity, setInputComplexity] = useState<'simple' | 'detailed'>('detailed'); // かんたん/詳細モード
+  // セールスモードのみ使用（イベントモードではfreeform/stepで制御）
+  const [inputComplexity, setInputComplexity] = useState<'simple' | 'detailed'>(mode === 'sales' ? 'simple' : 'detailed');
+  const [errorDisplay, setErrorDisplay] = useState<ApiErrorDisplay>({ message: '', show: false });
+
+  // モード変更時にタブをリセット
+  useEffect(() => {
+    if (mode === 'sales') {
+      setInputMode('freeform');
+      setInputComplexity('simple');
+    } else {
+      setInputMode('step');
+      setInputComplexity('detailed');
+    }
+  }, [mode]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -570,6 +584,35 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         {mode === 'event' && (
           <div className="border-b pb-4">
             <h3 className="font-medium text-gray-700 mb-3">イベント情報</h3>
+
+            {/* タブUI */}
+            <div className="flex gap-2 border-b border-gray-200 mb-4">
+              <button
+                type="button"
+                onClick={() => setInputMode('step')}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  inputMode === 'step'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                ステップ入力（詳細）
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('freeform')}
+                className={`px-4 py-2 font-medium text-sm transition-colors ${
+                  inputMode === 'freeform'
+                    ? 'text-purple-600 border-b-2 border-purple-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                まとめて入力
+              </button>
+            </div>
+
+            {/* ステップ入力モード */}
+            {inputMode === 'step' && (
             <div className="space-y-3">
               <div>
                 <label htmlFor="eventUrl" className="block text-sm font-medium text-gray-700 mb-1">
@@ -671,6 +714,85 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 />
               </div>
             </div>
+            )}
+
+            {/* まとめて入力モード */}
+            {inputMode === 'freeform' && (
+              <div className="space-y-4">
+                <div className="bg-purple-50 border border-purple-200 rounded-md p-4 mb-4">
+                  <p className="text-sm text-purple-800">
+                    💡 最小限の情報でイベント招待状を作成できます。AIがイベント情報を解析し、招待の必然性を構成します。
+                  </p>
+                </div>
+
+                {/* 1. イベントURL */}
+                <div>
+                  <label htmlFor="eventUrlFreeform" className="block text-sm font-medium text-gray-700 mb-1">
+                    1. イベントURL <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      id="eventUrlFreeform"
+                      name="eventUrl"
+                      value={formData.eventUrl || ''}
+                      onChange={handleChange}
+                      required={inputMode === 'freeform'}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="例: https://example.com/event"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeEventUrl}
+                      disabled={!formData.eventUrl || isAnalyzingSource}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+                    >
+                      {isAnalyzingSource ? '解析中...' : '自動解析'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    イベントのURLを入力して「自動解析」をクリックすると、イベント名・日時・登壇者が自動入力されます
+                  </p>
+                </div>
+
+                {/* 2. ターゲット企業名 */}
+                <div>
+                  <label htmlFor="companyNameFreeform" className="block text-sm font-medium text-gray-700 mb-1">
+                    2. ターゲット企業名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="companyNameFreeform"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    required={inputMode === 'freeform'}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="例: 株式会社サンプル"
+                  />
+                </div>
+
+                {/* 3. 誘いたい理由・メモ */}
+                <div>
+                  <label htmlFor="invitationMemo" className="block text-sm font-medium text-gray-700 mb-1">
+                    3. 誘いたい理由・メモ（任意）
+                  </label>
+                  <textarea
+                    id="invitationMemo"
+                    name="invitationReason"
+                    value={formData.invitationReason || ''}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="例: DX推進に課題を抱えているため、AI活用の最新事例を学んでほしい"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    招待したい背景や理由を自由に記入してください。AIが招待状の「Why You?」部分を構成します。
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

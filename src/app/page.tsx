@@ -26,6 +26,8 @@ interface LetterFormData {
   eventDateTime?: string; // 開催日時・場所
   eventSpeakers?: string; // 主要登壇者/ゲスト
   invitationReason?: string; // 招待の背景（Why You?）
+  // かんたんモード用フィールド
+  simpleRequirement?: string; // 伝えたい要件
 }
 
 export type LetterMode = 'sales' | 'event';
@@ -52,6 +54,7 @@ export default function Home() {
     eventDateTime: '',
     eventSpeakers: '',
     invitationReason: '',
+    simpleRequirement: '',
   });
 
   const handleGenerate = (letter: string, data: LetterFormData) => {
@@ -88,6 +91,7 @@ export default function Home() {
       eventDateTime: '',
       eventSpeakers: '',
       invitationReason: '',
+      simpleRequirement: '',
     });
 
     setGeneratedLetter('');

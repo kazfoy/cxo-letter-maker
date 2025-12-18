@@ -38,6 +38,8 @@ interface LetterFormData {
   eventDateTime?: string;
   eventSpeakers?: string;
   invitationReason?: string;
+  // かんたんモード用フィールド
+  simpleRequirement?: string; // 伝えたい要件
 }
 
 type LetterMode = 'sales' | 'event';
@@ -60,6 +62,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   const [isAnalyzingSource, setIsAnalyzingSource] = useState(false);
   const [inputMode, setInputMode] = useState<'step' | 'freeform'>('step'); // タブ切り替え用
   const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
+  const [inputComplexity, setInputComplexity] = useState<'simple' | 'detailed'>('detailed'); // かんたん/詳細モード
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -208,7 +211,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, model: 'flash', mode }),
+        body: JSON.stringify({ ...formData, model: 'flash', mode, inputComplexity }),
       });
 
       const data = await response.json();
@@ -272,7 +275,116 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
 
+      {/* 入力複雑度切り替えタブ（セールスモードのみ） */}
+      {mode === 'sales' && (
+        <div className="flex gap-2 border-b border-gray-200 mb-6">
+          <button
+            type="button"
+            onClick={() => setInputComplexity('simple')}
+            className={`px-6 py-2.5 font-medium text-sm transition-colors ${
+              inputComplexity === 'simple'
+                ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            ⚡ かんたんモード
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputComplexity('detailed')}
+            className={`px-6 py-2.5 font-medium text-sm transition-colors ${
+              inputComplexity === 'detailed'
+                ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            📝 詳細モード
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* かんたんモードのフォーム */}
+        {mode === 'sales' && inputComplexity === 'simple' && (
+          <>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                💡 最小限の情報でお試しいただけます。AIが自動的に補完して手紙を作成します。
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 1. ターゲット企業名 */}
+              <div>
+                <label htmlFor="simpleCompanyName" className="block text-sm font-medium text-gray-700 mb-1">
+                  1. ターゲット企業名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="simpleCompanyName"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 株式会社〇〇"
+                />
+              </div>
+
+              {/* 2. 自社サービス名・概要 */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="simpleServiceDescription" className="block text-sm font-medium text-gray-700">
+                    2. 自社サービス名・概要 <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMultiSourceModal('own')}
+                    className="bg-green-50 text-green-700 border border-green-300 px-3 py-1 rounded-md hover:bg-green-100 transition-colors text-xs font-medium"
+                    aria-label="自社HPから入力"
+                  >
+                    🏢 HPから入力
+                  </button>
+                </div>
+                <textarea
+                  id="simpleServiceDescription"
+                  name="myServiceDescription"
+                  value={formData.myServiceDescription}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 中小企業向けクラウド会計ソフトを提供しています"
+                  maxLength={300}
+                />
+              </div>
+
+              {/* 3. 伝えたい要件 */}
+              <div>
+                <label htmlFor="simpleRequirement" className="block text-sm font-medium text-gray-700 mb-1">
+                  3. 伝えたい要件（任意）
+                </label>
+                <input
+                  type="text"
+                  id="simpleRequirement"
+                  name="simpleRequirement"
+                  value={formData.simpleRequirement || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: アポを取りたい、展示会のお礼、サービス紹介"
+                  maxLength={100}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  手紙の目的を一言で記入してください（例: 「アポを取りたい」「サービス紹介」）
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 詳細モードまたはイベントモードのフォーム */}
+        {(mode === 'event' || inputComplexity === 'detailed') && (
+          <>
         {/* 自社情報 */}
         <div className="border-b pb-4">
           <div className="flex justify-between items-center mb-3">
@@ -710,6 +822,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
             </div>
           )}
         </div>
+        )}
+        </>
         )}
 
         <button

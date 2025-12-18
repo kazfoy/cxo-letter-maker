@@ -33,17 +33,67 @@ export async function POST(request: Request) {
       freeformInput,
       model = 'flash',
       mode = 'sales',
+      inputComplexity = 'detailed',
       // イベントモード用フィールド
       eventUrl,
       eventName,
       eventDateTime,
       eventSpeakers,
       invitationReason,
+      // かんたんモード用フィールド
+      simpleRequirement,
     } = body;
 
     // モデル選択
     const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
     const geminiModel = google(modelName);
+
+    // かんたんモードの場合（セールスモードのみ）
+    if (mode === 'sales' && inputComplexity === 'simple') {
+      const prompt = `あなたはCxO向けセールスレターの専門家です。
+以下の最小限の情報から、経営層に「会いたい」と思わせる営業手紙を作成してください。
+
+【提供された情報】
+ターゲット企業名: ${companyName}
+自社サービス概要: ${myServiceDescription}
+${simpleRequirement ? `伝えたい要件: ${simpleRequirement}` : ''}
+
+【あなたの役割】
+提供された情報が少ないため、以下の要素をAIが推測・補完して、完全なCxOレターを作成してください。
+
+【補完すべき要素】
+1. 背景・フック: ${companyName}の業界や事業内容から推測される最近の話題やトレンド
+2. 課題の指摘: ${companyName}が属する業界で一般的に抱える課題
+3. 解決策の提示: ${myServiceDescription}がその課題をどう解決できるか
+4. 事例・実績: サービスの一般的な成果や効果（具体的な企業名は不要）
+5. オファー: ${simpleRequirement || '情報交換や打ち合わせ'}を目的とした具体的なアクション
+
+【作成ルール】
+- CxOレターの5要素（背景・課題・解決策・実績・オファー）を必ず含めること
+- 文字数: 800〜1000文字程度
+- トーン: 丁寧だが堅苦しくない、ビジネスライク
+- 推測した内容でも、自信を持って具体的に書くこと（「〜かもしれません」ではなく断定的に）
+- 一般論に終始せず、${companyName}に対する具体的な提案として書くこと
+- 宛名は「${companyName} ご担当者様」で始める
+- 末尾は「${myServiceDescription}を提供している者より」で締める
+
+【フォーマット制約】
+- **重要**: Markdown記法を一切使用しないこと
+  * 太字（**text**）、斜体（*text*）、見出し（#）などは禁止
+  * プレーンテキストのみで出力すること
+- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
+- 箇条書きが必要な場合は、ハイフン（-）やアスタリスク（*）を使わず、全角中黒（・）または改行のみを使用すること
+- 手紙として自然で読みやすいプレーンテキスト形式にすること
+
+それでは、手紙本文を作成してください。`;
+
+      const result = await generateText({
+        model: geminiModel,
+        prompt: prompt,
+      });
+      const letter = result.text;
+      return NextResponse.json({ letter });
+    }
 
     // イベント招待モードの場合
     if (mode === 'event') {

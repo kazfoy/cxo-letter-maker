@@ -143,7 +143,7 @@ export function PreviewArea({
         <div className="flex justify-between items-center">
           {/* Left side: Title and Stats */}
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-gray-800">プレビュー</h2>
+            <h2 className="text-xl font-bold text-slate-900 leading-relaxed">プレビュー</h2>
             {content && (
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
@@ -174,7 +174,7 @@ export function PreviewArea({
               </button>
               <button
                 onClick={handleExportWord}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                className="px-3 py-1.5 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded transition-colors font-semibold"
                 aria-label="Word形式でダウンロード"
               >
                 📄 Word出力

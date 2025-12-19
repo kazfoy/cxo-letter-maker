@@ -157,45 +157,49 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <Header />
 
       {/* モード切り替えUI */}
-      <div className="bg-white border-b sticky top-0 z-30">
+      <div className="bg-white border-b sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2">
-            {/* サイドバー開閉ボタン（閉じている時のみ表示） */}
-            {!isSidebarOpen && (
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-                aria-label="履歴を開く"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            )}
+          <div className="flex items-center gap-4">
+            {/* 履歴ボタン（常に表示） */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all font-medium ${
+                isSidebarOpen
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+              aria-label={isSidebarOpen ? '履歴を閉じる' : '履歴を開く'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden sm:inline">履歴</span>
+            </button>
+
             <div className="flex gap-1 flex-1">
               <button
                 onClick={() => setMode('sales')}
-                className={`px-6 py-3 font-medium transition-all ${
+                className={`px-6 py-3 font-medium transition-all rounded-t-md ${
                   mode === 'sales'
-                    ? 'bg-blue-600 text-white border-b-2 border-blue-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                📧 セールスレターモード
+                📧 セールスレター
               </button>
               <button
                 onClick={() => setMode('event')}
-                className={`px-6 py-3 font-medium transition-all ${
+                className={`px-6 py-3 font-medium transition-all rounded-t-md ${
                   mode === 'event'
-                    ? 'bg-purple-600 text-white border-b-2 border-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                🎫 イベント招待モード
+                🎫 イベント招待
               </button>
             </div>
           </div>
@@ -203,11 +207,11 @@ export default function Home() {
       </div>
 
       {/* 保存&リセットボタン */}
-      <div className="bg-white border-b sticky top-[57px] z-30">
+      <div className="bg-white border-b sticky top-[57px] z-30 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <button
             onClick={handleSaveAndReset}
-            className="w-full md:w-auto bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-6 rounded-md hover:from-green-700 hover:to-blue-700 transition-all font-medium shadow-sm"
+            className="w-full md:w-auto bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition-all font-medium shadow-sm"
           >
             💾 現在の内容を履歴に保存してリセット
           </button>
@@ -232,7 +236,7 @@ export default function Home() {
               className={`
                 fixed md:relative top-0 left-0 h-full md:h-auto
                 md:col-span-2 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto
-                bg-gray-50 md:bg-transparent z-50 md:z-10
+                bg-slate-50 md:bg-transparent z-50 md:z-10
                 transition-transform duration-300 ease-in-out
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                 ${!isSidebarOpen ? 'md:hidden' : ''}

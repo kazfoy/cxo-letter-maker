@@ -323,7 +323,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">
+      <h2 className="text-xl font-bold mb-4 text-slate-900 leading-relaxed">
         {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
 
@@ -1021,12 +1021,12 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         <button
           type="submit"
           disabled={isGenerating}
-          className={`w-full py-3 px-4 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${
+          className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${
             generationSuccess
               ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
               : isGenerating
-              ? 'bg-blue-500 text-white cursor-wait'
-              : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl focus:ring-blue-500'
+              ? 'bg-indigo-500 text-white cursor-wait'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label="手紙を生成"
         >

@@ -86,7 +86,7 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
   return (
     <div className="bg-white rounded-lg shadow-md p-4 h-full md:h-auto overflow-y-auto md:overflow-visible">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-800">
+        <h2 className="text-lg font-bold text-slate-900 leading-relaxed">
           履歴（最新10件）
         </h2>
         {isOpen && (
@@ -139,7 +139,7 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
             {onSampleExperience && (
               <button
                 onClick={onSampleExperience}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-4 rounded-md hover:from-blue-600 hover:to-purple-600 transition-all font-medium shadow-md hover:shadow-lg"
+                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
               >
                 ✨ サンプルで体験する
               </button>

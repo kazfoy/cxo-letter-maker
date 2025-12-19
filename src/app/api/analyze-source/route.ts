@@ -44,10 +44,11 @@ export async function POST(request: Request) {
     }
 
     const extractedTexts: string[] = [];
+    let urlResults: PromiseSettledResult<{source: string; text: string}>[] = [];
 
     // 複数URLからテキスト抽出（並列処理）
     if (urls.length > 0) {
-      const urlResults = await Promise.allSettled(
+      urlResults = await Promise.allSettled(
         urls.map(async (url, index) => {
           try {
             const response = await fetch(url, {

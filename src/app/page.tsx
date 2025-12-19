@@ -156,11 +156,11 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* モード切り替えUI */}
-      <div className="bg-white border-b flex-shrink-0">
+      <div className="bg-white border-b sticky top-0 z-30">
         <div className="container mx-auto px-4">
           <div className="flex gap-1">
             <button
@@ -188,7 +188,7 @@ export default function Home() {
       </div>
 
       {/* 保存&リセットボタン */}
-      <div className="bg-white border-b flex-shrink-0">
+      <div className="bg-white border-b sticky top-[57px] z-30">
         <div className="container mx-auto px-4 py-3">
           <button
             onClick={handleSaveAndReset}
@@ -199,34 +199,32 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 3カラムレイアウト */}
-      <main className="flex-1 overflow-hidden">
-        <div className="container mx-auto h-full px-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 h-full py-4">
-            {/* 左側: 履歴サイドバー */}
-            <div className="md:col-span-2 min-h-[300px] md:h-full overflow-y-auto">
-              <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
-            </div>
+      {/* 3カラムレイアウト（自然なスクロール） */}
+      <main className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+          {/* 左側: 履歴サイドバー（Sticky追従） */}
+          <div className="md:col-span-2 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10">
+            <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
+          </div>
 
-            {/* 中央: 入力フォーム */}
-            <div className="md:col-span-5 min-h-[400px] md:h-full overflow-y-auto">
-              <InputForm
-                mode={mode}
-                onGenerate={handleGenerate}
-                setIsGenerating={setIsGenerating}
-                formData={formData}
-                setFormData={setFormData}
-              />
-            </div>
+          {/* 中央: 入力フォーム（自然に伸びる） */}
+          <div className="md:col-span-5">
+            <InputForm
+              mode={mode}
+              onGenerate={handleGenerate}
+              setIsGenerating={setIsGenerating}
+              formData={formData}
+              setFormData={setFormData}
+            />
+          </div>
 
-            {/* 右側: プレビューエリア */}
-            <div className="md:col-span-5 min-h-[500px] md:h-full overflow-y-auto">
-              <PreviewArea
-                content={generatedLetter}
-                onContentChange={setGeneratedLetter}
-                isGenerating={isGenerating}
-              />
-            </div>
+          {/* 右側: プレビューエリア（Sticky追従） */}
+          <div className="md:col-span-5 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10">
+            <PreviewArea
+              content={generatedLetter}
+              onContentChange={setGeneratedLetter}
+              isGenerating={isGenerating}
+            />
           </div>
         </div>
       </main>

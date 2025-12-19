@@ -82,12 +82,12 @@ export function HistorySidebar({ onRestore, onSampleExperience }: HistorySidebar
   });
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 h-full overflow-hidden flex flex-col">
+    <div className="bg-white rounded-lg shadow-md p-4">
       <h2 className="text-lg font-semibold mb-3 text-gray-800">
         履歴（最新10件）
       </h2>
 
-      <div className="overflow-y-auto flex-1">
+      <div>
         {sortedHistories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 px-4">
             <div className="text-6xl mb-4">📂</div>

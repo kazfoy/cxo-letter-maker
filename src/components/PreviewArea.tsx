@@ -282,18 +282,20 @@ export function PreviewArea({
           <textarea
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            className="w-full h-[500px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-md resize-none font-serif text-gray-800 leading-relaxed bg-white"
+            className="w-full h-[500px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-md resize-none font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
             style={{
               lineHeight: '1.8',
-              fontSize: '15px',
-              fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif",
             }}
             placeholder="生成された手紙がここに表示されます"
             aria-label="生成された手紙の編集エリア"
           />
         ) : (
-          <div className="flex items-center justify-center h-[500px] text-gray-400">
-            左側のフォームに情報を入力して「手紙を生成」をクリックしてください
+          <div className="flex flex-col items-center justify-center h-[500px] text-gray-400 px-8">
+            <div className="text-6xl mb-4">✉️</div>
+            <p className="text-lg font-medium text-gray-600 mb-2">ここに手紙が表示されます</p>
+            <p className="text-sm text-gray-500 text-center max-w-md">
+              AIがプロ品質の手紙を書きます。左側のフォームに情報を入力して「手紙を作成する」をクリックしてください。
+            </p>
           </div>
         )}
       </div>

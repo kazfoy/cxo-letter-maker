@@ -67,6 +67,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   const [multiSourceModalOpen, setMultiSourceModalOpen] = useState(false);
   const [sourceInputType, setSourceInputType] = useState<'own' | 'target'>('own');
   const [isAnalyzingSource, setIsAnalyzingSource] = useState(false);
+  const [isGenerating, setIsGeneratingLocal] = useState(false);
+  const [generationSuccess, setGenerationSuccess] = useState(false);
   // モードに応じた初期値: セールス=freeform, イベント=step
   const [inputMode, setInputMode] = useState<'step' | 'freeform'>(mode === 'sales' ? 'freeform' : 'step');
   const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
@@ -248,6 +250,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
+    setIsGeneratingLocal(true);
+    setGenerationSuccess(false);
 
     try {
       const response = await fetch('/api/generate', {
@@ -259,6 +263,9 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       const data = await response.json();
       if (data.letter) {
         onGenerate(data.letter, formData);
+        setGenerationSuccess(true);
+        // 2秒後に成功状態をリセット
+        setTimeout(() => setGenerationSuccess(false), 2000);
       } else if (data.error) {
         handleApiErrorData(data);
       }
@@ -267,6 +274,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
       showError('手紙の生成に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsGenerating(false);
+      setIsGeneratingLocal(false);
     }
   };
 
@@ -1012,10 +1020,34 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isGenerating}
+          className={`w-full py-3 px-4 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${
+            generationSuccess
+              ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+              : isGenerating
+              ? 'bg-blue-500 text-white cursor-wait'
+              : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl focus:ring-blue-500'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label="手紙を生成"
         >
-          {mode === 'sales' ? '手紙を生成' : 'イベント招待状を生成'}
+          {generationSuccess ? (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>作成完了！</span>
+            </>
+          ) : isGenerating ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>作成中...</span>
+            </>
+          ) : (
+            <>
+              <span className="text-lg">✨</span>
+              <span>{mode === 'sales' ? '手紙を作成する' : 'イベント招待状を作成する'}</span>
+            </>
+          )}
         </button>
       </form>
 

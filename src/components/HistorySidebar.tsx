@@ -89,10 +89,26 @@ export function HistorySidebar({ onRestore, onSampleExperience }: HistorySidebar
 
       <div className="overflow-y-auto flex-1">
         {sortedHistories.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-gray-500 text-sm mb-4">
-              履歴がありません
-            </p>
+          <div className="flex flex-col items-center justify-center py-8 px-4">
+            <div className="text-6xl mb-4">📂</div>
+            <p className="text-lg font-medium text-gray-600 mb-3">まだ履歴はありません</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 w-full">
+              <p className="text-sm font-medium text-blue-900 mb-2">使い方（3ステップ）</p>
+              <ol className="text-xs text-blue-800 space-y-1.5">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold flex-shrink-0">1.</span>
+                  <span>基本情報（会社名、名前など）を入力</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold flex-shrink-0">2.</span>
+                  <span>手紙の内容を入力（またはAIアシスト）</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold flex-shrink-0">3.</span>
+                  <span>「手紙を作成する」をクリック</span>
+                </li>
+              </ol>
+            </div>
             {onSampleExperience && (
               <button
                 onClick={onSampleExperience}

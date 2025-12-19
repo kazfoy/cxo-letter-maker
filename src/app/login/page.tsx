@@ -5,13 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
+type TabType = 'login' | 'signup';
+
 export default function LoginPage() {
+  const [activeTab, setActiveTab] = useState<TabType>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
@@ -24,62 +26,46 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
+  // 新規登録: Magic Link (OTP) を送信
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    setAwaitingConfirmation(false);
+    setMagicLinkSent(false);
 
     try {
-      console.log('Starting signup process...');
+      console.log('Sending magic link to:', email);
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) {
-        console.error('Signup error:', error);
+        console.error('Magic link error:', error);
         throw error;
       }
 
-      console.log('Signup response:', { hasUser: !!data.user, hasSession: !!data.session });
-
-      // ケースA: 即時ログイン成功（メール確認不要）
-      if (data.session) {
-        console.log('Session exists - redirecting to dashboard');
-        setMessage({
-          type: 'success',
-          text: 'アカウントを作成しました。ダッシュボードに移動します...',
-        });
-        // 少し待ってからリダイレクト（メッセージを見せるため）
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 500);
-      }
-      // ケースB: メール確認待ち
-      else if (data.user && !data.session) {
-        console.log('Email confirmation required - showing confirmation message');
-        setAwaitingConfirmation(true);
-        setMessage({
-          type: 'success',
-          text: '確認メールを送信しました',
-        });
-      }
+      console.log('Magic link sent successfully');
+      setMagicLinkSent(true);
+      setMessage({
+        type: 'success',
+        text: '登録用リンクを送信しました',
+      });
     } catch (error: any) {
       console.error('Signup error:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'アカウント作成に失敗しました。もう一度お試しください。',
+        text: error.message || '登録リンクの送信に失敗しました。もう一度お試しください。',
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // ログイン: Email + Password
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -116,7 +102,7 @@ export default function LoginPage() {
       if (error.message.includes('Invalid login credentials')) {
         errorMessage = 'メールアドレスまたはパスワードが正しくありません';
       } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = 'メールアドレスが確認されていません。確認メールをご確認ください';
+        errorMessage = 'メールアドレスが確認されていません。登録用リンクから登録を完了してください';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -130,16 +116,8 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    if (isSignUp) {
-      handleSignUp(e);
-    } else {
-      handleSignIn(e);
-    }
-  };
-
-  // メール確認待ち画面
-  if (awaitingConfirmation) {
+  // Magic Link送信完了画面
+  if (magicLinkSent) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
@@ -147,14 +125,14 @@ export default function LoginPage() {
             <div className="text-center">
               <div className="text-6xl mb-4">📧</div>
               <h1 className="text-2xl font-bold text-slate-900 mb-4">
-                確認メールを送信しました
+                登録用リンクを送信しました
               </h1>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
                 <p className="text-sm text-blue-900 mb-3">
-                  <strong>{email}</strong> 宛に確認メールを送信しました。
+                  <strong>{email}</strong> 宛に登録用リンクを送信しました。
                 </p>
                 <p className="text-sm text-blue-800 mb-2">
-                  メール内のリンクをクリックして登録を完了してください。
+                  メール内のリンクをクリックしてパスワードを設定してください。
                 </p>
                 <p className="text-xs text-blue-700">
                   メールが届かない場合は、迷惑メールフォルダをご確認ください。
@@ -162,8 +140,8 @@ export default function LoginPage() {
               </div>
               <button
                 onClick={() => {
-                  setAwaitingConfirmation(false);
-                  setIsSignUp(false);
+                  setMagicLinkSent(false);
+                  setActiveTab('login');
                   setEmail('');
                   setPassword('');
                   setMessage(null);
@@ -185,84 +163,154 @@ export default function LoginPage() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              {isSignUp ? '新規登録' : 'ログイン'}
+              CxO Letter Maker
             </h1>
             <p className="text-slate-600">
-              CxO Letter Maker
+              セールスレター作成ツール
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                メールアドレス
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                placeholder="your@email.com"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                パスワード
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                placeholder="••••••••"
-                disabled={loading}
-              />
-              {isSignUp && (
-                <p className="mt-1 text-xs text-slate-500">
-                  6文字以上で入力してください
-                </p>
-              )}
-            </div>
-
-            {message && (
-              <div
-                className={`p-4 rounded-md ${
-                  message.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
-              >
-                <p className="text-sm">{message.text}</p>
-              </div>
-            )}
-
+          {/* タブUI */}
+          <div className="flex border-b border-slate-200 mb-6">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '処理中...' : isSignUp ? 'アカウントを作成' : 'ログイン'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
+              type="button"
               onClick={() => {
-                setIsSignUp(!isSignUp);
+                setActiveTab('login');
                 setMessage(null);
+                setPassword('');
               }}
-              className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'login'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
             >
-              {isSignUp ? 'すでにアカウントをお持ちですか？ ログイン' : 'アカウントをお持ちでない方は 新規登録'}
+              ログイン
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('signup');
+                setMessage(null);
+                setPassword('');
+              }}
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'signup'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              新規登録
             </button>
           </div>
+
+          {/* ログインフォーム */}
+          {activeTab === 'login' && (
+            <form onSubmit={handleSignIn} className="space-y-6">
+              <div>
+                <label htmlFor="login-email" className="block text-sm font-medium text-slate-700 mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  placeholder="your@email.com"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="login-password" className="block text-sm font-medium text-slate-700 mb-2">
+                  パスワード
+                </label>
+                <input
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+              </div>
+
+              {message && (
+                <div
+                  className={`p-4 rounded-md ${
+                    message.type === 'success'
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '処理中...' : 'ログイン'}
+              </button>
+            </form>
+          )}
+
+          {/* 新規登録フォーム */}
+          {activeTab === 'signup' && (
+            <form onSubmit={handleSignUp} className="space-y-6">
+              <div>
+                <label htmlFor="signup-email" className="block text-sm font-medium text-slate-700 mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  placeholder="your@email.com"
+                  disabled={loading}
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  登録用リンクをメールで送信します
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-xs text-blue-900">
+                  📌 メール内のリンクをクリックすると、パスワード設定画面が開きます。パスワードを設定して登録を完了してください。
+                </p>
+              </div>
+
+              {message && (
+                <div
+                  className={`p-4 rounded-md ${
+                    message.type === 'success'
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '送信中...' : '登録用リンクを送信'}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 text-center">
             <button

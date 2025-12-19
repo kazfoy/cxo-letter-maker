@@ -117,7 +117,7 @@ export function PreviewArea({
   const readingTimeMinutes = charCount > 0 ? Math.ceil(charCount / 500) : 0; // Japanese reading speed ~500 chars/min
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-8 h-fit">
+    <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
       {/* 通知 */}
       {notification && (
         <div className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
@@ -258,7 +258,7 @@ export function PreviewArea({
       )}
 
       {/* プレビューエリア */}
-      <div className="relative border border-gray-300 rounded-md min-h-[500px] bg-white">
+      <div className="relative border border-gray-300 rounded-md flex-1 bg-white overflow-hidden">
         {/* 編集可能ヒント */}
         {content && !isGenerating && !isEditing && (
           <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200 z-10">
@@ -270,7 +270,7 @@ export function PreviewArea({
         )}
 
         {isGenerating || isEditing ? (
-          <div className="flex items-center justify-center h-[500px]">
+          <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600">
@@ -282,7 +282,7 @@ export function PreviewArea({
           <textarea
             value={content}
             onChange={(e) => onContentChange(e.target.value)}
-            className="w-full h-[500px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-md resize-none font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
+            className="w-full h-full p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-md resize-none font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
             style={{
               lineHeight: '1.8',
             }}
@@ -290,7 +290,7 @@ export function PreviewArea({
             aria-label="生成された手紙の編集エリア"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-[500px] text-gray-400 px-8">
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 px-8">
             <div className="text-6xl mb-4">✉️</div>
             <p className="text-lg font-medium text-gray-600 mb-2">ここに手紙が表示されます</p>
             <p className="text-sm text-gray-500 text-center max-w-md">

@@ -156,11 +156,11 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50">
       <Header />
 
       {/* モード切り替えUI */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex gap-1">
             <button
@@ -187,46 +187,45 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* 左側: 履歴サイドバー */}
-          <div className="lg:col-span-3">
-            <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
-          </div>
+      {/* 保存&リセットボタン */}
+      <div className="bg-white border-b flex-shrink-0">
+        <div className="container mx-auto px-4 py-3">
+          <button
+            onClick={handleSaveAndReset}
+            className="w-full md:w-auto bg-gradient-to-r from-green-600 to-blue-600 text-white py-2 px-6 rounded-md hover:from-green-700 hover:to-blue-700 transition-all font-medium shadow-sm"
+          >
+            💾 現在の内容を履歴に保存してリセット
+          </button>
+        </div>
+      </div>
 
-          {/* 右側: メインコンテンツ */}
-          <div className="lg:col-span-9 space-y-4">
-            {/* 保存&リセットボタン */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <button
-                onClick={handleSaveAndReset}
-                className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-md hover:from-green-700 hover:to-blue-700 transition-all font-medium shadow-sm"
-              >
-                💾 現在の内容を履歴に保存してリセット
-              </button>
+      {/* 3カラムレイアウト */}
+      <main className="flex-1 overflow-hidden">
+        <div className="container mx-auto h-full px-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 h-full py-4">
+            {/* 左側: 履歴サイドバー */}
+            <div className="md:col-span-2 min-h-[300px] md:h-full overflow-y-auto">
+              <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
             </div>
 
-            {/* 入力フォームとプレビューのグリッド */}
-            <div className="grid grid-cols-1 lg:grid-cols-9 gap-6">
-              {/* 中央: 入力フォーム */}
-              <div className="lg:col-span-5">
-                <InputForm
-                  mode={mode}
-                  onGenerate={handleGenerate}
-                  setIsGenerating={setIsGenerating}
-                  formData={formData}
-                  setFormData={setFormData}
-                />
-              </div>
+            {/* 中央: 入力フォーム */}
+            <div className="md:col-span-5 min-h-[400px] md:h-full overflow-y-auto">
+              <InputForm
+                mode={mode}
+                onGenerate={handleGenerate}
+                setIsGenerating={setIsGenerating}
+                formData={formData}
+                setFormData={setFormData}
+              />
+            </div>
 
-              {/* 右側: プレビューエリア */}
-              <div className="lg:col-span-4">
-                <PreviewArea
-                  content={generatedLetter}
-                  onContentChange={setGeneratedLetter}
-                  isGenerating={isGenerating}
-                />
-              </div>
+            {/* 右側: プレビューエリア */}
+            <div className="md:col-span-5 min-h-[500px] md:h-full overflow-y-auto">
+              <PreviewArea
+                content={generatedLetter}
+                onContentChange={setGeneratedLetter}
+                isGenerating={isGenerating}
+              />
             </div>
           </div>
         </div>

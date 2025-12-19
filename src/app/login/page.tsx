@@ -123,19 +123,38 @@ export default function LoginPage() {
         <div className="max-w-md w-full">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
             <div className="text-center">
-              <div className="text-6xl mb-4">📧</div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-4">
-                登録用リンクを送信しました
+              <div className="text-7xl mb-6 animate-bounce">📧</div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-3">
+                メールを確認してください
               </h1>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <p className="text-sm text-blue-900 mb-3">
-                  <strong>{email}</strong> 宛に登録用リンクを送信しました。
+              <p className="text-lg text-slate-700 mb-6">
+                登録用リンクを送信しました
+              </p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
+                <p className="text-base text-blue-900 mb-4 font-medium">
+                  📨 送信先: <strong className="text-indigo-700">{email}</strong>
                 </p>
-                <p className="text-sm text-blue-800 mb-2">
-                  メール内のリンクをクリックしてパスワードを設定してください。
-                </p>
+                <div className="bg-white/60 rounded-md p-4 mb-4">
+                  <p className="text-sm text-blue-900 font-semibold mb-2">
+                    ✨ 次のステップ
+                  </p>
+                  <ol className="text-sm text-blue-800 space-y-2 text-left">
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">1.</span>
+                      <span>メールボックスを確認</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">2.</span>
+                      <span>メール内のリンクをクリック</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">3.</span>
+                      <span>パスワードを設定して登録完了！</span>
+                    </li>
+                  </ol>
+                </div>
                 <p className="text-xs text-blue-700">
-                  メールが届かない場合は、迷惑メールフォルダをご確認ください。
+                  💡 メールが届かない場合は、迷惑メールフォルダもご確認ください
                 </p>
               </div>
               <button

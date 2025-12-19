@@ -180,6 +180,23 @@ export default function SetupPasswordPage() {
             </button>
           </form>
 
+          {/* スキップボタン */}
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                console.log('Skipping password setup, redirecting to dashboard');
+                router.push('/dashboard');
+              }}
+              disabled={loading}
+              className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              スキップしてダッシュボードへ
+            </button>
+            <p className="mt-2 text-xs text-slate-500 text-center">
+              パスワードは後から設定できます
+            </p>
+          </div>
+
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-500">
               ログイン中: {user.email}

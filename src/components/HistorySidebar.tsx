@@ -28,9 +28,10 @@ interface LetterHistory {
 
 interface HistorySidebarProps {
   onRestore: (history: LetterHistory) => void;
+  onSampleExperience?: () => void;
 }
 
-export function HistorySidebar({ onRestore }: HistorySidebarProps) {
+export function HistorySidebar({ onRestore, onSampleExperience }: HistorySidebarProps) {
   const [histories, setHistories] = useState<LetterHistory[]>([]);
 
   useEffect(() => {
@@ -88,9 +89,19 @@ export function HistorySidebar({ onRestore }: HistorySidebarProps) {
 
       <div className="overflow-y-auto flex-1">
         {sortedHistories.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-4">
-            履歴がありません
-          </p>
+          <div className="text-center py-4">
+            <p className="text-gray-500 text-sm mb-4">
+              履歴がありません
+            </p>
+            {onSampleExperience && (
+              <button
+                onClick={onSampleExperience}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-4 rounded-md hover:from-blue-600 hover:to-purple-600 transition-all font-medium shadow-md hover:shadow-lg"
+              >
+                ✨ サンプルで体験する
+              </button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {sortedHistories.map((history) => (

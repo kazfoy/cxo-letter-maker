@@ -112,6 +112,10 @@ export function PreviewArea({
     }
   };
 
+  // Character count and reading time calculation
+  const charCount = content.replace(/\s/g, '').length; // Exclude whitespace
+  const readingTimeMinutes = charCount > 0 ? Math.ceil(charCount / 500) : 0; // Japanese reading speed ~500 chars/min
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-8 h-fit">
       {/* 通知 */}
@@ -134,26 +138,50 @@ export function PreviewArea({
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">プレビュー</h2>
-        {content && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopy}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-              aria-label="クリップボードにコピー"
-            >
-              コピー
-            </button>
-            <button
-              onClick={handleExportWord}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-              aria-label="Word形式でダウンロード"
-            >
-              Word出力
-            </button>
+      {/* Fixed Action Bar */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mx-6 -mt-6 px-6 py-3 mb-4 rounded-t-lg">
+        <div className="flex justify-between items-center">
+          {/* Left side: Title and Stats */}
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-gray-800">プレビュー</h2>
+            {content && (
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {charCount}字
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  約{readingTimeMinutes}分
+                </span>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right side: Action buttons */}
+          {content && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleCopy}
+                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors font-medium"
+                aria-label="クリップボードにコピー"
+              >
+                📋 コピー
+              </button>
+              <button
+                onClick={handleExportWord}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                aria-label="Word形式でダウンロード"
+              >
+                📄 Word出力
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 自動編集ボタン */}

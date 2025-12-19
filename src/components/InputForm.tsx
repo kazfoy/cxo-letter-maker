@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { SALES_PLACEHOLDERS, EVENT_PLACEHOLDERS } from '@/lib/placeholders';
 
 // PDF.jsを使用するため、SSRを無効化して動的インポート
 const MultiSourceModal = dynamic(
@@ -396,7 +397,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 株式会社〇〇"
+                  placeholder={SALES_PLACEHOLDERS.companyName}
                 />
               </div>
 
@@ -423,7 +424,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   required
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 中小企業向けクラウド会計ソフトを提供しています"
+                  placeholder={SALES_PLACEHOLDERS.myServiceDescription}
                   maxLength={300}
                 />
               </div>
@@ -440,7 +441,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.simpleRequirement || ''}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: アポを取りたい、展示会のお礼、サービス紹介"
+                  placeholder={SALES_PLACEHOLDERS.simpleRequirement}
                   maxLength={100}
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -480,7 +481,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例: 株式会社△△"
+                placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myCompanyName : EVENT_PLACEHOLDERS.myCompanyName}
               />
             </div>
             <div>
@@ -495,7 +496,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例: 佐藤 花子"
+                placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myName : EVENT_PLACEHOLDERS.myName}
               />
             </div>
             <div>
@@ -510,7 +511,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 required
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="自社が提供するサービス・ソリューションの概要を記載してください"
+                placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myServiceDescription : EVENT_PLACEHOLDERS.myServiceDescription}
                 maxLength={500}
               />
             </div>
@@ -543,7 +544,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="例: 株式会社〇〇"
+                placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.companyName : EVENT_PLACEHOLDERS.companyName}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -558,7 +559,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.position}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 代表取締役"
+                  placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.position : EVENT_PLACEHOLDERS.position}
                 />
               </div>
               <div>
@@ -573,7 +574,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 山田 太郎"
+                  placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.name : EVENT_PLACEHOLDERS.name}
                 />
               </div>
             </div>
@@ -626,7 +627,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     value={formData.eventUrl || ''}
                     onChange={handleChange}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="例: https://example.com/event"
+                    placeholder={EVENT_PLACEHOLDERS.eventUrl}
                   />
                   <button
                     type="button"
@@ -651,7 +652,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: AI活用セミナー 2025"
+                  placeholder={EVENT_PLACEHOLDERS.eventName}
                 />
               </div>
 
@@ -667,7 +668,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 2025年1月15日（水）14:00-17:00 / 東京国際フォーラム"
+                  placeholder={EVENT_PLACEHOLDERS.eventDateTime}
                 />
               </div>
 
@@ -682,7 +683,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="例: 山田太郎氏（〇〇株式会社CEO）、田中花子氏（△△大学教授）"
+                  placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
                   maxLength={300}
                 />
               </div>
@@ -709,7 +710,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   required
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="なぜこの方をイベントに招待したいのか、その理由や期待することを記入してください"
+                  placeholder={EVENT_PLACEHOLDERS.invitationReason}
                   maxLength={500}
                 />
               </div>
@@ -739,7 +740,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                       onChange={handleChange}
                       required={inputMode === 'freeform'}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="例: https://example.com/event"
+                      placeholder={EVENT_PLACEHOLDERS.eventUrlFreeform}
                     />
                     <button
                       type="button"
@@ -768,7 +769,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     onChange={handleChange}
                     required={inputMode === 'freeform'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="例: 株式会社サンプル"
+                    placeholder={EVENT_PLACEHOLDERS.companyNameFreeform}
                   />
                 </div>
 
@@ -784,7 +785,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     onChange={handleChange}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="例: DX推進に課題を抱えているため、AI活用の最新事例を学んでほしい"
+                    placeholder={EVENT_PLACEHOLDERS.invitationMemo}
                     maxLength={500}
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -852,7 +853,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               required={inputMode === 'step'}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="なぜ今、貴社（あなた）なのか。ニュースや決算情報から言及。"
+              placeholder={SALES_PLACEHOLDERS.background}
               maxLength={500}
             />
           </div>
@@ -879,7 +880,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               required={inputMode === 'step'}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="業界特有の課題や、成長企業が陥る壁への共感。"
+              placeholder={SALES_PLACEHOLDERS.problem}
               maxLength={500}
             />
           </div>
@@ -906,7 +907,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               required={inputMode === 'step'}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="自社ソリューションによる解決アプローチ（売り込みすぎない）。"
+              placeholder={SALES_PLACEHOLDERS.solution}
               maxLength={500}
             />
           </div>
@@ -933,7 +934,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               required={inputMode === 'step'}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="同業他社や類似ステージ企業での実績。"
+              placeholder={SALES_PLACEHOLDERS.caseStudy}
               maxLength={500}
             />
           </div>
@@ -960,7 +961,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               required={inputMode === 'step'}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="具体的なアクション（「情報交換の時間をください」など）。"
+              placeholder={SALES_PLACEHOLDERS.offer}
               maxLength={500}
             />
           </div>
@@ -991,7 +992,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 required={inputMode === 'freeform'}
                 rows={15}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="ここにメモや箇条書き、あるいは既存のドラフトを貼り付けてください。AIが要素を抽出して構成します。&#10;&#10;例：&#10;- 先日の新製品リリースのニュースを見ました&#10;- EC事業での集客が課題かと思います&#10;- 弊社のSNSマーケティングサービスで解決できます&#10;- A社様では3ヶ月でフォロワー5倍になりました&#10;- 一度お話しさせてください"
+                placeholder={SALES_PLACEHOLDERS.freeformInput}
               />
               <p className="mt-2 text-xs text-gray-500">
                 💡 箇条書き、メモ、既存の文章など、どんな形式でもOKです。AIが自動的にCxOレターの形式に整形します。

@@ -6,6 +6,7 @@ import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
 import { saveToHistory, type LetterHistory } from '@/lib/historyUtils';
+import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 
 interface LetterFormData {
   myCompanyName: string;
@@ -98,6 +99,62 @@ export default function Home() {
     alert('履歴に保存し、フォームをリセットしました');
   };
 
+  const handleSampleExperience = async () => {
+    // モードに応じたサンプルデータを選択
+    const sampleData = mode === 'sales' ? SAMPLE_DATA : SAMPLE_EVENT_DATA;
+
+    // フォームにサンプルデータを入力
+    const sampleFormData: LetterFormData = {
+      myCompanyName: sampleData.myCompanyName,
+      myName: sampleData.myName,
+      myServiceDescription: sampleData.myServiceDescription,
+      companyName: sampleData.companyName,
+      position: sampleData.position,
+      name: sampleData.name,
+      background: mode === 'sales' ? SAMPLE_DATA.background : '',
+      problem: mode === 'sales' ? SAMPLE_DATA.problem : '',
+      solution: mode === 'sales' ? SAMPLE_DATA.solution : '',
+      caseStudy: mode === 'sales' ? SAMPLE_DATA.caseStudy : '',
+      offer: mode === 'sales' ? SAMPLE_DATA.offer : '',
+      freeformInput: mode === 'sales' ? SAMPLE_DATA.freeformInput : '',
+      eventUrl: mode === 'event' ? SAMPLE_EVENT_DATA.eventUrl : '',
+      eventName: mode === 'event' ? SAMPLE_EVENT_DATA.eventName : '',
+      eventDateTime: mode === 'event' ? SAMPLE_EVENT_DATA.eventDateTime : '',
+      eventSpeakers: mode === 'event' ? SAMPLE_EVENT_DATA.eventSpeakers : '',
+      invitationReason: mode === 'event' ? SAMPLE_EVENT_DATA.invitationReason : '',
+      simpleRequirement: '',
+    };
+
+    setFormData(sampleFormData);
+    setIsGenerating(true);
+
+    try {
+      // Generate letter with sample data
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...sampleFormData,
+          mode,
+          inputComplexity: mode === 'sales' ? 'simple' : 'detailed',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('生成に失敗しました');
+      }
+
+      const data = await response.json();
+      setGeneratedLetter(data.letter);
+      saveToHistory(sampleFormData, data.letter, mode);
+    } catch (error) {
+      console.error('サンプル生成エラー:', error);
+      alert('サンプルの生成に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -134,7 +191,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* 左側: 履歴サイドバー */}
           <div className="lg:col-span-3">
-            <HistorySidebar onRestore={handleRestore} />
+            <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
           </div>
 
           {/* 右側: メインコンテンツ */}

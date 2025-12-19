@@ -117,7 +117,7 @@ export function PreviewArea({
   const readingTimeMinutes = charCount > 0 ? Math.ceil(charCount / 500) : 0; // Japanese reading speed ~500 chars/min
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
       {/* 通知 */}
       {notification && (
         <div className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
@@ -143,7 +143,7 @@ export function PreviewArea({
         <div className="flex justify-between items-center">
           {/* Left side: Title and Stats */}
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-slate-900 leading-relaxed">プレビュー</h2>
+            <h2 className="text-2xl font-bold text-slate-900 leading-relaxed">プレビュー</h2>
             {content && (
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
@@ -186,8 +186,8 @@ export function PreviewArea({
 
       {/* 自動編集ボタン */}
       {content && (
-        <div className="mb-4 space-y-2">
-          <p className="text-sm font-medium text-gray-700">自動編集</p>
+        <div className="mb-6 space-y-3">
+          <p className="text-sm font-semibold text-slate-700">自動編集</p>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleAutoEdit('casual')}

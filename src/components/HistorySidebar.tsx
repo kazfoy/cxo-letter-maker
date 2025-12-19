@@ -84,8 +84,8 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
   });
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 h-full md:h-auto overflow-y-auto md:overflow-visible">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-full md:h-auto overflow-y-auto md:overflow-visible">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-slate-900 leading-relaxed">
           履歴（最新10件）
         </h2>
@@ -146,7 +146,7 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {sortedHistories.map((history) => (
               <div
                 key={history.id}

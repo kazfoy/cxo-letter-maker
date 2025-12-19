@@ -322,8 +322,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-bold mb-4 text-slate-900 leading-relaxed">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+      <h2 className="text-2xl font-bold mb-6 text-slate-900 leading-relaxed">
         {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
       </h2>
 
@@ -387,7 +387,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* かんたんモードのフォーム */}
         {mode === 'sales' && inputComplexity === 'simple' && (
           <>
@@ -400,7 +400,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
             <div className="space-y-4">
               {/* 1. ターゲット企業名 */}
               <div>
-                <label htmlFor="simpleCompanyName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="simpleCompanyName" className="block text-sm font-medium text-slate-700 mb-2">
                   1. ターゲット企業名 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -410,7 +410,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.companyName}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={SALES_PLACEHOLDERS.companyName}
                 />
               </div>
@@ -437,7 +437,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={SALES_PLACEHOLDERS.myServiceDescription}
                   maxLength={300}
                 />
@@ -445,7 +445,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
               {/* 3. 伝えたい要件 */}
               <div>
-                <label htmlFor="simpleRequirement" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="simpleRequirement" className="block text-sm font-medium text-slate-700 mb-2">
                   3. 伝えたい要件（任意）
                 </label>
                 <input
@@ -454,7 +454,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   name="simpleRequirement"
                   value={formData.simpleRequirement || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={SALES_PLACEHOLDERS.simpleRequirement}
                   maxLength={100}
                 />
@@ -484,7 +484,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
           </div>
           <div className="space-y-3">
             <div>
-              <label htmlFor="myCompanyName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="myCompanyName" className="block text-sm font-medium text-slate-700 mb-2">
                 会社名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -494,12 +494,12 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 value={formData.myCompanyName}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myCompanyName : EVENT_PLACEHOLDERS.myCompanyName}
               />
             </div>
             <div>
-              <label htmlFor="myName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="myName" className="block text-sm font-medium text-slate-700 mb-2">
                 氏名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -509,12 +509,12 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 value={formData.myName}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myName : EVENT_PLACEHOLDERS.myName}
               />
             </div>
             <div>
-              <label htmlFor="myServiceDescription" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="myServiceDescription" className="block text-sm font-medium text-slate-700 mb-2">
                 自社サービスの概要 <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -524,7 +524,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 onChange={handleChange}
                 required
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.myServiceDescription : EVENT_PLACEHOLDERS.myServiceDescription}
                 maxLength={500}
               />
@@ -547,7 +547,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
           </div>
           <div className="space-y-3">
             <div>
-              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="companyName" className="block text-sm font-medium text-slate-700 mb-2">
                 企業名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -557,13 +557,13 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 value={formData.companyName}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.companyName : EVENT_PLACEHOLDERS.companyName}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="position" className="block text-sm font-medium text-slate-700 mb-2">
                   役職
                 </label>
                 <input
@@ -572,12 +572,12 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   name="position"
                   value={formData.position}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.position : EVENT_PLACEHOLDERS.position}
                 />
               </div>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
                   氏名 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -587,7 +587,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={mode === 'sales' ? SALES_PLACEHOLDERS.name : EVENT_PLACEHOLDERS.name}
                 />
               </div>
@@ -630,7 +630,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
             {inputMode === 'step' && (
             <div className="space-y-3">
               <div>
-                <label htmlFor="eventUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="eventUrl" className="block text-sm font-medium text-slate-700 mb-2">
                   イベントURL
                 </label>
                 <div className="flex gap-2">
@@ -640,7 +640,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     name="eventUrl"
                     value={formData.eventUrl || ''}
                     onChange={handleChange}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                     placeholder={EVENT_PLACEHOLDERS.eventUrl}
                   />
                   <button
@@ -655,7 +655,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               </div>
 
               <div>
-                <label htmlFor="eventName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="eventName" className="block text-sm font-medium text-slate-700 mb-2">
                   イベント名 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -665,13 +665,13 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.eventName || ''}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={EVENT_PLACEHOLDERS.eventName}
                 />
               </div>
 
               <div>
-                <label htmlFor="eventDateTime" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="eventDateTime" className="block text-sm font-medium text-slate-700 mb-2">
                   開催日時・場所 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -681,13 +681,13 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.eventDateTime || ''}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={EVENT_PLACEHOLDERS.eventDateTime}
                 />
               </div>
 
               <div>
-                <label htmlFor="eventSpeakers" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="eventSpeakers" className="block text-sm font-medium text-slate-700 mb-2">
                   主要登壇者/ゲスト
                 </label>
                 <textarea
@@ -696,7 +696,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   value={formData.eventSpeakers || ''}
                   onChange={handleChange}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
                   maxLength={300}
                 />
@@ -723,7 +723,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                   onChange={handleChange}
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   placeholder={EVENT_PLACEHOLDERS.invitationReason}
                   maxLength={500}
                 />
@@ -742,7 +742,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
                 {/* 1. イベントURL */}
                 <div>
-                  <label htmlFor="eventUrlFreeform" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="eventUrlFreeform" className="block text-sm font-medium text-slate-700 mb-2">
                     1. イベントURL <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
@@ -772,7 +772,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
                 {/* 2. ターゲット企業名 */}
                 <div>
-                  <label htmlFor="companyNameFreeform" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="companyNameFreeform" className="block text-sm font-medium text-slate-700 mb-2">
                     2. ターゲット企業名 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -789,7 +789,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
                 {/* 3. 誘いたい理由・メモ */}
                 <div>
-                  <label htmlFor="invitationMemo" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="invitationMemo" className="block text-sm font-medium text-slate-700 mb-2">
                     3. 誘いたい理由・メモ（任意）
                   </label>
                   <textarea
@@ -866,7 +866,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               onChange={handleChange}
               required={inputMode === 'step'}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               placeholder={SALES_PLACEHOLDERS.background}
               maxLength={500}
             />
@@ -893,7 +893,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               onChange={handleChange}
               required={inputMode === 'step'}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               placeholder={SALES_PLACEHOLDERS.problem}
               maxLength={500}
             />
@@ -920,7 +920,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               onChange={handleChange}
               required={inputMode === 'step'}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               placeholder={SALES_PLACEHOLDERS.solution}
               maxLength={500}
             />
@@ -947,7 +947,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               onChange={handleChange}
               required={inputMode === 'step'}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               placeholder={SALES_PLACEHOLDERS.caseStudy}
               maxLength={500}
             />
@@ -974,7 +974,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
               onChange={handleChange}
               required={inputMode === 'step'}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               placeholder={SALES_PLACEHOLDERS.offer}
               maxLength={500}
             />
@@ -1005,7 +1005,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                 onChange={handleChange}
                 required={inputMode === 'freeform'}
                 rows={15}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={SALES_PLACEHOLDERS.freeformInput}
               />
               <p className="mt-2 text-xs text-gray-500">

@@ -5,7 +5,7 @@ import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
-import { saveToHistory, type LetterHistory } from '@/lib/supabaseHistoryUtils';
+import { saveToHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 
 interface LetterFormData {
@@ -38,6 +38,9 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [currentLetterId, setCurrentLetterId] = useState<string | undefined>();
+  const [currentLetterStatus, setCurrentLetterStatus] = useState<LetterStatus | undefined>();
+  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -62,12 +65,18 @@ export default function Home() {
   const handleGenerate = async (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);
     // 履歴に保存
-    await saveToHistory(data, letter, mode);
+    const savedLetter = await saveToHistory(data, letter, mode);
+    if (savedLetter) {
+      setCurrentLetterId(savedLetter.id);
+      setCurrentLetterStatus(savedLetter.status);
+    }
   };
 
   const handleRestore = (history: LetterHistory) => {
     setFormData(history.inputs);
     setGeneratedLetter(history.content);
+    setCurrentLetterId(history.id);
+    setCurrentLetterStatus(history.status);
   };
 
   const handleSaveAndReset = async () => {
@@ -97,6 +106,8 @@ export default function Home() {
     });
 
     setGeneratedLetter('');
+    setCurrentLetterId(undefined);
+    setCurrentLetterStatus(undefined);
     alert('履歴に保存し、フォームをリセットしました');
   };
 
@@ -147,7 +158,11 @@ export default function Home() {
 
       const data = await response.json();
       setGeneratedLetter(data.letter);
-      await saveToHistory(sampleFormData, data.letter, mode);
+      const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
+      if (savedLetter) {
+        setCurrentLetterId(savedLetter.id);
+        setCurrentLetterStatus(savedLetter.status);
+      }
     } catch (error) {
       console.error('サンプル生成エラー:', error);
       alert('サンプルの生成に失敗しました。もう一度お試しください。');
@@ -248,6 +263,7 @@ export default function Home() {
                 onSampleExperience={handleSampleExperience}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                refreshTrigger={refreshHistoryTrigger}
               />
             </div>
 
@@ -268,6 +284,9 @@ export default function Home() {
                 content={generatedLetter}
                 onContentChange={setGeneratedLetter}
                 isGenerating={isGenerating}
+                currentLetterId={currentLetterId}
+                currentStatus={currentLetterStatus}
+                onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}
               />
             </div>
           </div>

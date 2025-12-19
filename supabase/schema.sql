@@ -14,6 +14,7 @@ create table public.letters (
   content text not null,
   is_pinned boolean default false not null,
   mode text check (mode in ('sales', 'event')) default 'sales' not null,
+  status text check (status in ('draft', 'generated', 'sent', 'replied', 'meeting_set')) default 'generated' not null,
 
   -- Form inputs stored as JSONB for flexibility
   inputs jsonb not null
@@ -27,6 +28,9 @@ create index letters_created_at_idx on public.letters(created_at desc);
 
 -- Create index on is_pinned for filtering pinned items
 create index letters_is_pinned_idx on public.letters(is_pinned);
+
+-- Create index on status for filtering by status
+create index letters_status_idx on public.letters(status);
 
 -- Enable Row Level Security
 alter table public.letters enable row level security;

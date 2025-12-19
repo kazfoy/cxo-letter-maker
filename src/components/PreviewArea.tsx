@@ -1,26 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Document, Paragraph, Packer, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
+import { type LetterStatus, updateStatus } from '@/lib/supabaseHistoryUtils';
 
 interface PreviewAreaProps {
   content: string;
   onContentChange: (content: string) => void;
   isGenerating: boolean;
+  currentLetterId?: string;
+  currentStatus?: LetterStatus;
+  onStatusChange?: () => void;
 }
 
 export function PreviewArea({
   content,
   onContentChange,
   isGenerating,
+  currentLetterId,
+  currentStatus,
+  onStatusChange,
 }: PreviewAreaProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [letterStatus, setLetterStatus] = useState<LetterStatus>(currentStatus || 'generated');
+
+  // Sync letterStatus when currentStatus changes
+  useEffect(() => {
+    if (currentStatus) {
+      setLetterStatus(currentStatus);
+    }
+  }, [currentStatus]);
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleStatusChange = async (newStatus: LetterStatus) => {
+    if (!currentLetterId) {
+      showNotification('履歴に保存されている手紙のみステータスを変更できます', 'error');
+      return;
+    }
+
+    try {
+      const updated = await updateStatus(currentLetterId, newStatus);
+      if (updated) {
+        setLetterStatus(newStatus);
+        showNotification('ステータスを更新しました', 'success');
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      }
+    } catch (error) {
+      console.error('Status update error:', error);
+      showNotification('ステータスの更新に失敗しました', 'error');
+    }
   };
 
   const handleCopy = async () => {
@@ -161,6 +197,27 @@ export function PreviewArea({
               </div>
             )}
           </div>
+
+          {/* Middle: Status Dropdown */}
+          {content && currentLetterId && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="letter-status" className="text-sm font-medium text-slate-700">
+                ステータス:
+              </label>
+              <select
+                id="letter-status"
+                value={letterStatus}
+                onChange={(e) => handleStatusChange(e.target.value as LetterStatus)}
+                className="px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
+              >
+                <option value="draft">下書き</option>
+                <option value="generated">作成済</option>
+                <option value="sent">送付済</option>
+                <option value="replied">返信あり</option>
+                <option value="meeting_set">アポ獲得</option>
+              </select>
+            </div>
+          )}
 
           {/* Right side: Action buttons */}
           {content && (

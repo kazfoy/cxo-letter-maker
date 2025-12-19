@@ -1,5 +1,7 @@
 import { createClient } from '@/utils/supabase/client';
 
+export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting_set';
+
 export interface LetterHistory {
   id: string;
   createdAt: string;
@@ -8,6 +10,7 @@ export interface LetterHistory {
   content: string;
   isPinned?: boolean;
   mode?: 'sales' | 'event';
+  status?: LetterStatus;
   inputs: {
     myCompanyName: string;
     myName: string;
@@ -35,6 +38,7 @@ interface LetterRow {
   content: string;
   is_pinned: boolean;
   mode: 'sales' | 'event';
+  status: LetterStatus;
   inputs: LetterHistory['inputs'];
 }
 
@@ -50,6 +54,7 @@ function rowToHistory(row: LetterRow): LetterHistory {
     content: row.content,
     isPinned: row.is_pinned,
     mode: row.mode,
+    status: row.status,
     inputs: row.inputs,
   };
 }
@@ -112,6 +117,7 @@ export async function saveToHistory(
       content,
       is_pinned: false,
       mode: mode || 'sales',
+      status: 'generated' as LetterStatus,
       inputs,
     };
 
@@ -245,6 +251,38 @@ export async function deleteHistory(id: string): Promise<LetterHistory[]> {
 }
 
 /**
+ * Update the status of a letter
+ */
+export async function updateStatus(id: string, status: LetterStatus): Promise<LetterHistory | null> {
+  try {
+    const supabase = createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('ログインが必要です');
+    }
+
+    const { data, error } = await supabase
+      .from('letters')
+      .update({ status })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('ステータス更新エラー:', error);
+      throw error;
+    }
+
+    return data ? rowToHistory(data) : null;
+  } catch (error) {
+    console.error('ステータス更新エラー:', error);
+    return null;
+  }
+}
+
+/**
  * Migrate data from LocalStorage to Supabase
  * This function should be called once when a user first logs in
  */
@@ -292,6 +330,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
       content: history.content,
       is_pinned: history.isPinned || false,
       mode: history.mode || 'sales',
+      status: history.status || 'generated',
       inputs: history.inputs,
     }));
 

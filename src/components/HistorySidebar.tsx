@@ -2,45 +2,44 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
-
-interface LetterHistory {
-  id: string;
-  createdAt: string;
-  targetCompany: string;
-  targetName: string;
-  content: string;
-  isPinned?: boolean;
-  mode?: 'sales' | 'event'; // セールスレターまたはイベント招待
-  inputs: {
-    myCompanyName: string;
-    myName: string;
-    myServiceDescription: string;
-    companyName: string;
-    position: string;
-    name: string;
-    background: string;
-    problem: string;
-    solution: string;
-    caseStudy: string;
-    offer: string;
-  };
-}
+import { getHistories, togglePin, deleteHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
 
 interface HistorySidebarProps {
   onRestore: (history: LetterHistory) => void;
   onSampleExperience?: () => void;
   isOpen: boolean;
   onToggle: () => void;
+  refreshTrigger?: number;
 }
 
-export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle }: HistorySidebarProps) {
+// Helper function to get status badge styling
+const getStatusBadge = (status?: LetterStatus) => {
+  const s = status || 'generated';
+  const badges = {
+    draft: { label: '下書き', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+    generated: { label: '作成済', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+    sent: { label: '送付済', color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+    replied: { label: '返信あり', color: 'bg-orange-100 text-orange-700 border-orange-300' },
+    meeting_set: { label: 'アポ獲得', color: 'bg-green-100 text-green-700 border-green-300' },
+  };
+  return badges[s];
+};
+
+export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle, refreshTrigger }: HistorySidebarProps) {
   const [histories, setHistories] = useState<LetterHistory[]>([]);
+  const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>('all');
   const { user } = useAuth();
 
   useEffect(() => {
     loadHistories();
   }, [user]);
+
+  // Reload when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      loadHistories();
+    }
+  }, [refreshTrigger]);
 
   // Poll for updates every 10 seconds to catch new letters
   useEffect(() => {
@@ -82,8 +81,13 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
     }
   };
 
+  // Filter by status
+  const filteredHistories = statusFilter === 'all'
+    ? histories
+    : histories.filter(h => (h.status || 'generated') === statusFilter);
+
   // ピン留めされたアイテムを上部に表示
-  const sortedHistories = [...histories].sort((a, b) => {
+  const sortedHistories = [...filteredHistories].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
     return 0; // 同じピン状態内では元の順序を保持
@@ -118,6 +122,26 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
             </svg>
           </button>
         )}
+      </div>
+
+      {/* Status Filter */}
+      <div className="mb-4">
+        <label htmlFor="status-filter" className="block text-xs font-medium text-slate-700 mb-1.5">
+          ステータスで絞り込み
+        </label>
+        <select
+          id="status-filter"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as LetterStatus | 'all')}
+          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+        >
+          <option value="all">すべて表示</option>
+          <option value="draft">下書き</option>
+          <option value="generated">作成済</option>
+          <option value="sent">送付済</option>
+          <option value="replied">返信あり</option>
+          <option value="meeting_set">アポ獲得</option>
+        </select>
       </div>
 
       <div>
@@ -175,6 +199,12 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
                         : 'bg-blue-100 text-blue-800 border border-blue-200'
                     }`}>
                       {(history.mode || 'sales') === 'event' ? 'Event' : 'Letter'}
+                    </span>
+                    {/* ステータスバッジ */}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 border ${
+                      getStatusBadge(history.status).color
+                    }`}>
+                      {getStatusBadge(history.status).label}
                     </span>
                   </div>
                   <div className="flex gap-1 ml-2 flex-shrink-0">

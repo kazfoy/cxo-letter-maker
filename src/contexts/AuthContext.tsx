@@ -8,7 +8,8 @@ import { migrateFromLocalStorage } from '@/lib/supabaseHistoryUtils';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithEmail: (email: string) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  signUpWithPassword: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -47,17 +48,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
 
-  const signInWithEmail = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    // Redirect to dashboard after successful login
+    window.location.href = '/dashboard';
+  };
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
     if (error) {
       throw error;
     }
+
+    // Redirect to dashboard after successful signup
+    window.location.href = '/dashboard';
   };
 
   const signOut = async () => {
@@ -65,10 +84,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       throw error;
     }
+
+    // Redirect to login after signout
+    window.location.href = '/login';
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithPassword, signUpWithPassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );

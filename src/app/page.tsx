@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
 import { saveToHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
+import { getProfile } from '@/lib/profileUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 
 interface LetterFormData {
@@ -34,6 +36,7 @@ interface LetterFormData {
 export type LetterMode = 'sales' | 'event';
 
 export default function Home() {
+  const { user } = useAuth();
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
@@ -41,6 +44,7 @@ export default function Home() {
   const [currentLetterId, setCurrentLetterId] = useState<string | undefined>();
   const [currentLetterStatus, setCurrentLetterStatus] = useState<LetterStatus | undefined>();
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -61,6 +65,30 @@ export default function Home() {
     invitationReason: '',
     simpleRequirement: '',
   });
+
+  // Load profile data and auto-populate form
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (user && !profileLoaded) {
+        try {
+          const profile = await getProfile();
+          if (profile) {
+            setFormData(prev => ({
+              ...prev,
+              myCompanyName: profile.company_name || '',
+              myName: profile.user_name || '',
+              myServiceDescription: profile.service_description || '',
+            }));
+            setProfileLoaded(true);
+          }
+        } catch (error) {
+          console.error('Failed to load profile:', error);
+        }
+      }
+    };
+
+    loadProfileData();
+  }, [user, profileLoaded]);
 
   const handleGenerate = async (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);

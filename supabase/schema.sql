@@ -73,3 +73,64 @@ create trigger update_letters_updated_at
   before update on public.letters
   for each row
   execute function public.update_updated_at_column();
+
+-- ============================================================
+-- Profiles Table
+-- ============================================================
+
+-- Create profiles table for user settings and default values
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+
+  -- Default sender information
+  company_name text,
+  user_name text,
+  service_description text,
+  company_url text,
+
+  -- Additional profile data
+  email text
+);
+
+-- Enable Row Level Security
+alter table public.profiles enable row level security;
+
+-- Create policies for profiles
+create policy "Users can view their own profile"
+  on public.profiles
+  for select
+  using (auth.uid() = id);
+
+create policy "Users can insert their own profile"
+  on public.profiles
+  for insert
+  with check (auth.uid() = id);
+
+create policy "Users can update their own profile"
+  on public.profiles
+  for update
+  using (auth.uid() = id);
+
+-- Create trigger to automatically update updated_at
+create trigger update_profiles_updated_at
+  before update on public.profiles
+  for each row
+  execute function public.update_updated_at_column();
+
+-- Function to create profile automatically on user signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Trigger to create profile on signup
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row
+  execute function public.handle_new_user();

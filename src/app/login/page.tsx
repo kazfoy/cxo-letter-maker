@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const { signInWithEmail } = useAuth();
+  const { signInWithPassword, signUpWithPassword } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,17 +19,24 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      await signInWithEmail(email);
-      setMessage({
-        type: 'success',
-        text: 'ログインリンクをメールで送信しました。メールを確認してください。',
-      });
-      setEmail('');
-    } catch (error) {
-      console.error('Login error:', error);
+      if (isSignUp) {
+        await signUpWithPassword(email, password);
+        setMessage({
+          type: 'success',
+          text: 'アカウントを作成しました。ダッシュボードにリダイレクトします...',
+        });
+      } else {
+        await signInWithPassword(email, password);
+        setMessage({
+          type: 'success',
+          text: 'ログインしました。ダッシュボードにリダイレクトします...',
+        });
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
       setMessage({
         type: 'error',
-        text: 'ログインに失敗しました。もう一度お試しください。',
+        text: error.message || (isSignUp ? 'アカウント作成に失敗しました' : 'ログインに失敗しました'),
       });
     } finally {
       setLoading(false);
@@ -39,9 +48,11 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">ログイン</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              {isSignUp ? '新規登録' : 'ログイン'}
+            </h1>
             <p className="text-slate-600">
-              メールアドレスを入力してください。ログインリンクを送信します。
+              CxO Letter Maker
             </p>
           </div>
 
@@ -62,6 +73,28 @@ export default function LoginPage() {
               />
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                placeholder="••••••••"
+                disabled={loading}
+              />
+              {isSignUp && (
+                <p className="mt-1 text-xs text-slate-500">
+                  6文字以上で入力してください
+                </p>
+              )}
+            </div>
+
             {message && (
               <div
                 className={`p-4 rounded-md ${
@@ -79,9 +112,21 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? '送信中...' : 'ログインリンクを送信'}
+              {loading ? '処理中...' : isSignUp ? 'アカウントを作成' : 'ログイン'}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setMessage(null);
+              }}
+              className="text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              {isSignUp ? 'すでにアカウントをお持ちですか？ ログイン' : 'アカウントをお持ちでない方は 新規登録'}
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <button

@@ -18,23 +18,18 @@ export async function GET(request: Request) {
     // セッションが確立された後、パスワード設定状態をチェック
     if (data.user) {
       console.log('User authenticated:', data.user.id);
+      console.log('User metadata:', data.user.user_metadata);
 
-      // ユーザーのメタデータまたは最終サインイン方法をチェック
-      // Magic Link経由の初回ログインの場合、パスワード設定画面へ
-      // app_metadata.provider が 'email' でidentities[0].identity_data にパスワードがない場合
-      const hasPassword = data.user.app_metadata?.providers?.includes('email') &&
-                         data.user.identities?.some(identity =>
-                           identity.identity_data?.sub !== undefined
-                         );
+      // user_metadata の password_set フラグをチェック
+      const hasPasswordSet = data.user.user_metadata?.password_set === true;
 
-      // より確実な判定: profiles テーブルに password_set フラグがあるかチェック
-      // または、単純に /setup-password に必ずリダイレクトし、そちらで判定する方法も
-
-      // Magic Linkでのログイン時は、パスワード未設定と仮定して /setup-password へ
-      // パスワードでログインした場合は、auth.callback は通常通過しないため、
-      // ここに来る = Magic Link = パスワード未設定の可能性が高い
-      console.log('Redirecting to password setup page');
-      return NextResponse.redirect(`${origin}/setup-password`);
+      if (hasPasswordSet) {
+        console.log('Password already set, redirecting to dashboard');
+        return NextResponse.redirect(`${origin}/dashboard`);
+      } else {
+        console.log('Password not set, redirecting to password setup');
+        return NextResponse.redirect(`${origin}/setup-password`);
+      }
     }
   }
 

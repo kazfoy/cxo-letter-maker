@@ -51,6 +51,9 @@ export default function SetupPasswordPage() {
 
       const { data, error } = await supabase.auth.updateUser({
         password: password,
+        data: {
+          password_set: true, // パスワード設定済みフラグを立てる
+        },
       });
 
       if (error) {
@@ -59,6 +62,7 @@ export default function SetupPasswordPage() {
       }
 
       console.log('Password updated successfully');
+      console.log('Password_set flag set to true');
       setMessage({
         type: 'success',
         text: 'パスワードを設定しました。ダッシュボードに移動します...',

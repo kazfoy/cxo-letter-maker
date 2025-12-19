@@ -16,9 +16,16 @@ export default function SetupPasswordPage() {
 
   // ログインしていない場合は /login へリダイレクト
   useEffect(() => {
+    console.log('========== SETUP-PASSWORD PAGE MOUNT ==========');
+    console.log('User:', user?.email || 'none');
+    console.log('Loading:', loading);
+
     if (!user && !loading) {
-      console.log('No user found, redirecting to login');
+      console.log('❌ No user found, redirecting to login');
       router.push('/login');
+    } else if (user) {
+      console.log('✅ User authenticated:', user.email);
+      console.log('User metadata:', user.user_metadata);
     }
   }, [user, loading, router]);
 

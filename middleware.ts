@@ -34,7 +34,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  console.log('Middleware:', pathname, 'User:', user?.id || 'none');
+  console.log('========== MIDDLEWARE ==========');
+  console.log('Path:', pathname);
+  console.log('User:', user?.email || 'none');
+  console.log('User ID:', user?.id || 'none');
 
   // パブリックルート（未認証でもアクセス可能）
   const publicRoutes = [

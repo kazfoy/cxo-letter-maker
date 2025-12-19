@@ -71,11 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUpWithPassword = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -83,8 +83,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    // Redirect to dashboard after successful signup
-    window.location.href = '/dashboard';
+    // Check if email confirmation is required
+    // If user is immediately available, redirect to dashboard
+    // If not, the user needs to check their email for confirmation
+    if (data.user && data.session) {
+      // User is auto-confirmed (development mode or auto-confirm enabled)
+      window.location.href = '/dashboard';
+    }
+    // If no session but user exists, email confirmation is required
+    // The UI should show a message (handled by the login page)
   };
 
   const signOut = async () => {

@@ -21,9 +21,10 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         await signUpWithPassword(email, password);
+        // If we reach here without redirect, email confirmation is required
         setMessage({
           type: 'success',
-          text: 'アカウントを作成しました。ダッシュボードにリダイレクトします...',
+          text: '確認メールを送信しました。メールをご確認の上、リンクをクリックしてアカウントを有効化してください。',
         });
       } else {
         await signInWithPassword(email, password);

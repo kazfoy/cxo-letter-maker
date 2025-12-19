@@ -67,11 +67,19 @@ export async function getHistories(): Promise<LetterHistory[]> {
   try {
     const supabase = createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('認証エラー:', userError);
+      return [];
+    }
+
     if (!user) {
       console.log('No user found, returning empty array');
       return [];
     }
+
+    console.log(`Fetching histories for user: ${user.id}`);
 
     // Sort at database level: pinned DESC (true first), then created_at DESC (newest first)
     const { data, error } = await supabase
@@ -83,13 +91,19 @@ export async function getHistories(): Promise<LetterHistory[]> {
 
     if (error) {
       console.error('履歴取得エラー:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return [];
     }
 
     console.log(`Fetched ${data?.length || 0} histories from Supabase`);
     return (data || []).map(rowToHistory);
   } catch (error) {
-    console.error('履歴取得エラー:', error);
+    console.error('履歴取得エラー (catch):', error);
     return [];
   }
 }
@@ -291,35 +305,43 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
   try {
     const supabase = createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('Migration: 認証エラー:', userError);
+      return { success: false, error: userError.message };
+    }
+
     if (!user) {
-      console.log('No user logged in, skipping migration');
+      console.log('Migration: No user logged in, skipping migration');
       return { success: true };
     }
+
+    console.log(`Migration: Starting for user ${user.id}`);
 
     // Check if migration has already been done
     const migrationKey = `migration_done_${user.id}`;
     if (localStorage.getItem(migrationKey)) {
-      console.log('Migration already completed for this user');
+      console.log('Migration: Already completed for this user');
       return { success: true };
     }
 
     // Get LocalStorage data
     const stored = localStorage.getItem('letterHistories');
     if (!stored) {
-      console.log('No LocalStorage data to migrate');
+      console.log('Migration: No LocalStorage data to migrate');
       localStorage.setItem(migrationKey, 'true');
       return { success: true };
     }
 
     const localHistories: LetterHistory[] = JSON.parse(stored);
     if (localHistories.length === 0) {
-      console.log('No histories to migrate');
+      console.log('Migration: No histories to migrate');
       localStorage.setItem(migrationKey, 'true');
       return { success: true };
     }
 
-    console.log(`Migrating ${localHistories.length} histories to Supabase... (attempt ${retryCount + 1})`);
+    console.log(`Migration: Migrating ${localHistories.length} histories to Supabase (attempt ${retryCount + 1})`);
 
     // Insert all local histories to Supabase
     const lettersToInsert = localHistories.map(history => ({
@@ -340,11 +362,17 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
       .upsert(lettersToInsert, { onConflict: 'id' });
 
     if (error) {
-      console.error('Migration error:', error);
+      console.error('Migration: Database error:', error);
+      console.error('Migration: Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
 
       // Retry up to 2 times
       if (retryCount < 2) {
-        console.log(`Retrying migration... (${retryCount + 1}/2)`);
+        console.log(`Migration: Retrying... (${retryCount + 1}/2)`);
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         return migrateFromLocalStorage(retryCount + 1);
       }
@@ -352,22 +380,22 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
       return { success: false, error: error.message };
     }
 
-    console.log('Migration successful!');
+    console.log('Migration: Successful!');
 
     // Mark migration as complete
     localStorage.setItem(migrationKey, 'true');
 
     // Optionally clear LocalStorage data after successful migration
     localStorage.removeItem('letterHistories');
-    console.log('Cleared LocalStorage data after successful migration');
+    console.log('Migration: Cleared LocalStorage data after successful migration');
 
     return { success: true };
   } catch (error: any) {
-    console.error('Migration failed:', error);
+    console.error('Migration: Failed (catch):', error);
 
     // Retry up to 2 times
     if (retryCount < 2) {
-      console.log(`Retrying migration... (${retryCount + 1}/2)`);
+      console.log(`Migration: Retrying... (${retryCount + 1}/2)`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       return migrateFromLocalStorage(retryCount + 1);
     }

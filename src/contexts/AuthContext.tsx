@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/client';
+import { migrateFromLocalStorage } from '@/lib/supabaseHistoryUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Migrate LocalStorage data if user is logged in
+      if (session?.user) {
+        migrateFromLocalStorage();
+      }
     });
 
     // Listen for auth changes
@@ -31,6 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Migrate LocalStorage data when user logs in
+      if (session?.user) {
+        migrateFromLocalStorage();
+      }
     });
 
     return () => subscription.unsubscribe();

@@ -53,7 +53,7 @@ type LetterMode = 'sales' | 'event';
 
 interface InputFormProps {
   mode: LetterMode;
-  onGenerate: (letter: string, formData: LetterFormData) => void;
+  onGenerate: (letter: string, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;

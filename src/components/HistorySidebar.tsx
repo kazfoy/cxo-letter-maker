@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { togglePin } from '@/lib/historyUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
 
 interface LetterHistory {
   id: string;
@@ -35,41 +36,46 @@ interface HistorySidebarProps {
 
 export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle }: HistorySidebarProps) {
   const [histories, setHistories] = useState<LetterHistory[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     loadHistories();
-    // ストレージの変更を監視
-    window.addEventListener('storage', loadHistories);
-    return () => window.removeEventListener('storage', loadHistories);
-  }, []);
+  }, [user]);
 
-  const loadHistories = () => {
-    try {
-      const stored = localStorage.getItem('letterHistories');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setHistories(parsed);
+  // Poll for updates every 10 seconds to catch new letters
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user) {
+        loadHistories();
       }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const loadHistories = async () => {
+    try {
+      const histories = await getHistories();
+      setHistories(histories);
     } catch (error) {
       console.error('履歴読み込みエラー:', error);
     }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // クリックイベントの伝播を止める
     try {
-      const updated = histories.filter((h) => h.id !== id);
-      localStorage.setItem('letterHistories', JSON.stringify(updated));
+      const updated = await deleteHistory(id);
       setHistories(updated);
     } catch (error) {
       console.error('履歴削除エラー:', error);
     }
   };
 
-  const handleTogglePin = (id: string, e: React.MouseEvent) => {
+  const handleTogglePin = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // クリックイベントの伝播を止める
     try {
-      const updated = togglePin(id);
+      const updated = await togglePin(id);
       setHistories(updated);
     } catch (error) {
       console.error('ピン留め切り替えエラー:', error);

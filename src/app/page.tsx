@@ -5,7 +5,7 @@ import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
-import { saveToHistory, type LetterHistory } from '@/lib/historyUtils';
+import { saveToHistory, type LetterHistory } from '@/lib/supabaseHistoryUtils';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 
 interface LetterFormData {
@@ -59,10 +59,10 @@ export default function Home() {
     simpleRequirement: '',
   });
 
-  const handleGenerate = (letter: string, data: LetterFormData) => {
+  const handleGenerate = async (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);
     // 履歴に保存
-    saveToHistory(data, letter, mode);
+    await saveToHistory(data, letter, mode);
   };
 
   const handleRestore = (history: LetterHistory) => {
@@ -70,9 +70,9 @@ export default function Home() {
     setGeneratedLetter(history.content);
   };
 
-  const handleSaveAndReset = () => {
+  const handleSaveAndReset = async () => {
     // 履歴に保存（未生成でもOK）
-    saveToHistory(formData, generatedLetter, mode);
+    await saveToHistory(formData, generatedLetter, mode);
 
     // フォームリセット
     setFormData({
@@ -147,7 +147,7 @@ export default function Home() {
 
       const data = await response.json();
       setGeneratedLetter(data.letter);
-      saveToHistory(sampleFormData, data.letter, mode);
+      await saveToHistory(sampleFormData, data.letter, mode);
     } catch (error) {
       console.error('サンプル生成エラー:', error);
       alert('サンプルの生成に失敗しました。もう一度お試しください。');

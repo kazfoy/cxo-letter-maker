@@ -37,6 +37,7 @@ export default function Home() {
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -162,27 +163,41 @@ export default function Home() {
       {/* モード切り替えUI */}
       <div className="bg-white border-b sticky top-0 z-30">
         <div className="container mx-auto px-4">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setMode('sales')}
-              className={`px-6 py-3 font-medium transition-all ${
-                mode === 'sales'
-                  ? 'bg-blue-600 text-white border-b-2 border-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              📧 セールスレターモード
-            </button>
-            <button
-              onClick={() => setMode('event')}
-              className={`px-6 py-3 font-medium transition-all ${
-                mode === 'event'
-                  ? 'bg-purple-600 text-white border-b-2 border-purple-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              🎫 イベント招待モード
-            </button>
+          <div className="flex items-center gap-2">
+            {/* サイドバー開閉ボタン（閉じている時のみ表示） */}
+            {!isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+                aria-label="履歴を開く"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            )}
+            <div className="flex gap-1 flex-1">
+              <button
+                onClick={() => setMode('sales')}
+                className={`px-6 py-3 font-medium transition-all ${
+                  mode === 'sales'
+                    ? 'bg-blue-600 text-white border-b-2 border-blue-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                📧 セールスレターモード
+              </button>
+              <button
+                onClick={() => setMode('event')}
+                className={`px-6 py-3 font-medium transition-all ${
+                  mode === 'event'
+                    ? 'bg-purple-600 text-white border-b-2 border-purple-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                🎫 イベント招待モード
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -201,30 +216,56 @@ export default function Home() {
 
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
-          {/* 左側: 履歴サイドバー（Sticky追従） */}
-          <div className="md:col-span-2 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10">
-            <HistorySidebar onRestore={handleRestore} onSampleExperience={handleSampleExperience} />
-          </div>
-
-          {/* 中央: 入力フォーム（自然に伸びる） */}
-          <div className="md:col-span-5">
-            <InputForm
-              mode={mode}
-              onGenerate={handleGenerate}
-              setIsGenerating={setIsGenerating}
-              formData={formData}
-              setFormData={setFormData}
+        <div className="relative">
+          {/* モバイル用背景オーバーレイ */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+              aria-label="サイドバーを閉じる"
             />
-          </div>
+          )}
 
-          {/* 右側: プレビューエリア（Sticky追従） */}
-          <div className="md:col-span-5 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10">
-            <PreviewArea
-              content={generatedLetter}
-              onContentChange={setGeneratedLetter}
-              isGenerating={isGenerating}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+            {/* 左側: 履歴サイドバー（Sticky追従 + Collapsible） */}
+            <div
+              className={`
+                fixed md:relative top-0 left-0 h-full md:h-auto
+                md:col-span-2 md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto
+                bg-gray-50 md:bg-transparent z-50 md:z-10
+                transition-transform duration-300 ease-in-out
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                ${!isSidebarOpen ? 'md:hidden' : ''}
+                w-80 md:w-auto
+              `}
+            >
+              <HistorySidebar
+                onRestore={handleRestore}
+                onSampleExperience={handleSampleExperience}
+                isOpen={isSidebarOpen}
+                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              />
+            </div>
+
+            {/* 中央: 入力フォーム（自然に伸びる） */}
+            <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} transition-all duration-300`}>
+              <InputForm
+                mode={mode}
+                onGenerate={handleGenerate}
+                setIsGenerating={setIsGenerating}
+                formData={formData}
+                setFormData={setFormData}
+              />
+            </div>
+
+            {/* 右側: プレビューエリア（Sticky追従） */}
+            <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10 transition-all duration-300`}>
+              <PreviewArea
+                content={generatedLetter}
+                onContentChange={setGeneratedLetter}
+                isGenerating={isGenerating}
+              />
+            </div>
           </div>
         </div>
       </main>

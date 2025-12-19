@@ -28,7 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Migrate LocalStorage data if user is logged in
       if (session?.user) {
-        migrateFromLocalStorage();
+        migrateFromLocalStorage().then((result) => {
+          if (!result.success) {
+            console.error('Migration failed:', result.error);
+          }
+        });
       }
     });
 
@@ -41,7 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Migrate LocalStorage data when user logs in
       if (session?.user) {
-        migrateFromLocalStorage();
+        migrateFromLocalStorage().then((result) => {
+          if (!result.success) {
+            console.error('Migration failed:', result.error);
+          }
+        });
       }
     });
 

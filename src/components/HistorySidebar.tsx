@@ -82,16 +82,10 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
   };
 
   // Filter by status
+  // Note: Sorting is already done at database level (pinned first, then by created_at)
   const filteredHistories = statusFilter === 'all'
     ? histories
     : histories.filter(h => (h.status || 'generated') === statusFilter);
-
-  // ピン留めされたアイテムを上部に表示
-  const sortedHistories = [...filteredHistories].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return 0; // 同じピン状態内では元の順序を保持
-  });
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-full md:h-auto overflow-y-auto md:overflow-visible">
@@ -145,7 +139,7 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
       </div>
 
       <div>
-        {sortedHistories.length === 0 ? (
+        {filteredHistories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 px-4">
             <div className="text-6xl mb-4">📂</div>
             <p className="text-lg font-medium text-gray-600 mb-3">まだ履歴はありません</p>
@@ -177,17 +171,39 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
           </div>
         ) : (
           <div className="space-y-3">
-            {sortedHistories.map((history) => (
+            {filteredHistories.map((history) => (
               <div
                 key={history.id}
-                className={`border rounded-md p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                className={`relative border rounded-md p-3 pr-12 hover:bg-gray-50 cursor-pointer transition-colors ${
                   history.isPinned
                     ? 'bg-amber-50 border-amber-300'
                     : ''
                 }`}
                 onClick={() => onRestore(history)}
               >
-                <div className="flex justify-between items-start mb-1">
+                {/* Pin button - absolute positioned at top-right */}
+                <button
+                  onClick={(e) => handleTogglePin(history.id, e)}
+                  className={`absolute top-2 right-2 p-1.5 rounded-md transition-all hover:scale-110 ${
+                    history.isPinned
+                      ? 'bg-yellow-400 text-yellow-900 shadow-sm'
+                      : 'bg-transparent border border-gray-300 text-gray-400 hover:border-gray-400'
+                  }`}
+                  aria-label={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
+                  title={history.isPinned ? 'ピン留め解除' : 'ピン留めすると自動削除されません'}
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill={history.isPinned ? 'currentColor' : 'none'}
+                    stroke={history.isPinned ? 'none' : 'currentColor'}
+                    strokeWidth={history.isPinned ? 0 : 2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M16 12V4h1c1 0 1-1 1-1H6s0 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                  </svg>
+                </button>
+
+                <div className="flex justify-between items-start mb-1 pr-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <h3 className="font-medium text-sm text-gray-800 line-clamp-1">
                       {history.targetCompany}
@@ -207,25 +223,17 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
                       {getStatusBadge(history.status).label}
                     </span>
                   </div>
-                  <div className="flex gap-1 ml-2 flex-shrink-0">
-                    <button
-                      onClick={(e) => handleTogglePin(history.id, e)}
-                      className={`text-sm hover:scale-110 transition-transform ${
-                        history.isPinned ? 'text-amber-600' : 'text-gray-400'
-                      }`}
-                      aria-label={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
-                      title={history.isPinned ? 'ピン留め解除' : 'ピン留めすると自動削除されません'}
-                    >
-                      📌
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(history.id, e)}
-                      className="text-xs text-red-600 hover:text-red-700"
-                      aria-label="削除"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                </div>
+
+                {/* Delete button moved to bottom */}
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={(e) => handleDelete(history.id, e)}
+                    className="text-xs text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                    aria-label="削除"
+                  >
+                    削除
+                  </button>
                 </div>
                 <p className="text-xs text-gray-600 mb-1">
                   {history.targetName}様

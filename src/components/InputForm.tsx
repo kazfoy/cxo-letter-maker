@@ -20,6 +20,12 @@ interface AISuggestion {
   suggestions: string[];
 }
 
+interface ApiErrorDisplay {
+  message: string;
+  suggestion?: string;
+  show: boolean;
+}
+
 interface LetterFormData {
   myCompanyName: string;
   myName: string;
@@ -91,7 +97,7 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
     setErrorDisplay({ message, suggestion, show: true });
     // 5秒後に自動で消す
     setTimeout(() => {
-      setErrorDisplay(prev => ({ ...prev, show: false }));
+      setErrorDisplay((prev: ApiErrorDisplay) => ({ ...prev, show: false }));
     }, 8000);
   };
 

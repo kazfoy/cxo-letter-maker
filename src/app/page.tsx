@@ -95,7 +95,7 @@ export default function LandingPage() {
       </section>
 
       {/* Problem & Solution */}
-      <section className="py-24 md:py-32 bg-white">
+      <section id="features" className="py-24 md:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             {/* Left: Problem */}
@@ -255,9 +255,53 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-white border-t border-stone-200 py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center text-stone-600">
-            <p className="text-lg font-serif mb-2">CxO Letter Maker</p>
-            <p className="text-sm">決裁者に届く、本気の手紙。</p>
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            {/* ブランド */}
+            <div>
+              <h3 className="text-lg font-serif font-bold text-stone-900 mb-2">CxO Letter Maker</h3>
+              <p className="text-sm text-stone-600">決裁者に届く、本気の手紙。</p>
+            </div>
+
+            {/* リンク */}
+            <div>
+              <h4 className="text-sm font-semibold text-stone-900 mb-3">サービス</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/new" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    手紙を作成
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    ログイン
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* 法務 */}
+            <div>
+              <h4 className="text-sm font-semibold text-stone-900 mb-3">法的情報</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/terms" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    利用規約
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    プライバシーポリシー
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* コピーライト */}
+          <div className="border-t border-stone-200 pt-8 text-center">
+            <p className="text-sm text-stone-500">
+              © 2025 CxO Letter Maker. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

@@ -84,19 +84,18 @@ export async function POST(request: Request) {
     GenerateSchema,
     async (data, user) => {
       // ゲストユーザーのレート制限チェック (DBベース)
+      let guestId = '';
+      let isNewGuest = false;
+
       if (!user) {
         const cookieStore = await cookies();
-        const guestId = cookieStore.get('guest_id')?.value;
+        guestId = cookieStore.get('guest_id')?.value || '';
 
         if (!guestId) {
-          return NextResponse.json(
-            {
-              error: 'ゲストIDが見つかりません。Cookieを有効にしてください。',
-              code: 'GUEST_ID_MISSING',
-              message: 'ブラウザのCookieが無効になっている可能性があります。'
-            },
-            { status: 400 }
-          );
+          // Cookieがない場合は新規発行
+          guestId = crypto.randomUUID();
+          isNewGuest = true;
+          devLog.log('Generated new guest_id in API:', guestId);
         }
 
         const { allowed, usage } = await checkAndIncrementGuestUsage(guestId);
@@ -431,7 +430,15 @@ ${safe.freeformInput}
 
         const response = NextResponse.json({ letter });
 
-
+        // 新規ゲストの場合はCookieを発行
+        if (isNewGuest && guestId) {
+          response.cookies.set('guest_id', guestId, {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 365, // 1年間有効
+            httpOnly: true,
+            sameSite: 'lax',
+          });
+        }
 
         return response;
 
@@ -461,7 +468,7 @@ ${safe.freeformInput}
           status = 503;
         }
 
-        return NextResponse.json(
+        const errorResponse = NextResponse.json(
           {
             error: errorMessage,
             code: errorCode,
@@ -469,6 +476,17 @@ ${safe.freeformInput}
           },
           { status }
         );
+
+        if (isNewGuest && guestId) {
+          errorResponse.cookies.set('guest_id', guestId, {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 365, // 1年間有効
+            httpOnly: true,
+            sameSite: 'lax',
+          });
+        }
+
+        return errorResponse;
       }
     },
     {

@@ -4,12 +4,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 
-// APIキーが読み込めているか確認するログを追加
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-console.log("API Key configured:", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
 
 if (!apiKey) {
-  console.error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
 }
 
 // Googleプロバイダーを初期化（APIキーを明示的に渡す）

@@ -7,7 +7,6 @@ import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-console.log("API Key configured (analyze-url):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
 
 const google = createGoogleGenerativeAI({
   apiKey: apiKey,

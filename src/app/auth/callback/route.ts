@@ -1,37 +1,67 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { devLog } from '@/lib/logger';
+
+/**
+ * nextパラメータの検証（オープンリダイレクト対策）
+ * 同一オリジンかつ相対パス（/で始まる）のみ許可
+ */
+function validateNextParameter(next: string | null, origin: string): string | null {
+  if (!next) return null;
+
+  // 相対パス（/で始まる）のみ許可
+  if (!next.startsWith('/')) {
+    devLog.warn('Invalid next parameter: must start with /', next);
+    return null;
+  }
+
+  // プロトコルを含む絶対URLを拒否
+  if (next.includes('://')) {
+    devLog.warn('Invalid next parameter: absolute URL not allowed', next);
+    return null;
+  }
+
+  // 許可されたパスのホワイトリスト
+  const allowedPaths = ['/dashboard', '/setup-password', '/'];
+  const isAllowed = allowedPaths.some(path => next === path || next.startsWith(`${path}/`) || next.startsWith(`${path}?`));
+
+  if (!isAllowed) {
+    devLog.warn('Invalid next parameter: not in allowed paths', next);
+    return null;
+  }
+
+  return next;
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next');
+  const nextParam = requestUrl.searchParams.get('next');
   const origin = requestUrl.origin;
 
-  console.log('========== AUTH CALLBACK START ==========');
-  console.log('Request URL:', requestUrl.href);
-  console.log('Code present:', !!code);
-  console.log('Next parameter:', next);
+  devLog.log('========== AUTH CALLBACK START ==========');
+  devLog.log('Code present:', !!code);
 
   if (code) {
     const supabase = await createClient();
-    console.log('Exchanging code for session...');
+    devLog.log('Exchanging code for session...');
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error('❌ Callback error:', error);
+      devLog.error('Callback error:', error.message);
       return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
     }
 
-    console.log('✅ Session established successfully');
-    console.log('User ID:', data.user?.id);
-    console.log('User email:', data.user?.email);
-    console.log('User metadata:', JSON.stringify(data.user?.user_metadata, null, 2));
-    
+    devLog.log('Session established successfully');
+
+    // nextパラメータの検証（オープンリダイレクト対策）
+    const validatedNext = validateNextParameter(nextParam, origin);
+
     // nextパラメータが指定されている場合はそれを使用（最優先）
-    if (next) {
-      const redirectUrl = `${origin}${next}`;
-      console.log('➡️  Redirecting to next parameter:', redirectUrl);
-      console.log('========== AUTH CALLBACK END ==========');
+    if (validatedNext) {
+      const redirectUrl = `${origin}${validatedNext}`;
+      devLog.log('Redirecting to validated next parameter:', validatedNext);
+      devLog.log('========== AUTH CALLBACK END ==========');
       return NextResponse.redirect(redirectUrl);
     }
 
@@ -39,28 +69,25 @@ export async function GET(request: Request) {
     // Magic Link経由の認証 = 新規登録または再認証の可能性
     // パスワード設定済みフラグをチェック
     const hasPasswordSet = data.user?.user_metadata?.password_set === true;
-    
+
     if (hasPasswordSet) {
       // パスワード設定済み = 既存ユーザーの再ログイン → ダッシュボードへ
-      console.log('✅ Password already set, redirecting to dashboard');
+      devLog.log('Password already set, redirecting to dashboard');
       const redirectUrl = `${origin}/dashboard`;
-      console.log('➡️  Redirecting to:', redirectUrl);
-      console.log('========== AUTH CALLBACK END ==========');
+      devLog.log('========== AUTH CALLBACK END ==========');
       return NextResponse.redirect(redirectUrl);
     } else {
       // パスワード未設定 = 新規登録 → パスワード設定画面へ
       // これがMagic Link経由の新規登録のデフォルト動作
-      console.log('🔐 Password not set (or flag not set), redirecting to setup-password');
-      console.log('This is likely a new user registration via Magic Link');
+      devLog.log('Password not set, redirecting to setup-password');
       const redirectUrl = `${origin}/setup-password`;
-      console.log('➡️  Redirecting to:', redirectUrl);
-      console.log('========== AUTH CALLBACK END ==========');
+      devLog.log('========== AUTH CALLBACK END ==========');
       return NextResponse.redirect(redirectUrl);
     }
   }
 
   // codeが無い場合は /login へリダイレクト
-  console.log('❌ No code parameter, redirecting to login');
-  console.log('========== AUTH CALLBACK END ==========');
+  devLog.warn('No code parameter, redirecting to login');
+  devLog.log('========== AUTH CALLBACK END ==========');
   return NextResponse.redirect(`${origin}/login?error=missing_code`);
 }

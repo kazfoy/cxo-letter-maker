@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-console.log("API Key configured (edit):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
 
 const google = createGoogleGenerativeAI({
   apiKey: apiKey,

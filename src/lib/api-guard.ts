@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/server';
 import { z } from 'zod';
 import { checkRateLimit, type RateLimitConfig } from './rate-limit';
 import type { User } from '@supabase/supabase-js';
+import { devLog } from './logger';
 
 /**
  * APIガードのオプション
@@ -43,7 +44,7 @@ export async function apiGuard<T extends z.ZodType>(
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !authUser) {
-        console.warn('Unauthorized API access attempt');
+        devLog.warn('Unauthorized API access attempt');
         return NextResponse.json(
           { error: '認証が必要です' },
           { status: 401 }
@@ -56,7 +57,7 @@ export async function apiGuard<T extends z.ZodType>(
       if (options.rateLimit) {
         const isLimited = checkRateLimit(user.id, options.rateLimit);
         if (isLimited) {
-          console.warn(`Rate limit exceeded for user: ${user.id}`);
+          devLog.warn('Rate limit exceeded');
           return NextResponse.json(
             { error: 'リクエストが多すぎます。しばらく待ってから再試行してください' },
             { status: 429 }
@@ -79,7 +80,7 @@ export async function apiGuard<T extends z.ZodType>(
     // 4. Zodバリデーション
     const parseResult = schema.safeParse(body);
     if (!parseResult.success) {
-      console.warn('Validation failed:', parseResult.error.issues);
+      devLog.warn('Validation failed');
       return NextResponse.json(
         {
           error: '入力値が正しくありません',
@@ -97,7 +98,7 @@ export async function apiGuard<T extends z.ZodType>(
     // ハンドラー側で user を使う場合は注意が必要
     return await handler(parseResult.data, user as User);
   } catch (error) {
-    console.error('API guard error:', error);
+    devLog.error('API guard error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { error: 'サーバーエラーが発生しました' },
       { status: 500 }
@@ -119,7 +120,7 @@ export async function authGuard(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.warn('Unauthorized API access attempt');
+      devLog.warn('Unauthorized API access attempt');
       return NextResponse.json(
         { error: '認証が必要です' },
         { status: 401 }
@@ -130,7 +131,7 @@ export async function authGuard(
     if (options.rateLimit) {
       const isLimited = checkRateLimit(user.id, options.rateLimit);
       if (isLimited) {
-        console.warn(`Rate limit exceeded for user: ${user.id}`);
+        devLog.warn('Rate limit exceeded');
         return NextResponse.json(
           { error: 'リクエストが多すぎます。しばらく待ってから再試行してください' },
           { status: 429 }
@@ -141,7 +142,7 @@ export async function authGuard(
     // 3. ハンドラーを実行
     return await handler(user);
   } catch (error) {
-    console.error('Auth guard error:', error);
+    devLog.error('Auth guard error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { error: 'サーバーエラーが発生しました' },
       { status: 500 }

@@ -5,35 +5,11 @@ import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
-import { saveToHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
+import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
-
-interface LetterFormData {
-  myCompanyName: string;
-  myName: string;
-  myServiceDescription: string;
-  companyName: string;
-  position: string;
-  name: string;
-  background: string;
-  problem: string;
-  solution: string;
-  caseStudy: string;
-  offer: string;
-  freeformInput?: string; // まとめて入力用
-  // イベント招待モード用フィールド
-  eventUrl?: string; // イベントURL
-  eventName?: string; // イベント名
-  eventDateTime?: string; // 開催日時・場所
-  eventSpeakers?: string; // 主要登壇者/ゲスト
-  invitationReason?: string; // 招待の背景（Why You?）
-  // かんたんモード用フィールド
-  simpleRequirement?: string; // 伝えたい要件
-}
-
-export type LetterMode = 'sales' | 'event';
+import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 
 export default function NewLetterPage() {
   const { user } = useAuth();

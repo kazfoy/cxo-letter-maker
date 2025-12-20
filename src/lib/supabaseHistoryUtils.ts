@@ -1,31 +1,5 @@
 import { createClient } from '@/utils/supabase/client';
-
-export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting_set';
-
-export interface LetterHistory {
-  id: string;
-  createdAt: string;
-  targetCompany: string;
-  targetName: string;
-  content: string;
-  isPinned?: boolean;
-  mode?: 'sales' | 'event';
-  status?: LetterStatus;
-  inputs: {
-    myCompanyName: string;
-    myName: string;
-    myServiceDescription: string;
-    companyName: string;
-    position: string;
-    name: string;
-    background: string;
-    problem: string;
-    solution: string;
-    caseStudy: string;
-    offer: string;
-    freeformInput?: string;
-  };
-}
+import type { LetterHistory, LetterStatus, LetterMode } from '@/types/letter';
 
 // Database type (snake_case for Supabase)
 interface LetterRow {
@@ -37,7 +11,7 @@ interface LetterRow {
   target_name: string;
   content: string;
   is_pinned: boolean;
-  mode: 'sales' | 'event';
+  mode: LetterMode;
   status: LetterStatus;
   inputs: LetterHistory['inputs'];
 }

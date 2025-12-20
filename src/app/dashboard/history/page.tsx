@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getHistories, deleteHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
+import { getHistories, deleteHistory } from '@/lib/supabaseHistoryUtils';
 import { useRouter } from 'next/navigation';
+import type { LetterHistory, LetterStatus } from '@/types/letter';
 
 export default function HistoryPage() {
   const router = useRouter();

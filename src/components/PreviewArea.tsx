@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Document, Paragraph, Packer, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
-import { type LetterStatus, updateStatus } from '@/lib/supabaseHistoryUtils';
+import { updateStatus } from '@/lib/supabaseHistoryUtils';
+import type { LetterStatus } from '@/types/letter';
 
 interface PreviewAreaProps {
   content: string;

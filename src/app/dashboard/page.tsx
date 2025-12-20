@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getHistories, type LetterHistory } from '@/lib/supabaseHistoryUtils';
+import { getHistories } from '@/lib/supabaseHistoryUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { LetterHistory } from '@/types/letter';
 
 export default function DashboardPage() {
   const { user } = useAuth();

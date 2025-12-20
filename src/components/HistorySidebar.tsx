@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getHistories, togglePin, deleteHistory, type LetterHistory, type LetterStatus } from '@/lib/supabaseHistoryUtils';
+import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
+import type { LetterHistory, LetterStatus } from '@/types/letter';
 
 interface HistorySidebarProps {
   onRestore: (history: LetterHistory) => void;

@@ -96,6 +96,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // ゲストIDの付与（未認証ユーザーかつCookieがない場合）
+  if (!user && !request.cookies.get('guest_id')) {
+    const guestId = crypto.randomUUID();
+    response.cookies.set('guest_id', guestId, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365, // 1年間有効
+      httpOnly: true,
+      sameSite: 'lax',
+    });
+    devLog.log('Generated new guest_id:', guestId);
+  }
+
   // 認証済みユーザーは通過
   return response;
 }

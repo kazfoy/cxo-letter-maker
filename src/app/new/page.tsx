@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
@@ -8,11 +9,13 @@ import { HistorySidebar } from '@/components/HistorySidebar';
 import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGuestLimit } from '@/hooks/useGuestLimit';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 
 export default function NewLetterPage() {
   const { user } = useAuth();
+  const { usage, refetch: refetchGuestUsage } = useGuestLimit();
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
@@ -21,6 +24,7 @@ export default function NewLetterPage() {
   const [currentLetterStatus, setCurrentLetterStatus] = useState<LetterStatus | undefined>();
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -66,6 +70,13 @@ export default function NewLetterPage() {
     loadProfileData();
   }, [user, profileLoaded]);
 
+  // 制限到達時にモーダルを表示
+  useEffect(() => {
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+    }
+  }, [usage, user]);
+
   const handleGenerate = async (letter: string, data: LetterFormData) => {
     setGeneratedLetter(letter);
     // 履歴に保存
@@ -73,6 +84,10 @@ export default function NewLetterPage() {
     if (savedLetter) {
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
+    }
+    // ゲスト利用状況を更新
+    if (!user) {
+      refetchGuestUsage();
     }
   };
 
@@ -116,6 +131,12 @@ export default function NewLetterPage() {
   };
 
   const handleSampleExperience = async () => {
+    // ゲスト制限チェック
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+      return;
+    }
+
     // モードに応じたサンプルデータを選択
     const sampleData = mode === 'sales' ? SAMPLE_DATA : SAMPLE_EVENT_DATA;
 
@@ -157,6 +178,12 @@ export default function NewLetterPage() {
       });
 
       if (!response.ok) {
+        // 429エラーの場合は制限モーダルを表示
+        if (response.status === 429) {
+          setShowLimitModal(true);
+          refetchGuestUsage();
+          return;
+        }
         throw new Error('生成に失敗しました');
       }
 
@@ -166,6 +193,10 @@ export default function NewLetterPage() {
       if (savedLetter) {
         setCurrentLetterId(savedLetter.id);
         setCurrentLetterStatus(savedLetter.status);
+      }
+      // ゲスト利用状況を更新
+      if (!user) {
+        refetchGuestUsage();
       }
     } catch (error) {
       console.error('サンプル生成エラー:', error);
@@ -222,8 +253,22 @@ export default function NewLetterPage() {
         </div>
       </div>
 
-      {/* 保存&リセットボタン */}
-
+      {/* ゲスト利用制限インジケーター */}
+      {!user && usage && (
+        <div className="bg-amber-50 border-b border-amber-200 py-2">
+          <div className="container mx-auto px-4 flex justify-center items-center gap-2 text-sm text-amber-900">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">ゲスト利用中：本日あと <span className="font-bold text-lg">{usage.remaining}</span> 回</span>
+            {usage.isLimitReached && (
+              <Link href="/login" className="ml-2 underline hover:text-amber-700">
+                ログインして制限を解除
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-4 py-6">
@@ -269,6 +314,7 @@ export default function NewLetterPage() {
                 setFormData={setFormData}
                 onSampleFill={handleSampleExperience}
                 onReset={handleSaveAndReset}
+                disabled={!user && usage?.isLimitReached}
               />
             </div>
 
@@ -286,6 +332,39 @@ export default function NewLetterPage() {
           </div>
         </div>
       </main>
+
+      {/* 制限到達モーダル */}
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">本日のゲスト枠を使い切りました</h3>
+            <p className="text-slate-600 mb-8 leading-relaxed">
+              無料会員登録すると、1日10回まで作成できます。<br />
+              さらに、生成履歴の保存や、より高度な機能も利用可能です。
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                className="block w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105"
+              >
+                無料で会員登録・ログイン
+              </Link>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="block w-full py-3 px-4 text-slate-500 hover:text-slate-700 font-medium transition-colors"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

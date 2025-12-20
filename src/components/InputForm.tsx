@@ -28,6 +28,7 @@ interface InputFormProps {
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
   onSampleFill?: () => void;
   onReset?: () => void;
+  disabled?: boolean;
 }
 
 export function InputForm({
@@ -37,7 +38,8 @@ export function InputForm({
   formData,
   setFormData,
   onSampleFill,
-  onReset
+  onReset,
+  disabled = false
 }: InputFormProps) {
   const {
     // State
@@ -141,14 +143,13 @@ export function InputForm({
         {/* 送信ボタン */}
         <button
           type="submit"
-          disabled={isGeneratingLocal}
-          className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${
-            generationSuccess
-              ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-              : isGeneratingLocal
+          disabled={isGeneratingLocal || disabled}
+          className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
+            ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+            : isGeneratingLocal
               ? 'bg-indigo-500 text-white cursor-wait'
               : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label={labels.submit}
         >
           {generationSuccess ? (

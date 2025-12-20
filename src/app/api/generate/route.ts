@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt, detectInjectionAttempt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 
 export const maxDuration = 60;
 
@@ -82,39 +83,35 @@ export async function POST(request: Request) {
     request,
     GenerateSchema,
     async (data, user) => {
-      // ゲストユーザーのレート制限チェック
-      let guestUsage = { count: 0, date: new Date().toDateString() };
-
+      // ゲストユーザーのレート制限チェック (DBベース)
       if (!user) {
         const cookieStore = await cookies();
-        const usageCookie = cookieStore.get('guest_usage');
+        const guestId = cookieStore.get('guest_id')?.value;
 
-        if (usageCookie) {
-          try {
-            const parsed = JSON.parse(usageCookie.value);
-            // 日付が変わっていたらリセット
-            if (parsed.date === guestUsage.date) {
-              guestUsage = parsed;
-            }
-          } catch (e) {
-            // クッキーのパースエラーは無視して新規扱い
-          }
+        if (!guestId) {
+          return NextResponse.json(
+            {
+              error: 'ゲストIDが見つかりません。Cookieを有効にしてください。',
+              code: 'GUEST_ID_MISSING',
+              message: 'ブラウザのCookieが無効になっている可能性があります。'
+            },
+            { status: 400 }
+          );
         }
 
-        // 1日3回の制限
-        if (guestUsage.count >= 3) {
+        const { allowed, usage } = await checkAndIncrementGuestUsage(guestId);
+
+        if (!allowed) {
           return NextResponse.json(
             {
               error: 'ゲスト利用の上限（1日3回）に達しました。',
               code: 'GUEST_LIMIT_REACHED',
-              message: '無料枠の上限に達しました。ログインすると無制限で利用できます。'
+              message: '無料枠の上限に達しました。ログインすると無制限で利用できます。',
+              usage // フロントエンドで表示するために現在の利用状況を返す
             },
             { status: 429 }
           );
         }
-
-        // カウントアップ
-        guestUsage.count++;
       }
 
       try {
@@ -434,15 +431,7 @@ ${safe.freeformInput}
 
         const response = NextResponse.json({ letter });
 
-        // ゲストユーザーの場合、利用回数をクッキーに保存
-        if (!user) {
-          response.cookies.set('guest_usage', JSON.stringify(guestUsage), {
-            path: '/',
-            maxAge: 60 * 60 * 24, // 1日
-            httpOnly: true,
-            sameSite: 'lax',
-          });
-        }
+
 
         return response;
 

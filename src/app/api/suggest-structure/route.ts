@@ -6,11 +6,21 @@ import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
+}
 
 // 入力スキーマ定義（文字数制限を追加）
 const SuggestStructureSchema = z.object({
@@ -32,9 +42,10 @@ export async function POST(request: Request) {
         const safeServiceDescription = sanitizeForPrompt(myServiceDescription, 2000);
         const safeBackground = sanitizeForPrompt(background || '', 5000);
 
-    const model = google('gemini-1.5-flash');
+        const google = getGoogleProvider();
+        const model = google('gemini-1.5-flash');
 
-    const prompt = `あなたはCxO向けセールスレターの構成案を提案する専門家です。
+        const prompt = `あなたはCxO向けセールスレターの構成案を提案する専門家です。
 
 【タスク】
 以下の情報を基に、手紙の切り口（アプローチ方法）として3つのパターンを提案してください。
@@ -93,18 +104,18 @@ ${safeBackground ? `【解析されたコンテキスト】\n${safeBackground}\n
 
 それでは、3つのアプローチ案を提案してください。`;
 
-    const result = await generateText({
-      model: model,
-      prompt: prompt,
-    });
-    const responseText = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: prompt,
+        });
+        const responseText = result.text;
 
-    // JSONを抽出（```json で囲まれている場合があるため）
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      devLog.error('Invalid JSON response:', responseText);
-      throw new Error('Invalid JSON response');
-    }
+        // JSONを抽出（```json で囲まれている場合があるため）
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          devLog.error('Invalid JSON response:', responseText);
+          throw new Error('Invalid JSON response');
+        }
 
         // JSON.parseを安全に実行
         let parsed;

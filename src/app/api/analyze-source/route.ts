@@ -7,181 +7,188 @@ import { authGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-if (!apiKey) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
 }
-
-// Googleプロバイダーを初期化（APIキーを明示的に渡す）
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
 
 export async function POST(request: Request) {
   return await authGuard(
     async (user) => {
       try {
-    // FormDataを解析
-    const formData = await request.formData();
-    const urlsJson = formData.get('urls') as string;
-    const pdfText = formData.get('pdfText') as string | null; // PDFファイルではなくテキストを受け取る
-    const isEventUrl = formData.get('isEventUrl') === 'true'; // イベントURL解析フラグ
+        // FormDataを解析
+        const formData = await request.formData();
+        const urlsJson = formData.get('urls') as string;
+        const pdfText = formData.get('pdfText') as string | null; // PDFファイルではなくテキストを受け取る
+        const isEventUrl = formData.get('isEventUrl') === 'true'; // イベントURL解析フラグ
 
-    if (!urlsJson && !pdfText) {
-      const error = createErrorResponse(ErrorCodes.MISSING_REQUIRED_FIELD);
-      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.MISSING_REQUIRED_FIELD) });
-    }
-
-    let urls: string[] = [];
-    if (urlsJson) {
-      try {
-        urls = JSON.parse(urlsJson);
-        if (!Array.isArray(urls)) {
-          throw new Error('Invalid URLs format');
+        if (!urlsJson && !pdfText) {
+          const error = createErrorResponse(ErrorCodes.MISSING_REQUIRED_FIELD);
+          return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.MISSING_REQUIRED_FIELD) });
         }
-      } catch (error) {
-        const errorResponse = createErrorResponse(ErrorCodes.INVALID_URL_FORMAT);
-        return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INVALID_URL_FORMAT) });
-      }
-    }
 
-    const extractedTexts: string[] = [];
-    let urlResults: PromiseSettledResult<{source: string; text: string}>[] = [];
-
-    // 複数URLからテキスト抽出（並列処理）
-    if (urls.length > 0) {
-      urlResults = await Promise.allSettled(
-        urls.map(async (url, index) => {
+        let urls: string[] = [];
+        if (urlsJson) {
           try {
-            // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
-            let response: Response;
-            try {
-              response = await safeFetch(
-                url,
-                {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  },
-                },
-                10000, // 10秒タイムアウト
-                5 * 1024 * 1024 // 5MB制限
-              );
-            } catch (fetchError) {
-              devLog.error(`URL ${index + 1} fetch error:`, fetchError);
-              throw new Error(
-                `URL_NOT_ACCESSIBLE:${fetchError instanceof Error ? fetchError.message : '不明なエラー'}`
-              );
+            urls = JSON.parse(urlsJson);
+            if (!Array.isArray(urls)) {
+              throw new Error('Invalid URLs format');
             }
-
-            if (!response.ok) {
-              throw new Error(`URL_NOT_ACCESSIBLE:HTTP ${response.status}`);
-            }
-
-            const html = await response.text();
-            const $ = cheerio.load(html);
-
-            // 不要な要素を削除
-            $('script').remove();
-            $('style').remove();
-            $('nav').remove();
-            $('footer').remove();
-            $('header').remove();
-
-            // メインコンテンツを抽出
-            let mainText = '';
-            const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
-
-            for (const selector of mainSelectors) {
-              const element = $(selector);
-              if (element.length > 0) {
-                mainText = element.text();
-                break;
-              }
-            }
-
-            // テキストをクリーンアップ
-            const cleanedText = mainText
-              .replace(/\s+/g, ' ')
-              .trim()
-              .substring(0, 5000);
-
-            if (cleanedText.length < 50) {
-              throw new Error('CONTENT_NOT_FOUND:有効なコンテンツが見つかりません');
-            }
-
-            return {
-              source: `URL ${index + 1}`,
-              text: cleanedText,
-            };
           } catch (error) {
-            devLog.warn(`URL ${index + 1} extraction failed:`, error);
-            // エラータイプを判別してthrow
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            if (errorMessage.includes('URL_NOT_ACCESSIBLE')) {
-              throw new Error(`URL_NOT_ACCESSIBLE:${url}`);
-            } else if (errorMessage.includes('CONTENT_NOT_FOUND')) {
-              throw new Error(`CONTENT_NOT_FOUND:${url}`);
-            } else {
-              throw new Error(`SCRAPING_FAILED:${url}`);
-            }
+            const errorResponse = createErrorResponse(ErrorCodes.INVALID_URL_FORMAT);
+            return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INVALID_URL_FORMAT) });
           }
-        })
-      );
-
-      // 成功したURLのテキストを収集
-      urlResults.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          extractedTexts.push(`=== ${result.value.source} ===\n${result.value.text}`);
         }
-      });
-    }
 
-    // PDFテキストを追加（フロントエンドで既に抽出済み）
-    if (pdfText && pdfText.trim().length >= 50) {
-      const cleanedPdfText = pdfText
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 5000);
-      extractedTexts.push(`=== PDF Document ===\n${cleanedPdfText}`);
-    }
+        const extractedTexts: string[] = [];
+        let urlResults: PromiseSettledResult<{ source: string; text: string }>[] = [];
 
-    // すべてのソースが失敗した場合
-    if (extractedTexts.length === 0) {
-      // 失敗したURLのエラー詳細を収集
-      const failedUrls = urlResults
-        ?.filter((r) => r.status === 'rejected')
-        .map((r: any) => {
-          const reason = r.reason?.message || '';
-          if (reason.includes('URL_NOT_ACCESSIBLE')) {
-            return 'URLにアクセスできませんでした';
-          } else if (reason.includes('CONTENT_NOT_FOUND')) {
-            return '有効なコンテンツが見つかりませんでした';
-          } else {
-            return 'スクレイピングに失敗しました';
-          }
-        });
+        // 複数URLからテキスト抽出（並列処理）
+        if (urls.length > 0) {
+          urlResults = await Promise.allSettled(
+            urls.map(async (url, index) => {
+              try {
+                // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
+                let response: Response;
+                try {
+                  response = await safeFetch(
+                    url,
+                    {
+                      headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                      },
+                    },
+                    10000, // 10秒タイムアウト
+                    5 * 1024 * 1024 // 5MB制限
+                  );
+                } catch (fetchError) {
+                  devLog.error(`URL ${index + 1} fetch error:`, fetchError);
+                  throw new Error(
+                    `URL_NOT_ACCESSIBLE:${fetchError instanceof Error ? fetchError.message : '不明なエラー'}`
+                  );
+                }
 
-      const error = createErrorResponse(
-        ErrorCodes.ALL_SOURCES_FAILED,
-        undefined,
-        undefined,
-        { failedUrls }
-      );
-      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.ALL_SOURCES_FAILED) });
-    }
+                if (!response.ok) {
+                  throw new Error(`URL_NOT_ACCESSIBLE:HTTP ${response.status}`);
+                }
 
-    // テキストを結合（最大10,000文字）
-    const combinedText = extractedTexts.join('\n\n').substring(0, 10000);
+                const html = await response.text();
+                const $ = cheerio.load(html);
 
-    // Gemini APIで情報を抽出
-    const model = google('gemini-2.0-flash-exp');
+                // 不要な要素を削除
+                $('script').remove();
+                $('style').remove();
+                $('nav').remove();
+                $('footer').remove();
+                $('header').remove();
 
-    let extractPrompt: string;
+                // メインコンテンツを抽出
+                let mainText = '';
+                const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
 
-    if (isEventUrl) {
-      // イベントURL解析用プロンプト
-      extractPrompt = `以下のソース（WebページまたはPDF）からイベント情報を抽出してJSON形式で返してください。
+                for (const selector of mainSelectors) {
+                  const element = $(selector);
+                  if (element.length > 0) {
+                    mainText = element.text();
+                    break;
+                  }
+                }
+
+                // テキストをクリーンアップ
+                const cleanedText = mainText
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .substring(0, 5000);
+
+                if (cleanedText.length < 50) {
+                  throw new Error('CONTENT_NOT_FOUND:有効なコンテンツが見つかりません');
+                }
+
+                return {
+                  source: `URL ${index + 1}`,
+                  text: cleanedText,
+                };
+              } catch (error) {
+                devLog.warn(`URL ${index + 1} extraction failed:`, error);
+                // エラータイプを判別してthrow
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (errorMessage.includes('URL_NOT_ACCESSIBLE')) {
+                  throw new Error(`URL_NOT_ACCESSIBLE:${url}`);
+                } else if (errorMessage.includes('CONTENT_NOT_FOUND')) {
+                  throw new Error(`CONTENT_NOT_FOUND:${url}`);
+                } else {
+                  throw new Error(`SCRAPING_FAILED:${url}`);
+                }
+              }
+            })
+          );
+
+          // 成功したURLのテキストを収集
+          urlResults.forEach((result) => {
+            if (result.status === 'fulfilled') {
+              extractedTexts.push(`=== ${result.value.source} ===\n${result.value.text}`);
+            }
+          });
+        }
+
+        // PDFテキストを追加（フロントエンドで既に抽出済み）
+        if (pdfText && pdfText.trim().length >= 50) {
+          const cleanedPdfText = pdfText
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 5000);
+          extractedTexts.push(`=== PDF Document ===\n${cleanedPdfText}`);
+        }
+
+        // すべてのソースが失敗した場合
+        if (extractedTexts.length === 0) {
+          // 失敗したURLのエラー詳細を収集
+          const failedUrls = urlResults
+            ?.filter((r) => r.status === 'rejected')
+            .map((r: any) => {
+              const reason = r.reason?.message || '';
+              if (reason.includes('URL_NOT_ACCESSIBLE')) {
+                return 'URLにアクセスできませんでした';
+              } else if (reason.includes('CONTENT_NOT_FOUND')) {
+                return '有効なコンテンツが見つかりませんでした';
+              } else {
+                return 'スクレイピングに失敗しました';
+              }
+            });
+
+          const error = createErrorResponse(
+            ErrorCodes.ALL_SOURCES_FAILED,
+            undefined,
+            undefined,
+            { failedUrls }
+          );
+          return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.ALL_SOURCES_FAILED) });
+        }
+
+        // テキストを結合（最大10,000文字）
+        const combinedText = extractedTexts.join('\n\n').substring(0, 10000);
+
+        // Gemini APIで情報を抽出
+        // Gemini APIで情報を抽出
+        const google = getGoogleProvider();
+        const model = google('gemini-2.0-flash-exp');
+
+        let extractPrompt: string;
+
+        if (isEventUrl) {
+          // イベントURL解析用プロンプト
+          extractPrompt = `以下のソース（WebページまたはPDF）からイベント情報を抽出してJSON形式で返してください。
 
 【ソーステキスト】
 ${combinedText}
@@ -206,9 +213,9 @@ JSON形式で返してください（説明文は不要）：
 }
 
 ※ JSONのみを返してください。説明文は不要です。`;
-    } else {
-      // 通常の企業情報抽出プロンプト
-      extractPrompt = `以下の複数のソース（WebページとPDF）から企業情報を抽出してJSON形式で返してください。
+        } else {
+          // 通常の企業情報抽出プロンプト
+          extractPrompt = `以下の複数のソース（WebページとPDF）から企業情報を抽出してJSON形式で返してください。
 
 【ソーステキスト】
 ${combinedText}
@@ -231,20 +238,20 @@ JSON形式で返してください（説明文は不要）：
 }
 
 ※ JSONのみを返してください。説明文は不要です。`;
-    }
+        }
 
-    const result = await generateText({
-      model: model,
-      prompt: extractPrompt,
-    });
-    const responseText = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: extractPrompt,
+        });
+        const responseText = result.text;
 
-    // JSONを抽出
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      const error = createErrorResponse(ErrorCodes.AI_RESPONSE_INVALID);
-      return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.AI_RESPONSE_INVALID) });
-    }
+        // JSONを抽出
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          const error = createErrorResponse(ErrorCodes.AI_RESPONSE_INVALID);
+          return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.AI_RESPONSE_INVALID) });
+        }
 
         // JSON.parseを安全に実行
         let extractedData;

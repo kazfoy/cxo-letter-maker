@@ -6,16 +6,21 @@ import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt, detectInjectionAttempt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-if (!apiKey) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
 }
-
-// Googleプロバイダーを初期化（APIキーを明示的に渡す）
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
 
 // 入力スキーマ定義（文字数制限を追加）
 const GenerateSchema = z.object({
@@ -42,6 +47,33 @@ const GenerateSchema = z.object({
   simpleRequirement: z.string().max(1000, '要件は1000文字以内で入力してください').optional(),
 });
 
+// ヘルパー関数: フォールバック付きで生成を実行
+async function generateWithFallback(prompt: string, primaryModelName: string = 'gemini-2.0-flash-exp') {
+  const google = getGoogleProvider();
+  const primaryModel = google(primaryModelName);
+  // フォールバックは安定版の 1.5-flash
+  const fallbackModel = google('gemini-1.5-flash');
+
+  try {
+    return await generateText({
+      model: primaryModel,
+      prompt: prompt,
+    });
+  } catch (error) {
+    devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-1.5-flash...`, error);
+    try {
+      return await generateText({
+        model: fallbackModel,
+        prompt: prompt,
+      });
+    } catch (fallbackError) {
+      // 両方失敗した場合は、元のエラー（または最後のあがきでfallbackError）を投げる
+      // ここでは詳細なエラー情報を呼び出し元に伝えるためにfallbackErrorを投げる
+      throw fallbackError;
+    }
+  }
+}
+
 export async function POST(request: Request) {
   return await apiGuard(
     request,
@@ -53,6 +85,14 @@ export async function POST(request: Request) {
         for (const value of inputValues) {
           if (detectInjectionAttempt(value)) {
             devLog.warn('Prompt injection attempt detected');
+            return NextResponse.json(
+              {
+                error: '不正な入力が検出されました',
+                code: 'SECURITY_ERROR',
+                message: '入力内容にセキュリティ上の問題がある可能性があります。'
+              },
+              { status: 400 }
+            );
           }
         }
 
@@ -103,13 +143,17 @@ export async function POST(request: Request) {
           simpleRequirement: sanitizeForPrompt(simpleRequirement, 1000),
         };
 
-    // モデル選択
-    const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
-    const geminiModel = google(modelName);
+        // モデル選択 (proの場合は2.0-flash-exp, flashの場合も現状は2.0-flash-expを優先)
+        // ユーザーが明示的にproを選んだ場合でも、安定性のために同じフォールバック戦略を使うか、
+        // あるいはproならより高性能なモデルをprimaryにするなどの調整が可能。
+        // ここでは既存ロジックに従い、primaryを設定。
+        const primaryModelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
+
+        let prompt = '';
 
         // かんたんモードの場合（セールスモードのみ）
         if (mode === 'sales' && inputComplexity === 'simple') {
-          const prompt = `あなたはCxO向けセールスレターの専門家です。
+          prompt = `あなたはCxO向けセールスレターの専門家です。
 以下の最小限の情報から、経営層に「会いたい」と思わせる営業手紙を作成してください。
 
 【提供された情報】
@@ -145,18 +189,10 @@ ${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
 
 それでは、手紙本文を作成してください。`;
-
-      const result = await generateText({
-        model: geminiModel,
-        prompt: prompt,
-      });
-      const letter = result.text;
-      return NextResponse.json({ letter });
-    }
-
-    // イベント招待モード（まとめて入力）の場合
-    if (mode === 'event' && inputComplexity === 'simple') {
-      const prompt = `あなたはイベント招待状の専門家です。
+        }
+        // イベント招待モード（まとめて入力）の場合
+        else if (mode === 'event' && inputComplexity === 'simple') {
+          prompt = `あなたはイベント招待状の専門家です。
 以下の最小限の情報から、魅力的で具体的なイベント招待状を作成してください。
 
 【提供された情報】
@@ -199,18 +235,10 @@ ${invitationReason ? `誘いたい理由・メモ: ${invitationReason}` : ''}
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
 
 それでは、イベント招待状の本文を作成してください。`;
-
-      const result = await generateText({
-        model: geminiModel,
-        prompt: prompt,
-      });
-      const letter = result.text;
-      return NextResponse.json({ letter });
-    }
-
-    // イベント招待モード（ステップ入力）の場合
-    if (mode === 'event') {
-      const prompt = `あなたはイベント招待状の専門家です。
+        }
+        // イベント招待モード（ステップ入力）の場合
+        else if (mode === 'event') {
+          prompt = `あなたはイベント招待状の専門家です。
 以下の情報を基に、丁寧でありながらも相手の時間を尊重した、魅力的なイベント招待状を作成してください。
 
 【差出人（自社）情報】
@@ -255,18 +283,10 @@ ${invitationReason}
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
 
 それでは、イベント招待状の本文を作成してください。`;
-
-      const result = await generateText({
-        model: geminiModel,
-        prompt: prompt,
-      });
-      const letter = result.text;
-      return NextResponse.json({ letter });
-    }
-
-    // まとめて入力モードの場合（セールスモード）
-    if (freeformInput) {
-      const prompt = `あなたはCxO向けセールスレターの専門家です。
+        }
+        // まとめて入力モードの場合（セールスモード）
+        else if (freeformInput) {
+          prompt = `あなたはCxO向けセールスレターの専門家です。
 提供されたテキストから、CxOレターの5つの要素（背景・課題・解決策・実績・オファー）を抽出し、形式に沿って営業手紙を作成してください。
 
 【差出人（自社）情報】
@@ -305,17 +325,10 @@ ${freeformInput}
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
 
 それでは、手紙本文を作成してください。`;
-
-      const result = await generateText({
-        model: geminiModel,
-        prompt: prompt,
-      });
-      const letter = result.text;
-      return NextResponse.json({ letter });
-    }
-
-    // ステップ入力モードの場合（従来のロジック）
-    const prompt = `あなたはCxO向けセールスレターの専門家です。
+        }
+        // ステップ入力モードの場合（従来のロジック）
+        else {
+          prompt = `あなたはCxO向けセールスレターの専門家です。
 以下の情報を基に、経営層に「会いたい」と思わせる営業手紙を作成してください。
 
 【差出人（自社）情報】
@@ -354,19 +367,47 @@ ${freeformInput}
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
 
 それでは、手紙本文を作成してください。`;
+        }
 
-        const result = await generateText({
-          model: geminiModel,
-          prompt: prompt,
-        });
+        // フォールバック付きで生成を実行
+        const result = await generateWithFallback(prompt, primaryModelName);
         const letter = result.text;
 
         return NextResponse.json({ letter });
-      } catch (error) {
+
+      } catch (error: any) {
         devLog.error('生成エラー:', error);
+
+        // エラーの種類に応じてメッセージを使い分ける
+        let errorMessage = '手紙の生成に失敗しました';
+        let errorCode = 'UNKNOWN_ERROR';
+        let status = 500;
+
+        if (error.message?.includes('429') || error.status === 429) {
+          errorMessage = 'AIモデルの利用制限に達しました。しばらく待ってから再試行してください。';
+          errorCode = 'RATE_LIMIT_EXCEEDED';
+          status = 429;
+        } else if (error.message?.includes('API key') || error.status === 401) {
+          errorMessage = 'APIキーが無効か、設定されていません。';
+          errorCode = 'AUTH_ERROR';
+          status = 401;
+        } else if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+          errorMessage = '生成された内容が安全基準に抵触したため、表示できません。入力内容を見直してください。';
+          errorCode = 'SAFETY_ERROR';
+          status = 400;
+        } else if (error.message?.includes('overloaded')) {
+          errorMessage = 'AIモデルが混雑しています。しばらく待ってから再試行してください。';
+          errorCode = 'MODEL_OVERLOADED';
+          status = 503;
+        }
+
         return NextResponse.json(
-          { error: '手紙の生成に失敗しました' },
-          { status: 500 }
+          {
+            error: errorMessage,
+            code: errorCode,
+            details: error.message
+          },
+          { status }
         );
       }
     },

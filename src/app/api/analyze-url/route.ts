@@ -7,11 +7,21 @@ import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
+}
 
 // 入力スキーマ定義
 const AnalyzeUrlSchema = z.object({
@@ -56,49 +66,51 @@ export async function POST(request: Request) {
           );
         }
 
-    const html = await response.text();
+        const html = await response.text();
 
-    // cheerioでHTMLをパース
-    const $ = cheerio.load(html);
+        // cheerioでHTMLをパース
+        const $ = cheerio.load(html);
 
-    // 不要な要素を削除
-    $('script').remove();
-    $('style').remove();
-    $('nav').remove();
-    $('footer').remove();
-    $('header').remove();
+        // 不要な要素を削除
+        $('script').remove();
+        $('style').remove();
+        $('nav').remove();
+        $('footer').remove();
+        $('header').remove();
 
-    // メインコンテンツを抽出
-    let mainText = '';
+        // メインコンテンツを抽出
+        let mainText = '';
 
-    // よくあるメインコンテンツのセレクタを試す
-    const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
+        // よくあるメインコンテンツのセレクタを試す
+        const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
 
-    for (const selector of mainSelectors) {
-      const element = $(selector);
-      if (element.length > 0) {
-        mainText = element.text();
-        break;
-      }
-    }
+        for (const selector of mainSelectors) {
+          const element = $(selector);
+          if (element.length > 0) {
+            mainText = element.text();
+            break;
+          }
+        }
 
-    // テキストをクリーンアップ
-    mainText = mainText
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 5000); // 最大5000文字に制限
+        // テキストをクリーンアップ
+        mainText = mainText
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 5000); // 最大5000文字に制限
 
-    if (!mainText || mainText.length < 50) {
-      return NextResponse.json(
-        { error: '有効なコンテンツを抽出できませんでした' },
-        { status: 500 }
-      );
-    }
+        if (!mainText || mainText.length < 50) {
+          return NextResponse.json(
+            { error: '有効なコンテンツを抽出できませんでした' },
+            { status: 500 }
+          );
+        }
 
-    // Gemini APIで情報を抽出
-    const model = google('gemini-2.0-flash-exp');
+        // Gemini APIで情報を抽出
+        // Gemini APIで情報を抽出
+        const google = getGoogleProvider();
+        const model = google('gemini-2.0-flash-exp');
 
-    const extractPrompt = `以下のWebページのテキストから、企業情報を抽出してJSON形式で返してください。
+        const extractPrompt = `以下のWebページのテキストから、企業情報を抽出してJSON形式で返してください。
 
 【Webページのテキスト】
 ${mainText}
@@ -120,20 +132,20 @@ JSON形式で返してください：
 
 ※ JSONのみを返してください。説明文は不要です。`;
 
-    const result = await generateText({
-      model: model,
-      prompt: extractPrompt,
-    });
-    const responseText = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: extractPrompt,
+        });
+        const responseText = result.text;
 
-    // JSONを抽出
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json(
-        { error: 'JSONの抽出に失敗しました' },
-        { status: 500 }
-      );
-    }
+        // JSONを抽出
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          return NextResponse.json(
+            { error: 'JSONの抽出に失敗しました' },
+            { status: 500 }
+          );
+        }
 
         // JSON.parseを安全に実行
         let extractedData;

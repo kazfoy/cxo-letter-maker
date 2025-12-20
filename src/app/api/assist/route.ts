@@ -6,11 +6,21 @@ import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
+}
 
 // 入力スキーマ定義（文字数制限を追加）
 const AssistSchema = z.object({
@@ -46,13 +56,14 @@ export async function POST(request: Request) {
         const safeEventDateTime = sanitizeForPrompt(eventDateTime || '', 300);
         const safeEventSpeakers = sanitizeForPrompt(eventSpeakers || '', 1000);
 
-    const model = google('gemini-2.0-flash-exp');
+        const google = getGoogleProvider();
+        const model = google('gemini-2.0-flash-exp');
 
-    let assistPrompt = '';
+        let assistPrompt = '';
 
-    // イベントモードの招待理由
-    if (field === 'invitationReason' && mode === 'event') {
-      assistPrompt = `【タスク】
+        // イベントモードの招待理由
+        if (field === 'invitationReason' && mode === 'event') {
+          assistPrompt = `【タスク】
 イベント招待状の「招待の背景（Why You?）」セクションの候補を3つ提案してください。
 
 【招待先企業】
@@ -82,11 +93,11 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-    } else {
-      // セールスモード用のswitch文
-      switch (field) {
-      case 'background':
-        assistPrompt = `【タスク】
+        } else {
+          // セールスモード用のswitch文
+          switch (field) {
+            case 'background':
+              assistPrompt = `【タスク】
 営業手紙の「背景・フック」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
@@ -107,10 +118,10 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-        break;
+              break;
 
-      case 'problem':
-        assistPrompt = `【タスク】
+            case 'problem':
+              assistPrompt = `【タスク】
 営業手紙の「課題の指摘」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
@@ -131,10 +142,10 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-        break;
+              break;
 
-      case 'solution':
-        assistPrompt = `【タスク】
+            case 'solution':
+              assistPrompt = `【タスク】
 営業手紙の「解決策の提示」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
@@ -155,10 +166,10 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-        break;
+              break;
 
-      case 'caseStudy':
-        assistPrompt = `【タスク】
+            case 'caseStudy':
+              assistPrompt = `【タスク】
 営業手紙の「事例・実績」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
@@ -179,10 +190,10 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-        break;
+              break;
 
-      case 'offer':
-        assistPrompt = `【タスク】
+            case 'offer':
+              assistPrompt = `【タスク】
 営業手紙の「オファー」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
@@ -203,27 +214,27 @@ JSON形式で3つの候補を返してください：
     "候補3のテキスト"
   ]
 }`;
-        break;
+              break;
 
-      default:
-        return NextResponse.json(
-          { error: '無効なフィールドです' },
-          { status: 400 }
-        );
-      }
-    }
+            default:
+              return NextResponse.json(
+                { error: '無効なフィールドです' },
+                { status: 400 }
+              );
+          }
+        }
 
-    const result = await generateText({
-      model: model,
-      prompt: assistPrompt,
-    });
-    const responseText = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: assistPrompt,
+        });
+        const responseText = result.text;
 
-    // JSONを抽出（```json で囲まれている場合があるため）
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid JSON response');
-    }
+        // JSONを抽出（```json で囲まれている場合があるため）
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Invalid JSON response');
+        }
 
         // JSON.parseを安全に実行
         let parsed;

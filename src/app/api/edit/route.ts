@@ -6,11 +6,21 @@ import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+let googleProvider: any = null;
 
-const google = createGoogleGenerativeAI({
-  apiKey: apiKey,
-});
+function getGoogleProvider() {
+  if (googleProvider) return googleProvider;
+
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+  }
+
+  googleProvider = createGoogleGenerativeAI({
+    apiKey: apiKey,
+  });
+  return googleProvider;
+}
 
 // 入力スキーマ定義（文字数制限を追加）
 const EditSchema = z.object({
@@ -29,9 +39,10 @@ export async function POST(request: Request) {
         // プロンプトインジェクション対策
         const safeContent = sanitizeForPrompt(content, 10000);
 
-    const model = google('gemini-2.0-flash-exp');
+        const google = getGoogleProvider();
+        const model = google('gemini-2.0-flash-exp');
 
-    const formatConstraints = `
+        const formatConstraints = `
 
 【フォーマット制約】
 - **重要**: Markdown記法を一切使用しないこと
@@ -41,11 +52,11 @@ export async function POST(request: Request) {
 - 箇条書きが必要な場合は、ハイフン（-）やアスタリスク（*）を使わず、全角中黒（・）または改行のみを使用すること
 - 手紙として自然で読みやすいプレーンテキスト形式にすること`;
 
-    let editPrompt = '';
+        let editPrompt = '';
 
-    switch (editType) {
-      case 'casual':
-        editPrompt = `以下の営業手紙をよりカジュアルで親しみやすい表現に書き換えてください。
+        switch (editType) {
+          case 'casual':
+            editPrompt = `以下の営業手紙をよりカジュアルで親しみやすい表現に書き換えてください。
 ただし、ビジネスマナーは保ち、失礼のない範囲で調整してください。
 元の手紙の構成や要素は維持してください。
 
@@ -54,10 +65,10 @@ ${safeContent}
 ${formatConstraints}
 
 【カジュアル版の手紙】`;
-        break;
+            break;
 
-      case 'emphasize':
-        editPrompt = `以下の営業手紙で、事例・実績の部分をより強調して書き換えてください。
+          case 'emphasize':
+            editPrompt = `以下の営業手紙で、事例・実績の部分をより強調して書き換えてください。
 具体的な数字や成果があれば目立つように配置し、説得力を高めてください。
 元の手紙の構成や他の要素は維持してください。
 
@@ -66,10 +77,10 @@ ${safeContent}
 ${formatConstraints}
 
 【事例強調版の手紙】`;
-        break;
+            break;
 
-      case 'shorten':
-        editPrompt = `以下の営業手紙を、重要なポイントを残しつつ、より簡潔に（600〜800文字程度に）短縮してください。
+          case 'shorten':
+            editPrompt = `以下の営業手紙を、重要なポイントを残しつつ、より簡潔に（600〜800文字程度に）短縮してください。
 5つの構成要素はすべて含めてください。
 
 【元の手紙】
@@ -77,10 +88,10 @@ ${safeContent}
 ${formatConstraints}
 
 【短縮版の手紙】`;
-        break;
+            break;
 
-      case 'passionate':
-        editPrompt = `以下の営業手紙を、より情熱的で熱意が伝わる表現に書き換えてください。
+          case 'passionate':
+            editPrompt = `以下の営業手紙を、より情熱的で熱意が伝わる表現に書き換えてください。
 ただし、過度に感情的になりすぎず、プロフェッショナルな印象は保ってください。
 元の手紙の構成や要素は維持してください。
 
@@ -89,10 +100,10 @@ ${safeContent}
 ${formatConstraints}
 
 【情熱的な手紙】`;
-        break;
+            break;
 
-      case 'concise':
-        editPrompt = `以下の営業手紙を、元の長さの約8割（元の文字数の80%程度）に簡潔化してください。
+          case 'concise':
+            editPrompt = `以下の営業手紙を、元の長さの約8割（元の文字数の80%程度）に簡潔化してください。
 重要な情報を残しつつ、冗長な表現を削ってください。
 5つの構成要素はすべて含めてください。
 
@@ -101,10 +112,10 @@ ${safeContent}
 ${formatConstraints}
 
 【簡潔版の手紙】`;
-        break;
+            break;
 
-      case 'businesslike':
-        editPrompt = `以下の営業手紙を、よりビジネスライクでフォーマルな表現に修正してください。
+          case 'businesslike':
+            editPrompt = `以下の営業手紙を、よりビジネスライクでフォーマルな表現に修正してください。
 丁寧で格式のある言葉遣いを使い、プロフェッショナルな印象を強めてください。
 元の手紙の構成や要素は維持してください。
 
@@ -113,10 +124,10 @@ ${safeContent}
 ${formatConstraints}
 
 【ビジネスライク版の手紙】`;
-        break;
+            break;
 
-      case 'proofread':
-        editPrompt = `以下の営業手紙の誤字脱字、文法ミス、不自然な表現をチェックし、修正してください。
+          case 'proofread':
+            editPrompt = `以下の営業手紙の誤字脱字、文法ミス、不自然な表現をチェックし、修正してください。
 また、より適切な語彙や表現があれば改善してください。
 基本的な内容や構成は変更せず、品質の向上のみを行ってください。
 
@@ -125,14 +136,14 @@ ${safeContent}
 ${formatConstraints}
 
 【校正後の手紙】`;
-        break;
+            break;
 
-      default:
-        return NextResponse.json(
-          { error: '無効な編集タイプです' },
-          { status: 400 }
-        );
-    }
+          default:
+            return NextResponse.json(
+              { error: '無効な編集タイプです' },
+              { status: 400 }
+            );
+        }
 
         const result = await generateText({
           model: model,

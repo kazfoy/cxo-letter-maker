@@ -385,3 +385,4 @@ devLog.error('生成エラー:', error);
 3. 入力スキーマの文字数制限追加
 4. `supabase/fix-policies.sql` の実行（Supabaseダッシュボードで）
 
+

@@ -88,47 +88,62 @@ export default function LandingPage() {
                 {/* Mockup Body */}
                 <div className="flex h-[400px]">
                   {/* Sidebar (Form) */}
-                  <div className="w-1/3 border-r border-stone-100 p-4 space-y-4 bg-white rounded-bl-lg">
-                    <div className="h-4 bg-stone-100 rounded w-1/2 mb-6"></div>
+                  <div className="w-1/3 border-r border-stone-100 p-4 space-y-4 bg-stone-50/50 rounded-bl-lg">
+                    <div className="h-4 bg-stone-200 rounded w-1/2 mb-6"></div>
                     <div className="space-y-2">
-                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
-                      <div className="h-8 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
+                      <div className="h-8 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
                     </div>
                     <div className="space-y-2">
-                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
-                      <div className="h-8 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
+                      <div className="h-8 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
                     </div>
                     <div className="space-y-2">
-                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
-                      <div className="h-24 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
+                      <div className="h-24 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
                     </div>
-                    <div className="h-10 bg-amber-800 rounded w-full mt-4 opacity-90"></div>
+                    <div className="h-10 bg-gradient-to-r from-amber-700 to-amber-800 rounded w-full mt-4 shadow-md opacity-90"></div>
                   </div>
 
                   {/* Main (Preview) */}
-                  <div className="w-2/3 p-6 bg-stone-50 rounded-br-lg relative overflow-hidden">
-                    <div className="bg-white shadow-sm border border-stone-200 h-full rounded-lg p-6 space-y-3">
-                      <div className="flex justify-between items-center mb-6">
-                        <div className="h-3 bg-stone-100 rounded w-1/4"></div>
-                        <div className="h-3 bg-stone-100 rounded w-1/6"></div>
+                  <div className="w-2/3 p-6 bg-stone-100/50 rounded-br-lg relative overflow-hidden">
+                    <div className="bg-white shadow-md border border-stone-200 h-full rounded-lg p-8 space-y-4 relative">
+                      {/* Paper Texture/Header */}
+                      <div className="absolute top-0 left-0 w-full h-2 bg-amber-800/10"></div>
+
+                      <div className="flex justify-between items-end border-b border-stone-100 pb-4 mb-6">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-stone-800 rounded w-32"></div>
+                          <div className="h-3 bg-stone-400 rounded w-24"></div>
+                        </div>
+                        <div className="h-12 w-12 bg-stone-100 rounded-full border border-stone-200"></div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="h-2 bg-stone-100 rounded w-full"></div>
-                        <div className="h-2 bg-stone-100 rounded w-full"></div>
-                        <div className="h-2 bg-stone-100 rounded w-5/6"></div>
-                        <div className="h-2 bg-stone-100 rounded w-full"></div>
+
+                      <div className="space-y-3">
+                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
+                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
+                        <div className="h-2.5 bg-stone-300 rounded w-11/12"></div>
+                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
                       </div>
-                      <div className="h-20"></div>
-                      <div className="space-y-2">
-                        <div className="h-2 bg-stone-100 rounded w-full"></div>
-                        <div className="h-2 bg-stone-100 rounded w-4/5"></div>
+
+                      <div className="h-8"></div>
+
+                      <div className="space-y-3">
+                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
+                        <div className="h-2.5 bg-stone-300 rounded w-10/12"></div>
+                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
+                      </div>
+
+                      {/* Signature */}
+                      <div className="mt-8 flex justify-end">
+                        <div className="h-8 w-24 bg-stone-100 rounded rotate-[-2deg]"></div>
                       </div>
                     </div>
 
                     {/* Floating Sparkle */}
                     <div className="absolute bottom-8 right-8 animate-bounce">
-                      <div className="w-12 h-12 bg-amber-800 rounded-full flex items-center justify-center shadow-lg">
-                        <Sparkles className="w-6 h-6 text-white" />
+                      <div className="w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center shadow-xl border-2 border-white">
+                        <Sparkles className="w-7 h-7 text-white" />
                       </div>
                     </div>
                   </div>
@@ -310,7 +325,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 md:py-32 bg-stone-50">
+      <section className="pt-16 pb-24 md:pt-20 md:pb-32 bg-stone-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">
@@ -660,7 +675,7 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-amber-50/30 to-stone-50">
+      <section className="pt-16 pb-24 md:pt-20 md:pb-32 bg-gradient-to-b from-amber-50/30 to-stone-50">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-stone-900 mb-6 leading-tight">
             アポ率を3倍にする手紙を、今すぐ無料で作成できます。

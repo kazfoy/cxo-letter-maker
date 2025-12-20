@@ -363,7 +363,7 @@ ${freeformInput}
 
         return NextResponse.json({ letter });
       } catch (error) {
-        console.error('生成エラー:', error);
+        devLog.error('生成エラー:', error);
         return NextResponse.json(
           { error: '手紙の生成に失敗しました' },
           { status: 500 }

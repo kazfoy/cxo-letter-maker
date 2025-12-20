@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -10,11 +12,11 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// 入力スキーマ定義
+// 入力スキーマ定義（文字数制限を追加）
 const SuggestStructureSchema = z.object({
-  companyName: z.string().min(1, '企業名は必須です'),
-  myServiceDescription: z.string().min(1, '自社サービス概要は必須です'),
-  background: z.string().optional(),
+  companyName: z.string().min(1, '企業名は必須です').max(200, '企業名は200文字以内で入力してください'),
+  myServiceDescription: z.string().min(1, '自社サービス概要は必須です').max(2000, 'サービス概要は2000文字以内で入力してください'),
+  background: z.string().max(5000, '背景情報は5000文字以内で入力してください').optional(),
 });
 
 export async function POST(request: Request) {
@@ -25,6 +27,11 @@ export async function POST(request: Request) {
       try {
         const { companyName, myServiceDescription, background } = data;
 
+        // プロンプトインジェクション対策
+        const safeCompanyName = sanitizeForPrompt(companyName, 200);
+        const safeServiceDescription = sanitizeForPrompt(myServiceDescription, 2000);
+        const safeBackground = sanitizeForPrompt(background || '', 5000);
+
     const model = google('gemini-1.5-flash');
 
     const prompt = `あなたはCxO向けセールスレターの構成案を提案する専門家です。
@@ -33,12 +40,12 @@ export async function POST(request: Request) {
 以下の情報を基に、手紙の切り口（アプローチ方法）として3つのパターンを提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス概要】
-${myServiceDescription}
+${safeServiceDescription}
 
-${background ? `【解析されたコンテキスト】\n${background}\n` : ''}
+${safeBackground ? `【解析されたコンテキスト】\n${safeBackground}\n` : ''}
 
 【提案する3つのアプローチパターン】
 1. **ビジョン共感型**: ターゲット企業の経営理念やビジョン、最近の発信内容への共感から入るアプローチ
@@ -82,7 +89,7 @@ ${background ? `【解析されたコンテキスト】\n${background}\n` : ''}
 - draftTextは具体的で実用的な内容にしてください
 - 箇条書き形式で、各要素（背景・課題・解決・実績・オファー）を明確に区別できるようにしてください
 - ユーザーがそのまま「まとめて入力」欄にコピー＆ペーストして使えるレベルの具体性を持たせてください
-- ${companyName}と${myServiceDescription}の内容を踏まえた、カスタマイズされた提案にしてください
+- ${safeCompanyName}と${safeServiceDescription}の内容を踏まえた、カスタマイズされた提案にしてください
 
 それでは、3つのアプローチ案を提案してください。`;
 
@@ -95,11 +102,21 @@ ${background ? `【解析されたコンテキスト】\n${background}\n` : ''}
     // JSONを抽出（```json で囲まれている場合があるため）
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('Invalid JSON response:', responseText);
+      devLog.error('Invalid JSON response:', responseText);
       throw new Error('Invalid JSON response');
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+        // JSON.parseを安全に実行
+        let parsed;
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          devLog.error('JSON parse error:', parseError);
+          return NextResponse.json(
+            { error: 'レスポンスの解析に失敗しました' },
+            { status: 500 }
+          );
+        }
 
         // バリデーション
         if (!parsed.approaches || !Array.isArray(parsed.approaches) || parsed.approaches.length !== 3) {
@@ -108,7 +125,7 @@ ${background ? `【解析されたコンテキスト】\n${background}\n` : ''}
 
         return NextResponse.json(parsed);
       } catch (error) {
-        console.error('構成案生成エラー:', error);
+        devLog.error('構成案生成エラー:', error);
         return NextResponse.json(
           { error: '構成案の生成に失敗しました' },
           { status: 500 }

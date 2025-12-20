@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
             5 * 1024 * 1024 // 5MB制限
           );
         } catch (error) {
-          console.error('URL fetch error:', error);
+          devLog.error('URL fetch error:', error);
           return NextResponse.json(
             {
               error: error instanceof Error ? error.message : 'URLの取得に失敗しました',
@@ -134,14 +135,24 @@ JSON形式で返してください：
       );
     }
 
-    const extractedData = JSON.parse(jsonMatch[0]);
+        // JSON.parseを安全に実行
+        let extractedData;
+        try {
+          extractedData = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          devLog.error('JSON parse error:', parseError);
+          return NextResponse.json(
+            { error: 'レスポンスの解析に失敗しました' },
+            { status: 500 }
+          );
+        }
 
         return NextResponse.json({
           success: true,
           data: extractedData,
         });
       } catch (error) {
-        console.error('URL解析エラー:', error);
+        devLog.error('URL解析エラー:', error);
         return NextResponse.json(
           { error: 'URL解析に失敗しました' },
           { status: 500 }

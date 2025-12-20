@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors';
 import { authGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
                 5 * 1024 * 1024 // 5MB制限
               );
             } catch (fetchError) {
-              console.error(`URL ${index + 1} fetch error:`, fetchError);
+              devLog.error(`URL ${index + 1} fetch error:`, fetchError);
               throw new Error(
                 `URL_NOT_ACCESSIBLE:${fetchError instanceof Error ? fetchError.message : '不明なエラー'}`
               );
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
               text: cleanedText,
             };
           } catch (error) {
-            console.warn(`URL ${index + 1} extraction failed:`, error);
+            devLog.warn(`URL ${index + 1} extraction failed:`, error);
             // エラータイプを判別してthrow
             const errorMessage = error instanceof Error ? error.message : String(error);
             if (errorMessage.includes('URL_NOT_ACCESSIBLE')) {
@@ -245,7 +246,15 @@ JSON形式で返してください（説明文は不要）：
       return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.AI_RESPONSE_INVALID) });
     }
 
-    const extractedData = JSON.parse(jsonMatch[0]);
+        // JSON.parseを安全に実行
+        let extractedData;
+        try {
+          extractedData = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          devLog.error('JSON parse error:', parseError);
+          const error = createErrorResponse(ErrorCodes.AI_RESPONSE_INVALID);
+          return NextResponse.json(error, { status: getHttpStatus(ErrorCodes.AI_RESPONSE_INVALID) });
+        }
 
         return NextResponse.json({
           success: true,
@@ -256,7 +265,7 @@ JSON形式で返してください（説明文は不要）：
           },
         });
       } catch (error) {
-        console.error('ソース解析エラー:', error);
+        devLog.error('ソース解析エラー:', error);
         const errorResponse = createErrorResponse(
           ErrorCodes.INTERNAL_ERROR,
           'ソース解析に失敗しました',

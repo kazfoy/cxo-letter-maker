@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -10,15 +12,15 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// 入力スキーマ定義
+// 入力スキーマ定義（文字数制限を追加）
 const AssistSchema = z.object({
-  field: z.string().min(1, 'フィールドは必須です'),
-  companyName: z.string().optional(),
-  myServiceDescription: z.string().optional(),
-  mode: z.string().optional(),
-  eventName: z.string().optional(),
-  eventDateTime: z.string().optional(),
-  eventSpeakers: z.string().optional(),
+  field: z.string().min(1, 'フィールドは必須です').max(100, 'フィールド名は100文字以内で入力してください'),
+  companyName: z.string().max(200, '企業名は200文字以内で入力してください').optional(),
+  myServiceDescription: z.string().max(2000, 'サービス概要は2000文字以内で入力してください').optional(),
+  mode: z.string().max(50, 'モードは50文字以内で入力してください').optional(),
+  eventName: z.string().max(300, 'イベント名は300文字以内で入力してください').optional(),
+  eventDateTime: z.string().max(300, '開催日時・場所は300文字以内で入力してください').optional(),
+  eventSpeakers: z.string().max(1000, '登壇者情報は1000文字以内で入力してください').optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,6 +39,13 @@ export async function POST(request: Request) {
           eventSpeakers,
         } = data;
 
+        // プロンプトインジェクション対策
+        const safeCompanyName = sanitizeForPrompt(companyName || '', 200);
+        const safeServiceDescription = sanitizeForPrompt(myServiceDescription || '', 2000);
+        const safeEventName = sanitizeForPrompt(eventName || '', 300);
+        const safeEventDateTime = sanitizeForPrompt(eventDateTime || '', 300);
+        const safeEventSpeakers = sanitizeForPrompt(eventSpeakers || '', 1000);
+
     const model = google('gemini-2.0-flash-exp');
 
     let assistPrompt = '';
@@ -47,15 +56,15 @@ export async function POST(request: Request) {
 イベント招待状の「招待の背景（Why You?）」セクションの候補を3つ提案してください。
 
 【招待先企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス/事業】
-${myServiceDescription}
+${safeServiceDescription}
 
 【イベント情報】
-イベント名: ${eventName || '未入力'}
-開催日時・場所: ${eventDateTime || '未入力'}
-主要登壇者/ゲスト: ${eventSpeakers || '未入力'}
+イベント名: ${safeEventName || '未入力'}
+開催日時・場所: ${safeEventDateTime || '未入力'}
+主要登壇者/ゲスト: ${safeEventSpeakers || '未入力'}
 
 【招待の背景（Why You?）とは】
 なぜその人をイベントに招待したいのか、その理由や期待することを記述する。以下の切り口を参考に：
@@ -81,10 +90,10 @@ JSON形式で3つの候補を返してください：
 営業手紙の「背景・フック」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス】
-${myServiceDescription}
+${safeServiceDescription}
 
 【背景・フックとは】
 なぜ今、その企業にアプローチするのか。ニュースや決算情報、業界動向などから言及し、興味を引く。
@@ -105,10 +114,10 @@ JSON形式で3つの候補を返してください：
 営業手紙の「課題の指摘」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス】
-${myServiceDescription}
+${safeServiceDescription}
 
 【課題の指摘とは】
 業界特有の課題や、成長企業が陥りやすい壁への共感を示す。
@@ -129,10 +138,10 @@ JSON形式で3つの候補を返してください：
 営業手紙の「解決策の提示」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス】
-${myServiceDescription}
+${safeServiceDescription}
 
 【解決策の提示とは】
 自社ソリューションによる解決アプローチを提示する。売り込みすぎない。
@@ -153,10 +162,10 @@ JSON形式で3つの候補を返してください：
 営業手紙の「事例・実績」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス】
-${myServiceDescription}
+${safeServiceDescription}
 
 【事例・実績とは】
 同業他社や類似ステージ企業での実績を紹介し、信頼性を高める。
@@ -177,10 +186,10 @@ JSON形式で3つの候補を返してください：
 営業手紙の「オファー」セクションの候補を3つ提案してください。
 
 【ターゲット企業】
-${companyName}
+${safeCompanyName}
 
 【自社サービス】
-${myServiceDescription}
+${safeServiceDescription}
 
 【オファーとは】
 具体的なアクション（情報交換の時間をください、など）を提案する。
@@ -216,10 +225,21 @@ JSON形式で3つの候補を返してください：
       throw new Error('Invalid JSON response');
     }
 
-        const parsed = JSON.parse(jsonMatch[0]);
+        // JSON.parseを安全に実行
+        let parsed;
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          devLog.error('JSON parse error:', parseError);
+          return NextResponse.json(
+            { error: 'レスポンスの解析に失敗しました' },
+            { status: 500 }
+          );
+        }
+
         return NextResponse.json(parsed);
       } catch (error) {
-        console.error('AIアシストエラー:', error);
+        devLog.error('AIアシストエラー:', error);
         return NextResponse.json(
           { error: 'AIアシストに失敗しました' },
           { status: 500 }

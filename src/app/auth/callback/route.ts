@@ -4,11 +4,13 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const next = requestUrl.searchParams.get('next'); // 次の遷移先パラメータを取得
   const origin = requestUrl.origin;
 
   console.log('========== AUTH CALLBACK START ==========');
   console.log('Request URL:', requestUrl.href);
   console.log('Code present:', !!code);
+  console.log('Next parameter:', next || 'none');
 
   if (code) {
     const supabase = await createClient();
@@ -22,7 +24,16 @@ export async function GET(request: Request) {
 
     console.log('✅ Session established successfully');
 
-    // セッションが確立された後、パスワード設定状態をチェック
+    // nextパラメータが指定されている場合は優先的に使用
+    if (next) {
+      console.log('➡️  Redirecting to next parameter:', next);
+      const redirectUrl = `${origin}${next}`;
+      console.log('Full redirect URL:', redirectUrl);
+      console.log('========== AUTH CALLBACK END ==========');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // nextがない場合は、従来通りpassword_setフラグをチェック
     if (data.user) {
       console.log('User ID:', data.user.id);
       console.log('User email:', data.user.email);

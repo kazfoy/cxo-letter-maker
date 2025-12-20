@@ -1,6 +1,17 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Note: middleware runs in Edge runtime, so we inline devLog here
+const isDevelopment = process.env.NODE_ENV === 'development';
+const devLog = {
+  log: (...args: any[]) => {
+    if (isDevelopment) console.log(...args);
+  },
+  warn: (...args: any[]) => {
+    if (isDevelopment) console.warn(...args);
+  },
+};
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -34,10 +45,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  console.log('========== MIDDLEWARE ==========');
-  console.log('Path:', pathname);
-  console.log('User:', user?.email || 'none');
-  console.log('User ID:', user?.id || 'none');
+  devLog.log('========== MIDDLEWARE ==========');
+  devLog.log('Path:', pathname);
+  devLog.log('Has user:', !!user);
 
   // パブリックルート（未認証でもアクセス可能）
   const publicRoutes = new Set(['/login', '/auth/callback', '/']);
@@ -61,11 +71,11 @@ export async function middleware(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = '/login';
       redirectUrl.searchParams.set('redirect', pathname);
-      console.log('Redirecting to login from setup-password (no auth)');
+      devLog.log('Redirecting to login from setup-password (no auth)');
       return NextResponse.redirect(redirectUrl);
     }
     // 認証済みユーザーは /setup-password にアクセス可能
-    console.log('Allowing access to setup-password (authenticated user)');
+    devLog.log('Allowing access to setup-password (authenticated user)');
     return response;
   }
 
@@ -75,7 +85,7 @@ export async function middleware(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/login';
     redirectUrl.searchParams.set('redirect', pathname);
-    console.log('Redirecting to login from:', pathname);
+    devLog.log('Redirecting to login from:', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 

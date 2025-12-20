@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { sanitizeForPrompt, detectInjectionAttempt } from '@/lib/prompt-sanitizer';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -15,29 +17,29 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// 入力スキーマ定義
+// 入力スキーマ定義（文字数制限を追加）
 const GenerateSchema = z.object({
-  myCompanyName: z.string().optional(),
-  myName: z.string().optional(),
-  myServiceDescription: z.string().optional(),
-  companyName: z.string().optional(),
-  position: z.string().optional(),
-  name: z.string().optional(),
-  background: z.string().optional(),
-  problem: z.string().optional(),
-  solution: z.string().optional(),
-  caseStudy: z.string().optional(),
-  offer: z.string().optional(),
-  freeformInput: z.string().optional(),
+  myCompanyName: z.string().max(200, '会社名は200文字以内で入力してください').optional(),
+  myName: z.string().max(100, '氏名は100文字以内で入力してください').optional(),
+  myServiceDescription: z.string().max(2000, 'サービス概要は2000文字以内で入力してください').optional(),
+  companyName: z.string().max(200, '企業名は200文字以内で入力してください').optional(),
+  position: z.string().max(100, '役職は100文字以内で入力してください').optional(),
+  name: z.string().max(100, '氏名は100文字以内で入力してください').optional(),
+  background: z.string().max(2000, '背景は2000文字以内で入力してください').optional(),
+  problem: z.string().max(2000, '課題は2000文字以内で入力してください').optional(),
+  solution: z.string().max(2000, '解決策は2000文字以内で入力してください').optional(),
+  caseStudy: z.string().max(2000, '事例は2000文字以内で入力してください').optional(),
+  offer: z.string().max(1000, 'オファーは1000文字以内で入力してください').optional(),
+  freeformInput: z.string().max(5000, '自由入力は5000文字以内で入力してください').optional(),
   model: z.enum(['flash', 'pro']).default('flash'),
   mode: z.enum(['sales', 'event']).default('sales'),
   inputComplexity: z.enum(['detailed', 'simple']).default('detailed'),
-  eventUrl: z.string().optional(),
-  eventName: z.string().optional(),
-  eventDateTime: z.string().optional(),
-  eventSpeakers: z.string().optional(),
-  invitationReason: z.string().optional(),
-  simpleRequirement: z.string().optional(),
+  eventUrl: z.string().max(500, 'URLは500文字以内で入力してください').optional(),
+  eventName: z.string().max(200, 'イベント名は200文字以内で入力してください').optional(),
+  eventDateTime: z.string().max(200, '日時・場所は200文字以内で入力してください').optional(),
+  eventSpeakers: z.string().max(1000, '登壇者情報は1000文字以内で入力してください').optional(),
+  invitationReason: z.string().max(2000, '招待理由は2000文字以内で入力してください').optional(),
+  simpleRequirement: z.string().max(1000, '要件は1000文字以内で入力してください').optional(),
 });
 
 export async function POST(request: Request) {
@@ -46,43 +48,74 @@ export async function POST(request: Request) {
     GenerateSchema,
     async (data, user) => {
       try {
+        // プロンプトインジェクション検出
+        const inputValues = Object.values(data).filter(v => typeof v === 'string');
+        for (const value of inputValues) {
+          if (detectInjectionAttempt(value)) {
+            devLog.warn('Prompt injection attempt detected');
+          }
+        }
+
+        // 入力をサニタイズ
         const {
-          myCompanyName,
-          myName,
-          myServiceDescription,
-          companyName,
-          position,
-          name,
-          background,
-          problem,
-          solution,
-          caseStudy,
-          offer,
-          freeformInput,
+          myCompanyName = '',
+          myName = '',
+          myServiceDescription = '',
+          companyName = '',
+          position = '',
+          name = '',
+          background = '',
+          problem = '',
+          solution = '',
+          caseStudy = '',
+          offer = '',
+          freeformInput = '',
           model = 'flash',
           mode = 'sales',
           inputComplexity = 'detailed',
-          eventUrl,
-          eventName,
-          eventDateTime,
-          eventSpeakers,
-          invitationReason,
-          simpleRequirement,
+          eventUrl = '',
+          eventName = '',
+          eventDateTime = '',
+          eventSpeakers = '',
+          invitationReason = '',
+          simpleRequirement = '',
         } = data;
+
+        // 全ての文字列入力をサニタイズ
+        const safe = {
+          myCompanyName: sanitizeForPrompt(myCompanyName, 200),
+          myName: sanitizeForPrompt(myName, 100),
+          myServiceDescription: sanitizeForPrompt(myServiceDescription, 2000),
+          companyName: sanitizeForPrompt(companyName, 200),
+          position: sanitizeForPrompt(position, 100),
+          name: sanitizeForPrompt(name, 100),
+          background: sanitizeForPrompt(background, 2000),
+          problem: sanitizeForPrompt(problem, 2000),
+          solution: sanitizeForPrompt(solution, 2000),
+          caseStudy: sanitizeForPrompt(caseStudy, 2000),
+          offer: sanitizeForPrompt(offer, 1000),
+          freeformInput: sanitizeForPrompt(freeformInput, 5000),
+          eventUrl: sanitizeForPrompt(eventUrl, 500),
+          eventName: sanitizeForPrompt(eventName, 200),
+          eventDateTime: sanitizeForPrompt(eventDateTime, 200),
+          eventSpeakers: sanitizeForPrompt(eventSpeakers, 1000),
+          invitationReason: sanitizeForPrompt(invitationReason, 2000),
+          simpleRequirement: sanitizeForPrompt(simpleRequirement, 1000),
+        };
 
     // モデル選択
     const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
     const geminiModel = google(modelName);
 
-    // かんたんモードの場合（セールスモードのみ）
-    if (mode === 'sales' && inputComplexity === 'simple') {
-      const prompt = `あなたはCxO向けセールスレターの専門家です。
+        // かんたんモードの場合（セールスモードのみ）
+        if (mode === 'sales' && inputComplexity === 'simple') {
+          const prompt = `あなたはCxO向けセールスレターの専門家です。
 以下の最小限の情報から、経営層に「会いたい」と思わせる営業手紙を作成してください。
 
 【提供された情報】
-ターゲット企業名: ${companyName}
-自社サービス概要: ${myServiceDescription}
-${simpleRequirement ? `伝えたい要件: ${simpleRequirement}` : ''}
+ターゲット企業名: ${safe.companyName}
+自社サービス概要: ${safe.myServiceDescription}
+${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
 
 【あなたの役割】
 提供された情報が少ないため、以下の要素をAIが推測・補完して、完全なCxOレターを作成してください。

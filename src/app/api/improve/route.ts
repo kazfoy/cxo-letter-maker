@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -10,9 +12,9 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// 入力スキーマ定義
+// 入力スキーマ定義（文字数制限を追加）
 const ImproveSchema = z.object({
-  content: z.string().min(1, 'コンテンツは必須です'),
+  content: z.string().min(1, 'コンテンツは必須です').max(10000, 'コンテンツは10000文字以内で入力してください'),
 });
 
 export async function POST(request: Request) {
@@ -23,10 +25,13 @@ export async function POST(request: Request) {
       try {
         const { content } = data;
 
-    // Gemini Pro を使用（品質改善）
-    const model = google('gemini-2.0-flash-exp');
+        // プロンプトインジェクション対策
+        const safeContent = sanitizeForPrompt(content, 10000);
 
-    const improvePrompt = `あなたは一流のビジネスライターです。
+        // Gemini Pro を使用（品質改善）
+        const model = google('gemini-2.0-flash-exp');
+
+        const improvePrompt = `あなたは一流のビジネスライターです。
 以下の営業手紙を、より説得力があり、経営層の心に響く内容に改善してください。
 
 【改善ポイント】
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
 元の構成や要素（5つの構成要素）は維持しつつ、質を向上させてください。
 
 【元の手紙】
-${content}
+${safeContent}
 
 【フォーマット制約】
 - **重要**: Markdown記法を一切使用しないこと
@@ -59,7 +64,7 @@ ${content}
 
         return NextResponse.json({ improvedLetter });
       } catch (error) {
-        console.error('品質改善エラー:', error);
+        devLog.error('品質改善エラー:', error);
         return NextResponse.json(
           { error: '品質改善に失敗しました' },
           { status: 500 }

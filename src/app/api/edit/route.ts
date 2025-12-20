@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { devLog } from '@/lib/logger';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -10,9 +12,9 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-// 入力スキーマ定義
+// 入力スキーマ定義（文字数制限を追加）
 const EditSchema = z.object({
-  content: z.string().min(1, 'コンテンツは必須です'),
+  content: z.string().min(1, 'コンテンツは必須です').max(10000, 'コンテンツは10000文字以内で入力してください'),
   editType: z.enum(['casual', 'emphasize', 'shorten', 'passionate', 'concise', 'businesslike', 'proofread']),
 });
 
@@ -23,6 +25,9 @@ export async function POST(request: Request) {
     async (data, user) => {
       try {
         const { content, editType } = data;
+
+        // プロンプトインジェクション対策
+        const safeContent = sanitizeForPrompt(content, 10000);
 
     const model = google('gemini-2.0-flash-exp');
 
@@ -45,7 +50,7 @@ export async function POST(request: Request) {
 元の手紙の構成や要素は維持してください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【カジュアル版の手紙】`;
@@ -57,7 +62,7 @@ ${formatConstraints}
 元の手紙の構成や他の要素は維持してください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【事例強調版の手紙】`;
@@ -68,7 +73,7 @@ ${formatConstraints}
 5つの構成要素はすべて含めてください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【短縮版の手紙】`;
@@ -80,7 +85,7 @@ ${formatConstraints}
 元の手紙の構成や要素は維持してください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【情熱的な手紙】`;
@@ -92,7 +97,7 @@ ${formatConstraints}
 5つの構成要素はすべて含めてください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【簡潔版の手紙】`;
@@ -104,7 +109,7 @@ ${formatConstraints}
 元の手紙の構成や要素は維持してください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【ビジネスライク版の手紙】`;
@@ -116,7 +121,7 @@ ${formatConstraints}
 基本的な内容や構成は変更せず、品質の向上のみを行ってください。
 
 【元の手紙】
-${content}
+${safeContent}
 ${formatConstraints}
 
 【校正後の手紙】`;
@@ -137,7 +142,7 @@ ${formatConstraints}
 
         return NextResponse.json({ editedLetter });
       } catch (error) {
-        console.error('編集エラー:', error);
+        devLog.error('編集エラー:', error);
         return NextResponse.json(
           { error: '編集に失敗しました' },
           { status: 500 }

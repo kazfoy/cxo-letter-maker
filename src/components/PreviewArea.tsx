@@ -156,11 +156,10 @@ export function PreviewArea({
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
       {/* 通知 */}
       {notification && (
-        <div className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
-          notification.type === 'success'
+        <div className={`mb-4 p-3 rounded-md flex items-center gap-2 ${notification.type === 'success'
             ? 'bg-green-50 border border-green-200 text-green-800'
             : 'bg-red-50 border border-red-200 text-red-800'
-        }`}>
+          }`}>
           {notification.type === 'success' ? (
             <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -175,66 +174,96 @@ export function PreviewArea({
       )}
 
       {/* Fixed Action Bar */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mx-6 -mt-6 px-6 py-3 mb-4 rounded-t-lg">
-        <div className="flex justify-between items-center">
-          {/* Left side: Title and Stats */}
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-slate-900 leading-relaxed">プレビュー</h2>
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mx-6 -mt-6 px-6 py-4 mb-6 rounded-t-lg">
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-start md:items-center">
+            {/* Left side: Title */}
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">プレビュー</h2>
+
+            {/* Right side: Action buttons (Desktop) */}
             {content && (
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="flex items-center gap-1">
+              <div className="hidden md:flex gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-medium text-gray-700"
+                  aria-label="クリップボードにコピー"
+                >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                   </svg>
-                  {charCount}字
-                </span>
-                <span className="flex items-center gap-1">
+                  コピー
+                </button>
+                <button
+                  onClick={handleExportWord}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold shadow-sm"
+                  aria-label="Word形式でダウンロード"
+                >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Word出力
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Stats & Status Row */}
+          {content && (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm border-t border-gray-100 pt-3 md:border-0 md:pt-0">
+              <div className="flex items-center gap-4 text-gray-600">
+                <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  {charCount}文字
+                </span>
+                <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   約{readingTimeMinutes}分
                 </span>
               </div>
-            )}
-          </div>
 
-          {/* Middle: Status Dropdown */}
-          {content && currentLetterId && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="letter-status" className="text-sm font-medium text-slate-700">
-                ステータス:
-              </label>
-              <select
-                id="letter-status"
-                value={letterStatus}
-                onChange={(e) => handleStatusChange(e.target.value as LetterStatus)}
-                className="px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
-              >
-                <option value="draft">下書き</option>
-                <option value="generated">作成済</option>
-                <option value="sent">送付済</option>
-                <option value="replied">返信あり</option>
-                <option value="meeting_set">アポ獲得</option>
-              </select>
+              {currentLetterId && (
+                <div className="flex items-center gap-2 ml-auto md:ml-0">
+                  <select
+                    id="letter-status"
+                    value={letterStatus}
+                    onChange={(e) => handleStatusChange(e.target.value as LetterStatus)}
+                    className="pl-2 pr-8 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium cursor-pointer hover:border-slate-300 transition-colors"
+                  >
+                    <option value="draft">下書き</option>
+                    <option value="generated">作成済</option>
+                    <option value="sent">送付済</option>
+                    <option value="replied">返信あり</option>
+                    <option value="meeting_set">アポ獲得</option>
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Right side: Action buttons */}
+          {/* Mobile Actions (Bottom Row) */}
           {content && (
-            <div className="flex gap-2">
+            <div className="flex md:hidden gap-2 pt-2 border-t border-gray-100">
               <button
                 onClick={handleCopy}
-                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors font-medium"
-                aria-label="クリップボードにコピー"
+                className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-medium text-gray-700"
               >
-                📋 コピー
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                コピー
               </button>
               <button
                 onClick={handleExportWord}
-                className="px-3 py-1.5 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded transition-colors font-semibold"
-                aria-label="Word形式でダウンロード"
+                className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold shadow-sm"
               >
-                📄 Word出力
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Word
               </button>
             </div>
           )}

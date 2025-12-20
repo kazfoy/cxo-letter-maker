@@ -247,16 +247,7 @@ export default function NewLetterPage() {
       </div>
 
       {/* 保存&リセットボタン */}
-      <div className="bg-white border-b sticky top-[57px] z-30 shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <button
-            onClick={handleSaveAndReset}
-            className="w-full md:w-auto bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition-all font-medium shadow-sm"
-          >
-            💾 現在の内容を履歴に保存してリセット
-          </button>
-        </div>
-      </div>
+
 
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-4 py-6">
@@ -301,6 +292,7 @@ export default function NewLetterPage() {
                 formData={formData}
                 setFormData={setFormData}
                 onSampleFill={handleSampleExperience}
+                onReset={handleSaveAndReset}
               />
             </div>
 

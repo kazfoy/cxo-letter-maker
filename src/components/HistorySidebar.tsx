@@ -167,74 +167,88 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
             {filteredHistories.map((history) => (
               <div
                 key={history.id}
-                className={`relative border rounded-md p-3 pr-12 hover:bg-gray-50 cursor-pointer transition-colors ${history.isPinned
-                    ? 'bg-amber-50 border-amber-300'
-                    : ''
+                className={`group relative border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-all ${history.isPinned
+                  ? 'bg-amber-50 border-amber-200 shadow-sm'
+                  : 'border-slate-100 hover:border-slate-300'
                   }`}
                 onClick={() => onRestore(history)}
               >
+                {/* Header: Company Name & Date */}
+                <div className="flex justify-between items-start mb-2 pr-6">
+                  <h3 className="font-bold text-sm text-slate-800 line-clamp-1 leading-tight">
+                    {history.targetCompany || '未設定の企業'}
+                  </h3>
+                </div>
+
+                {/* Target Person */}
+                <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {history.targetName ? `${history.targetName} 様` : '担当者未設定'}
+                </p>
+
+                {/* Badges Row */}
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  {/* Mode Badge */}
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${(history.mode || 'sales') === 'event'
+                    ? 'bg-orange-50 text-orange-700 border-orange-100'
+                    : 'bg-blue-50 text-blue-700 border-blue-100'
+                    }`}>
+                    {(history.mode || 'sales') === 'event' ? 'Event' : 'Letter'}
+                  </span>
+
+                  {/* Status Badge */}
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${getStatusBadge(history.status).color
+                    }`}>
+                    {getStatusBadge(history.status).label}
+                  </span>
+                </div>
+
+                {/* Footer: Date & Actions */}
+                <div className="flex justify-between items-center pt-2 border-t border-slate-100/50 mt-1">
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(history.createdAt).toLocaleDateString('ja-JP', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+
+                  {/* Delete Button (Icon) */}
+                  <button
+                    onClick={(e) => handleDelete(history.id, e)}
+                    className="text-slate-400 hover:text-red-500 p-1 rounded-full hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="削除"
+                    title="削除"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+
                 {/* Pin button - absolute positioned at top-right */}
                 <button
                   onClick={(e) => handleTogglePin(history.id, e)}
-                  className={`absolute top-2 right-2 p-1.5 rounded-md transition-all hover:scale-110 ${history.isPinned
-                      ? 'bg-yellow-400 text-yellow-900 shadow-sm'
-                      : 'bg-transparent border border-gray-300 text-gray-400 hover:border-gray-400'
+                  className={`absolute top-2 right-2 p-1 rounded-full transition-all ${history.isPinned
+                    ? 'text-amber-400 hover:text-amber-500'
+                    : 'text-slate-300 hover:text-slate-400 opacity-0 group-hover:opacity-100'
                     }`}
                   aria-label={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
-                  title={history.isPinned ? 'ピン留め解除' : 'ピン留めすると自動削除されません'}
+                  title={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
                 >
                   <svg
                     className="w-4 h-4"
                     fill={history.isPinned ? 'currentColor' : 'none'}
-                    stroke={history.isPinned ? 'none' : 'currentColor'}
-                    strokeWidth={history.isPinned ? 0 : 2}
+                    stroke="currentColor"
+                    strokeWidth={2}
                     viewBox="0 0 24 24"
                   >
-                    <path d="M16 12V4h1c1 0 1-1 1-1H6s0 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                   </svg>
                 </button>
-
-                <div className="flex justify-between items-start mb-1 pr-2">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <h3 className="font-medium text-sm text-gray-800 line-clamp-1">
-                      {history.targetCompany}
-                    </h3>
-                    {/* モードバッジ */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${(history.mode || 'sales') === 'event'
-                        ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                        : 'bg-blue-100 text-blue-800 border border-blue-200'
-                      }`}>
-                      {(history.mode || 'sales') === 'event' ? 'Event' : 'Letter'}
-                    </span>
-                    {/* ステータスバッジ */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 border ${getStatusBadge(history.status).color
-                      }`}>
-                      {getStatusBadge(history.status).label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Delete button moved to bottom */}
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={(e) => handleDelete(history.id, e)}
-                    className="text-xs text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors"
-                    aria-label="削除"
-                  >
-                    削除
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mb-1">
-                  {history.targetName}様
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(history.createdAt).toLocaleDateString('ja-JP', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
               </div>
             ))}
           </div>

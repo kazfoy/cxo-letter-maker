@@ -77,25 +77,67 @@ export default function LandingPage() {
 
             {/* Right: Visual Mockup */}
             <div className="relative">
-              <div className="relative bg-white rounded-lg shadow-2xl border border-stone-200 p-8 rotate-1 hover:rotate-0 transition-transform">
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-800/10 rounded-full blur-2xl"></div>
-                <div className="space-y-4">
-                  <div className="h-3 bg-stone-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-stone-200 rounded w-full"></div>
-                  <div className="h-3 bg-stone-200 rounded w-5/6"></div>
-                  <div className="h-16 bg-stone-100 rounded mt-6"></div>
-                  <div className="h-3 bg-stone-200 rounded w-full"></div>
-                  <div className="h-3 bg-stone-200 rounded w-4/5"></div>
-                  <div className="h-3 bg-stone-200 rounded w-full"></div>
-                  <div className="h-3 bg-stone-200 rounded w-3/4"></div>
+              <div className="relative bg-white rounded-xl shadow-2xl border border-stone-200 p-2 rotate-1 hover:rotate-0 transition-transform duration-500">
+                {/* Mockup Header */}
+                <div className="h-8 bg-stone-50 border-b border-stone-100 rounded-t-lg flex items-center px-4 gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
                 </div>
-                <div className="absolute bottom-8 right-8">
-                  <div className="w-12 h-12 bg-amber-800/20 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-amber-800" />
+
+                {/* Mockup Body */}
+                <div className="flex h-[400px]">
+                  {/* Sidebar (Form) */}
+                  <div className="w-1/3 border-r border-stone-100 p-4 space-y-4 bg-white rounded-bl-lg">
+                    <div className="h-4 bg-stone-100 rounded w-1/2 mb-6"></div>
+                    <div className="space-y-2">
+                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
+                      <div className="h-8 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
+                      <div className="h-8 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-2 bg-stone-100 rounded w-1/3"></div>
+                      <div className="h-24 bg-stone-50 border border-stone-200 rounded w-full"></div>
+                    </div>
+                    <div className="h-10 bg-amber-800 rounded w-full mt-4 opacity-90"></div>
+                  </div>
+
+                  {/* Main (Preview) */}
+                  <div className="w-2/3 p-6 bg-stone-50 rounded-br-lg relative overflow-hidden">
+                    <div className="bg-white shadow-sm border border-stone-200 h-full rounded-lg p-6 space-y-3">
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="h-3 bg-stone-100 rounded w-1/4"></div>
+                        <div className="h-3 bg-stone-100 rounded w-1/6"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-2 bg-stone-100 rounded w-full"></div>
+                        <div className="h-2 bg-stone-100 rounded w-full"></div>
+                        <div className="h-2 bg-stone-100 rounded w-5/6"></div>
+                        <div className="h-2 bg-stone-100 rounded w-full"></div>
+                      </div>
+                      <div className="h-20"></div>
+                      <div className="space-y-2">
+                        <div className="h-2 bg-stone-100 rounded w-full"></div>
+                        <div className="h-2 bg-stone-100 rounded w-4/5"></div>
+                      </div>
+                    </div>
+
+                    {/* Floating Sparkle */}
+                    <div className="absolute bottom-8 right-8 animate-bounce">
+                      <div className="w-12 h-12 bg-amber-800 rounded-full flex items-center justify-center shadow-lg">
+                        <Sparkles className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="absolute -bottom-8 -left-8 w-full h-full bg-amber-800/5 rounded-lg -z-10"></div>
+
+              {/* Background Decoration */}
+              <div className="absolute -top-12 -right-12 w-64 h-64 bg-amber-800/5 rounded-full blur-3xl -z-10"></div>
+              <div className="absolute -bottom-8 -left-8 w-full h-full bg-stone-900/5 rounded-xl -z-10 rotate-3"></div>
             </div>
           </div>
         </div>
@@ -279,56 +321,71 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="flex flex-col gap-12 max-w-3xl mx-auto">
             {/* Step 1 */}
-            <div className="relative">
-              <div className="absolute -top-4 -left-4 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg">
+            <div className="relative flex flex-col md:flex-row gap-8 items-start">
+              <div className="flex-shrink-0 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg z-10 relative">
                 1
               </div>
-              <div className="pt-8 space-y-4">
-                <div className="w-16 h-16 bg-amber-800/10 rounded-lg flex items-center justify-center ml-auto">
-                  <Target className="w-8 h-8 text-amber-800" />
+              {/* Connector Line */}
+              <div className="absolute left-8 top-16 bottom-[-48px] w-0.5 bg-stone-200 hidden md:block"></div>
+
+              <div className="pt-2 space-y-4 flex-1">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-800/10 rounded-lg flex items-center justify-center">
+                    <Target className="w-6 h-6 text-amber-800" />
+                  </div>
+                  <h3 className="text-2xl font-serif font-bold text-stone-900">
+                    企業URLを入力
+                  </h3>
                 </div>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  企業URLを入力
-                </h3>
-                <p className="text-stone-600 leading-relaxed">
-                  送りたい企業のホームページURLを入力するだけ。AIが自動的に情報を収集します。
+                <p className="text-stone-600 leading-relaxed text-lg">
+                  送りたい企業のホームページURLを入力するだけ。AIが自動的に事業内容や課題を収集します。<br />
+                  <span className="text-amber-800 font-medium">イベント集客の場合は、イベントページのURLを入れるだけで招待状が完成します。</span>
                 </p>
               </div>
             </div>
 
             {/* Step 2 */}
-            <div className="relative">
-              <div className="absolute -top-4 -left-4 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg">
+            <div className="relative flex flex-col md:flex-row gap-8 items-start">
+              <div className="flex-shrink-0 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg z-10 relative">
                 2
               </div>
-              <div className="pt-8 space-y-4">
-                <div className="w-16 h-16 bg-amber-800/10 rounded-lg flex items-center justify-center ml-auto">
-                  <Sparkles className="w-8 h-8 text-amber-800" />
+              {/* Connector Line */}
+              <div className="absolute left-8 top-16 bottom-[-48px] w-0.5 bg-stone-200 hidden md:block"></div>
+
+              <div className="pt-2 space-y-4 flex-1">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-800/10 rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-amber-800" />
+                  </div>
+                  <h3 className="text-2xl font-serif font-bold text-stone-900">
+                    AIが文面を生成
+                  </h3>
                 </div>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  AIが文面を生成
-                </h3>
-                <p className="text-stone-600 leading-relaxed">
-                  相手の課題を分析し、独自の営業メソッドに基づいた説得力のある手紙を自動生成します。
+                <p className="text-stone-600 leading-relaxed text-lg">
+                  相手の課題を分析し、独自の営業メソッドに基づいた説得力のある手紙を自動生成します。<br />
+                  セールスレターだけでなく、<span className="text-amber-800 font-medium">展示会やセミナーの招待状</span>も、相手に合わせて最適化されます。
                 </p>
               </div>
             </div>
 
             {/* Step 3 */}
-            <div className="relative">
-              <div className="absolute -top-4 -left-4 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg">
+            <div className="relative flex flex-col md:flex-row gap-8 items-start">
+              <div className="flex-shrink-0 w-16 h-16 bg-amber-800 text-white rounded-full flex items-center justify-center text-2xl font-bold font-serif shadow-lg z-10 relative">
                 3
               </div>
-              <div className="pt-8 space-y-4">
-                <div className="w-16 h-16 bg-amber-800/10 rounded-lg flex items-center justify-center ml-auto">
-                  <Download className="w-8 h-8 text-amber-800" />
+
+              <div className="pt-2 space-y-4 flex-1">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-800/10 rounded-lg flex items-center justify-center">
+                    <Download className="w-6 h-6 text-amber-800" />
+                  </div>
+                  <h3 className="text-2xl font-serif font-bold text-stone-900">
+                    Wordで出力
+                  </h3>
                 </div>
-                <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  Wordで出力
-                </h3>
-                <p className="text-stone-600 leading-relaxed">
+                <p className="text-stone-600 leading-relaxed text-lg">
                   生成された手紙をWord形式でダウンロード。印刷して投函するだけです。
                 </p>
               </div>

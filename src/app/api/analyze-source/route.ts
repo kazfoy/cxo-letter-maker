@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors';
 import { authGuard } from '@/lib/api-guard';
+import { safeFetch } from '@/lib/url-validator';
 
 // APIキーが読み込めているか確認するログを追加
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -54,11 +55,25 @@ export async function POST(request: Request) {
       urlResults = await Promise.allSettled(
         urls.map(async (url, index) => {
           try {
-            const response = await fetch(url, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              },
-            });
+            // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
+            let response: Response;
+            try {
+              response = await safeFetch(
+                url,
+                {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  },
+                },
+                10000, // 10秒タイムアウト
+                5 * 1024 * 1024 // 5MB制限
+              );
+            } catch (fetchError) {
+              console.error(`URL ${index + 1} fetch error:`, fetchError);
+              throw new Error(
+                `URL_NOT_ACCESSIBLE:${fetchError instanceof Error ? fetchError.message : '不明なエラー'}`
+              );
+            }
 
             if (!response.ok) {
               throw new Error(`URL_NOT_ACCESSIBLE:HTTP ${response.status}`);

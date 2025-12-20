@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { safeFetch } from '@/lib/url-validator';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 console.log("API Key configured (analyze-url):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
@@ -25,19 +26,35 @@ export async function POST(request: Request) {
       try {
         const { url } = data;
 
-    // URLからHTMLを取得
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
+        // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
+        let response: Response;
+        try {
+          response = await safeFetch(
+            url,
+            {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              },
+            },
+            10000, // 10秒タイムアウト
+            5 * 1024 * 1024 // 5MB制限
+          );
+        } catch (error) {
+          console.error('URL fetch error:', error);
+          return NextResponse.json(
+            {
+              error: error instanceof Error ? error.message : 'URLの取得に失敗しました',
+            },
+            { status: 400 }
+          );
+        }
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: 'URLの取得に失敗しました' },
-        { status: 500 }
-      );
-    }
+        if (!response.ok) {
+          return NextResponse.json(
+            { error: `URLの取得に失敗しました: HTTP ${response.status}` },
+            { status: 500 }
+          );
+        }
 
     const html = await response.text();
 

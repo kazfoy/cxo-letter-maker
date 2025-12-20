@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors';
+import { authGuard } from '@/lib/api-guard';
 
 // APIキーが読み込めているか確認するログを追加
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -18,7 +19,9 @@ const google = createGoogleGenerativeAI({
 });
 
 export async function POST(request: Request) {
-  try {
+  return await authGuard(
+    async (user) => {
+      try {
     // FormDataを解析
     const formData = await request.formData();
     const urlsJson = formData.get('urls') as string;
@@ -231,22 +234,30 @@ JSON形式で返してください（説明文は不要）：
 
     const extractedData = JSON.parse(jsonMatch[0]);
 
-    return NextResponse.json({
-      success: true,
-      data: extractedData,
-      sources: {
-        urlsProcessed: extractedTexts.filter(t => t.includes('URL')).length,
-        pdfProcessed: extractedTexts.some(t => t.includes('PDF')),
+        return NextResponse.json({
+          success: true,
+          data: extractedData,
+          sources: {
+            urlsProcessed: extractedTexts.filter(t => t.includes('URL')).length,
+            pdfProcessed: extractedTexts.some(t => t.includes('PDF')),
+          },
+        });
+      } catch (error) {
+        console.error('ソース解析エラー:', error);
+        const errorResponse = createErrorResponse(
+          ErrorCodes.INTERNAL_ERROR,
+          'ソース解析に失敗しました',
+          undefined,
+          { originalError: error instanceof Error ? error.message : String(error) }
+        );
+        return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INTERNAL_ERROR) });
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 10, // 外部アクセス系は厳しく制限
       },
-    });
-  } catch (error) {
-    console.error('ソース解析エラー:', error);
-    const errorResponse = createErrorResponse(
-      ErrorCodes.INTERNAL_ERROR,
-      'ソース解析に失敗しました',
-      undefined,
-      { originalError: error instanceof Error ? error.message : String(error) }
-    );
-    return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INTERNAL_ERROR) });
-  }
+    }
+  );
 }

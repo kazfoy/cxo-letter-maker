@@ -1,6 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { apiGuard } from '@/lib/api-guard';
 
 // APIキーが読み込めているか確認するログを追加
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -15,34 +17,60 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
+// 入力スキーマ定義
+const GenerateSchema = z.object({
+  myCompanyName: z.string().optional(),
+  myName: z.string().optional(),
+  myServiceDescription: z.string().optional(),
+  companyName: z.string().optional(),
+  position: z.string().optional(),
+  name: z.string().optional(),
+  background: z.string().optional(),
+  problem: z.string().optional(),
+  solution: z.string().optional(),
+  caseStudy: z.string().optional(),
+  offer: z.string().optional(),
+  freeformInput: z.string().optional(),
+  model: z.enum(['flash', 'pro']).default('flash'),
+  mode: z.enum(['sales', 'event']).default('sales'),
+  inputComplexity: z.enum(['detailed', 'simple']).default('detailed'),
+  eventUrl: z.string().optional(),
+  eventName: z.string().optional(),
+  eventDateTime: z.string().optional(),
+  eventSpeakers: z.string().optional(),
+  invitationReason: z.string().optional(),
+  simpleRequirement: z.string().optional(),
+});
+
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const {
-      myCompanyName,
-      myName,
-      myServiceDescription,
-      companyName,
-      position,
-      name,
-      background,
-      problem,
-      solution,
-      caseStudy,
-      offer,
-      freeformInput,
-      model = 'flash',
-      mode = 'sales',
-      inputComplexity = 'detailed',
-      // イベントモード用フィールド
-      eventUrl,
-      eventName,
-      eventDateTime,
-      eventSpeakers,
-      invitationReason,
-      // かんたんモード用フィールド
-      simpleRequirement,
-    } = body;
+  return await apiGuard(
+    request,
+    GenerateSchema,
+    async (data, user) => {
+      try {
+        const {
+          myCompanyName,
+          myName,
+          myServiceDescription,
+          companyName,
+          position,
+          name,
+          background,
+          problem,
+          solution,
+          caseStudy,
+          offer,
+          freeformInput,
+          model = 'flash',
+          mode = 'sales',
+          inputComplexity = 'detailed',
+          eventUrl,
+          eventName,
+          eventDateTime,
+          eventSpeakers,
+          invitationReason,
+          simpleRequirement,
+        } = data;
 
     // モデル選択
     const modelName = model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
@@ -296,18 +324,26 @@ ${freeformInput}
 
 それでは、手紙本文を作成してください。`;
 
-    const result = await generateText({
-      model: geminiModel,
-      prompt: prompt,
-    });
-    const letter = result.text;
+        const result = await generateText({
+          model: geminiModel,
+          prompt: prompt,
+        });
+        const letter = result.text;
 
-    return NextResponse.json({ letter });
-  } catch (error) {
-    console.error('生成エラー:', error);
-    return NextResponse.json(
-      { error: '手紙の生成に失敗しました' },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ letter });
+      } catch (error) {
+        console.error('生成エラー:', error);
+        return NextResponse.json(
+          { error: '手紙の生成に失敗しました' },
+          { status: 500 }
+        );
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 20,
+      },
+    }
+  );
 }

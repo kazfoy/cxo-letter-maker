@@ -1,6 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { apiGuard } from '@/lib/api-guard';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 console.log("API Key configured (improve):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
@@ -9,10 +11,18 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
+// 入力スキーマ定義
+const ImproveSchema = z.object({
+  content: z.string().min(1, 'コンテンツは必須です'),
+});
+
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { content } = body;
+  return await apiGuard(
+    request,
+    ImproveSchema,
+    async (data, user) => {
+      try {
+        const { content } = data;
 
     // Gemini Pro を使用（品質改善）
     const model = google('gemini-2.0-flash-exp');
@@ -42,18 +52,26 @@ ${content}
 
 【改善版の手紙】`;
 
-    const result = await generateText({
-      model: model,
-      prompt: improvePrompt,
-    });
-    const improvedLetter = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: improvePrompt,
+        });
+        const improvedLetter = result.text;
 
-    return NextResponse.json({ improvedLetter });
-  } catch (error) {
-    console.error('品質改善エラー:', error);
-    return NextResponse.json(
-      { error: '品質改善に失敗しました' },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ improvedLetter });
+      } catch (error) {
+        console.error('品質改善エラー:', error);
+        return NextResponse.json(
+          { error: '品質改善に失敗しました' },
+          { status: 500 }
+        );
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 20,
+      },
+    }
+  );
 }

@@ -1,6 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { apiGuard } from '@/lib/api-guard';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 console.log("API Key configured (assist):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
@@ -9,19 +11,32 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
+// 入力スキーマ定義
+const AssistSchema = z.object({
+  field: z.string().min(1, 'フィールドは必須です'),
+  companyName: z.string().optional(),
+  myServiceDescription: z.string().optional(),
+  mode: z.string().optional(),
+  eventName: z.string().optional(),
+  eventDateTime: z.string().optional(),
+  eventSpeakers: z.string().optional(),
+});
+
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const {
-      field,
-      companyName,
-      myServiceDescription,
-      mode,
-      // イベントモード用フィールド
-      eventName,
-      eventDateTime,
-      eventSpeakers,
-    } = body;
+  return await apiGuard(
+    request,
+    AssistSchema,
+    async (data, user) => {
+      try {
+        const {
+          field,
+          companyName,
+          myServiceDescription,
+          mode,
+          eventName,
+          eventDateTime,
+          eventSpeakers,
+        } = data;
 
     const model = google('gemini-2.0-flash-exp');
 
@@ -202,13 +217,21 @@ JSON形式で3つの候補を返してください：
       throw new Error('Invalid JSON response');
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(parsed);
-  } catch (error) {
-    console.error('AIアシストエラー:', error);
-    return NextResponse.json(
-      { error: 'AIアシストに失敗しました' },
-      { status: 500 }
-    );
-  }
+        const parsed = JSON.parse(jsonMatch[0]);
+        return NextResponse.json(parsed);
+      } catch (error) {
+        console.error('AIアシストエラー:', error);
+        return NextResponse.json(
+          { error: 'AIアシストに失敗しました' },
+          { status: 500 }
+        );
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 30,
+      },
+    }
+  );
 }

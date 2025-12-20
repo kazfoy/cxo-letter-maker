@@ -1,6 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { apiGuard } from '@/lib/api-guard';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 console.log("API Key configured (edit):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
@@ -9,10 +11,19 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
+// 入力スキーマ定義
+const EditSchema = z.object({
+  content: z.string().min(1, 'コンテンツは必須です'),
+  editType: z.enum(['casual', 'emphasize', 'shorten', 'passionate', 'concise', 'businesslike', 'proofread']),
+});
+
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { content, editType } = body;
+  return await apiGuard(
+    request,
+    EditSchema,
+    async (data, user) => {
+      try {
+        const { content, editType } = data;
 
     const model = google('gemini-2.0-flash-exp');
 
@@ -119,18 +130,26 @@ ${formatConstraints}
         );
     }
 
-    const result = await generateText({
-      model: model,
-      prompt: editPrompt,
-    });
-    const editedLetter = result.text;
+        const result = await generateText({
+          model: model,
+          prompt: editPrompt,
+        });
+        const editedLetter = result.text;
 
-    return NextResponse.json({ editedLetter });
-  } catch (error) {
-    console.error('編集エラー:', error);
-    return NextResponse.json(
-      { error: '編集に失敗しました' },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ editedLetter });
+      } catch (error) {
+        console.error('編集エラー:', error);
+        return NextResponse.json(
+          { error: '編集に失敗しました' },
+          { status: 500 }
+        );
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 20,
+      },
+    }
+  );
 }

@@ -1,6 +1,8 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { apiGuard } from '@/lib/api-guard';
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 console.log("API Key configured (suggest-structure):", apiKey ? "Yes (Length: " + apiKey.length + ")" : "No");
@@ -9,17 +11,20 @@ const google = createGoogleGenerativeAI({
   apiKey: apiKey,
 });
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { companyName, myServiceDescription, background } = body;
+// 入力スキーマ定義
+const SuggestStructureSchema = z.object({
+  companyName: z.string().min(1, '企業名は必須です'),
+  myServiceDescription: z.string().min(1, '自社サービス概要は必須です'),
+  background: z.string().optional(),
+});
 
-    if (!companyName || !myServiceDescription) {
-      return NextResponse.json(
-        { error: '企業名と自社サービス概要は必須です' },
-        { status: 400 }
-      );
-    }
+export async function POST(request: Request) {
+  return await apiGuard(
+    request,
+    SuggestStructureSchema,
+    async (data, user) => {
+      try {
+        const { companyName, myServiceDescription, background } = data;
 
     const model = google('gemini-1.5-flash');
 
@@ -97,17 +102,25 @@ ${background ? `【解析されたコンテキスト】\n${background}\n` : ''}
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // バリデーション
-    if (!parsed.approaches || !Array.isArray(parsed.approaches) || parsed.approaches.length !== 3) {
-      throw new Error('Invalid response structure');
-    }
+        // バリデーション
+        if (!parsed.approaches || !Array.isArray(parsed.approaches) || parsed.approaches.length !== 3) {
+          throw new Error('Invalid response structure');
+        }
 
-    return NextResponse.json(parsed);
-  } catch (error) {
-    console.error('構成案生成エラー:', error);
-    return NextResponse.json(
-      { error: '構成案の生成に失敗しました' },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json(parsed);
+      } catch (error) {
+        console.error('構成案生成エラー:', error);
+        return NextResponse.json(
+          { error: '構成案の生成に失敗しました' },
+          { status: 500 }
+        );
+      }
+    },
+    {
+      rateLimit: {
+        windowMs: 60000,
+        maxRequests: 30,
+      },
+    }
+  );
 }

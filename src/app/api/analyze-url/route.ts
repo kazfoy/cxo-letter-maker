@@ -7,12 +7,14 @@ import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
 
+export const maxDuration = 60;
+
 let googleProvider: any = null;
 
 function getGoogleProvider() {
   if (googleProvider) return googleProvider;
 
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
   }

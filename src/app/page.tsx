@@ -39,8 +39,7 @@ export default function LandingPage() {
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-stone-900 leading-tight">
-                決裁者へのアポ率を<br />
-                <span className="text-amber-800">3倍</span>にする。
+                決裁者への<br className="md:hidden" />アポ率を<span className="text-amber-800">3倍</span>にする。
               </h1>
 
               <p className="text-2xl md:text-3xl font-serif text-stone-700 leading-relaxed">
@@ -48,12 +47,15 @@ export default function LandingPage() {
               </p>
 
               <p className="text-lg text-stone-600 leading-relaxed">
-                URLを入れるだけ。独自の営業メソッドに基づいた個別最適化レターを、30秒で。
+                URLを入れるだけ。独自の営業メソッドに基づいた個別最適化レターを、30秒で。<br />
+                営業レターだけでなく、イベント集客の招待状も作成可能。
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
                   href="/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-stone-900 text-stone-50 rounded-md font-semibold text-lg hover:bg-stone-800 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
                   無料で今すぐ始める
@@ -61,6 +63,8 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-stone-900 border-2 border-stone-200 rounded-md font-medium text-lg hover:bg-stone-50 transition-all"
                 >
                   ログイン
@@ -104,8 +108,7 @@ export default function LandingPage() {
             {/* Left: Problem */}
             <div className="space-y-8">
               <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900">
-                メールは読まれない。<br />
-                手書きは時間がかかる。
+                メールは読まれない。手書きは時間がかかる。
               </h2>
 
               <div className="space-y-6">
@@ -239,6 +242,7 @@ export default function LandingPage() {
                     <td className="px-6 py-5 text-center text-stone-600">人件費 + 時間コスト</td>
                     <td className="px-6 py-5 text-center bg-amber-50/30 border-l border-stone-200">
                       <span className="text-amber-800 font-bold text-lg">完全無料</span>
+                      <p className="text-xs text-stone-500 mt-1">※ 今後、有料機能を実装予定</p>
                     </td>
                   </tr>
                 </tbody>
@@ -252,6 +256,8 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-stone-900 text-white rounded-md font-semibold hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl"
             >
               今すぐ体験する
@@ -320,10 +326,10 @@ export default function LandingPage() {
                   <Download className="w-8 h-8 text-amber-800" />
                 </div>
                 <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  PDF/Wordで出力
+                  Wordで出力
                 </h3>
                 <p className="text-stone-600 leading-relaxed">
-                  生成された手紙をPDFまたはWord形式でダウンロード。印刷して投函するだけです。
+                  生成された手紙をWord形式でダウンロード。印刷して投函するだけです。
                 </p>
               </div>
             </div>
@@ -333,6 +339,8 @@ export default function LandingPage() {
           <div className="text-center mt-16">
             <Link
               href="/new"
+              target="_blank"
+              rel="noopener noreferrer"
               className="group inline-flex items-center justify-center gap-2 px-12 py-6 bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
               30秒で手紙を作成してみる（無料）
@@ -340,83 +348,6 @@ export default function LandingPage() {
             </Link>
             <p className="mt-4 text-base text-stone-600 font-medium">
               登録不要・クレジットカード不要ですぐに使えます
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo Section */}
-      <section className="py-24 md:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">
-              わずか30秒で、<br className="md:hidden" />本格的なレターが完成
-            </h2>
-            <p className="text-xl text-stone-600">
-              URLを入力するだけで、AIが企業情報を分析し、決裁者に響くレターを生成します。
-            </p>
-          </div>
-
-          {/* Demo GIF Placeholder */}
-          <div className="max-w-5xl mx-auto">
-            <div className="relative bg-stone-100 rounded-xl shadow-2xl border border-stone-200 overflow-hidden">
-              {/* Aspect ratio container for GIF */}
-              <div className="aspect-video flex items-center justify-center">
-                <div className="text-center space-y-4 p-8">
-                  <Sparkles className="w-16 h-16 text-amber-800 mx-auto animate-pulse" />
-                  <p className="text-xl font-serif font-semibold text-stone-900">
-                    生成プロセスのデモ
-                  </p>
-                  <p className="text-stone-600">
-                    ここに実際の生成プロセスのGIFアニメーションが表示されます
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature highlights below demo */}
-            <div className="grid md:grid-cols-3 gap-8 mt-12">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-amber-800/10 rounded-full flex items-center justify-center mx-auto">
-                  <Target className="w-6 h-6 text-amber-800" />
-                </div>
-                <h3 className="font-semibold text-stone-900">企業情報を自動収集</h3>
-                <p className="text-sm text-stone-600 leading-relaxed">
-                  URLから事業内容や課題を瞬時に分析
-                </p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-amber-800/10 rounded-full flex items-center justify-center mx-auto">
-                  <Zap className="w-6 h-6 text-amber-800" />
-                </div>
-                <h3 className="font-semibold text-stone-900">個別最適化された文面</h3>
-                <p className="text-sm text-stone-600 leading-relaxed">
-                  相手企業に合わせた提案内容を自動生成
-                </p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-amber-800/10 rounded-full flex items-center justify-center mx-auto">
-                  <FileText className="w-6 h-6 text-amber-800" />
-                </div>
-                <h3 className="font-semibold text-stone-900">即座にダウンロード</h3>
-                <p className="text-sm text-stone-600 leading-relaxed">
-                  PDF/Word形式で出力、すぐに印刷可能
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="text-center mt-16">
-            <Link
-              href="/new"
-              className="group inline-flex items-center justify-center gap-2 px-12 py-6 bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
-            >
-              無料で手紙を作成する
-              <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <p className="mt-4 text-base text-stone-600 font-medium">
-              登録不要・すべての機能が無料で使えます
             </p>
           </div>
         </div>
@@ -594,7 +525,8 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                PDF形式とWord（.docx）形式の両方でダウンロード可能です。そのまま印刷して投函できる形式になっています。
+                Word（.docx）形式でダウンロード可能です。そのまま印刷して投函できる形式になっています。<br />
+                <span className="text-sm text-stone-500">※ 現在、PDF形式でのダウンロードには対応しておりません。</span>
               </div>
             </details>
 
@@ -646,7 +578,8 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                生成回数に制限はありません。必要な数だけ、何通でも無料で生成していただけます。
+                現在、生成回数に制限はありません。必要な数だけ、何通でも無料で生成していただけます。<br />
+                <span className="text-sm text-stone-500">※ サービスの安定運営のため、将来的に生成回数の制限を設ける可能性があります。</span>
               </div>
             </details>
           </div>
@@ -658,6 +591,8 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-amber-800 text-white rounded-md font-semibold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
               今すぐ無料で試してみる
@@ -671,8 +606,7 @@ export default function LandingPage() {
       <section className="py-24 md:py-32 bg-gradient-to-b from-amber-50/30 to-stone-50">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-stone-900 mb-6 leading-tight">
-            アポ率を3倍にする手紙を、<br />
-            今すぐ無料で作成できます。
+            アポ率を3倍にする手紙を、今すぐ無料で作成できます。
           </h2>
           <p className="text-xl text-stone-600 mb-12 leading-relaxed">
             登録不要、クレジットカード不要。<br className="md:hidden" />URLを入力するだけで、30秒後には本格的なレターが完成します。
@@ -680,6 +614,8 @@ export default function LandingPage() {
 
           <Link
             href="/new"
+            target="_blank"
+            rel="noopener noreferrer"
             className="group inline-flex items-center justify-center gap-3 px-12 py-6 bg-stone-900 text-white rounded-lg font-bold text-xl hover:bg-stone-800 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
             今すぐ無料で始める
@@ -687,24 +623,24 @@ export default function LandingPage() {
           </Link>
 
           <div className="mt-12 pt-12 border-t border-stone-200">
-            <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-stone-600">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>登録不要</span>
+                <span className="text-base font-medium text-stone-700">登録不要</span>
               </div>
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>クレジットカード不要</span>
+                <span className="text-base font-medium text-stone-700">クレジットカード不要</span>
               </div>
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>すべての機能が無料</span>
+                <span className="text-base font-medium text-stone-700">すべての機能が無料</span>
               </div>
             </div>
           </div>
@@ -726,12 +662,12 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold text-stone-900 mb-3">サービス</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/new" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/new" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     手紙を作成
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/login" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     ログイン
                   </Link>
                 </li>
@@ -743,12 +679,12 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold text-stone-900 mb-3">法的情報</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/terms" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     利用規約
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     プライバシーポリシー
                   </Link>
                 </li>

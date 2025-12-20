@@ -385,7 +385,7 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">田中 健一 様</p>
+                  <p className="font-semibold text-stone-900">T.K. 様</p>
                   <p className="text-sm text-stone-600">SaaS企業・営業マネージャー</p>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">佐藤 美咲 様</p>
+                  <p className="font-semibold text-stone-900">M.S. 様</p>
                   <p className="text-sm text-stone-600">コンサルティング企業・代表取締役</p>
                 </div>
               </div>
@@ -435,7 +435,7 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">山田 隆史 様</p>
+                  <p className="font-semibold text-stone-900">T.Y. 様</p>
                   <p className="text-sm text-stone-600">スタートアップ・事業開発責任者</p>
                 </div>
               </div>

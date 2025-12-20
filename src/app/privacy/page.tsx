@@ -34,6 +34,7 @@ export default function PrivacyPage() {
               <li><strong>生成コンテンツ:</strong> 本サービスを通じて生成されたレター文面</li>
               <li><strong>利用履歴:</strong> 本サービスの利用状況、アクセスログ</li>
               <li><strong>技術情報:</strong> IPアドレス、ブラウザ情報、デバイス情報</li>
+              <li><strong>ゲスト利用情報:</strong> 未ログイン時の利用回数管理のためのCookie情報</li>
             </ul>
           </section>
 
@@ -114,6 +115,7 @@ export default function PrivacyPage() {
               <li>ログイン状態の維持</li>
               <li>サービス利用状況の分析</li>
               <li>ユーザー設定の保存</li>
+              <li>ゲストユーザーの利用回数制限の管理</li>
             </ul>
             <p className="text-stone-700 leading-relaxed mt-4">
               利用者は、ブラウザの設定によりCookieを無効にすることができますが、一部の機能が正常に動作しない場合があります。

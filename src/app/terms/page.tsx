@@ -47,6 +47,18 @@ export default function TermsPage() {
           </section>
 
           <section>
+            <h2 className="text-2xl font-serif font-bold text-stone-900 mb-4">第3条の2（ゲスト利用）</h2>
+            <p className="text-stone-700 leading-relaxed mb-4">
+              利用登録を行わずに本サービスを利用する者（以下「ゲストユーザー」といいます）は、以下の制約のもとで本サービスを利用できるものとします。
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-stone-700">
+              <li>1日あたりの生成回数に制限（3回まで）があります。</li>
+              <li>生成された履歴はブラウザのCookieまたはローカルストレージに保存され、ブラウザのキャッシュクリア等により消失する可能性があります。</li>
+              <li>本サービスは、ゲストユーザーのデータ消失について一切の責任を負いません。</li>
+            </ul>
+          </section>
+
+          <section>
             <h2 className="text-2xl font-serif font-bold text-stone-900 mb-4">第4条（アカウント管理）</h2>
             <p className="text-stone-700 leading-relaxed mb-4">
               利用者は、自己の責任において、本サービスに関するアカウント情報を管理するものとします。

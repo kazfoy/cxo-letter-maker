@@ -31,7 +31,7 @@ export interface ApiGuardOptions {
 export async function apiGuard<T extends z.ZodType>(
   request: Request,
   schema: T,
-  handler: (data: z.infer<T>, user: User) => Promise<Response | NextResponse>,
+  handler: (data: z.infer<T>, user: User | null) => Promise<Response | NextResponse>,
   options: ApiGuardOptions = {}
 ): Promise<Response | NextResponse> {
   try {
@@ -96,7 +96,7 @@ export async function apiGuard<T extends z.ZodType>(
     // 5. ハンドラーを実行
     // requireAuth が false の場合、user は null の可能性がある
     // ハンドラー側で user を使う場合は注意が必要
-    return await handler(parseResult.data, user as User);
+    return await handler(parseResult.data, user);
   } catch (error) {
     devLog.error('API guard error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(

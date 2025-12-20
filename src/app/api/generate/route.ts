@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
@@ -81,6 +82,41 @@ export async function POST(request: Request) {
     request,
     GenerateSchema,
     async (data, user) => {
+      // ゲストユーザーのレート制限チェック
+      let guestUsage = { count: 0, date: new Date().toDateString() };
+
+      if (!user) {
+        const cookieStore = await cookies();
+        const usageCookie = cookieStore.get('guest_usage');
+
+        if (usageCookie) {
+          try {
+            const parsed = JSON.parse(usageCookie.value);
+            // 日付が変わっていたらリセット
+            if (parsed.date === guestUsage.date) {
+              guestUsage = parsed;
+            }
+          } catch (e) {
+            // クッキーのパースエラーは無視して新規扱い
+          }
+        }
+
+        // 1日3回の制限
+        if (guestUsage.count >= 3) {
+          return NextResponse.json(
+            {
+              error: 'ゲスト利用の上限（1日3回）に達しました。',
+              code: 'GUEST_LIMIT_REACHED',
+              message: '無料枠の上限に達しました。ログインすると無制限で利用できます。'
+            },
+            { status: 429 }
+          );
+        }
+
+        // カウントアップ
+        guestUsage.count++;
+      }
+
       try {
         // プロンプトインジェクション検出
         const inputValues = Object.values(data).filter(v => typeof v === 'string');
@@ -396,7 +432,19 @@ ${safe.freeformInput}
         const result = await generateWithFallback(prompt, primaryModelName);
         const letter = result.text;
 
-        return NextResponse.json({ letter });
+        const response = NextResponse.json({ letter });
+
+        // ゲストユーザーの場合、利用回数をクッキーに保存
+        if (!user) {
+          response.cookies.set('guest_usage', JSON.stringify(guestUsage), {
+            path: '/',
+            maxAge: 60 * 60 * 24, // 1日
+            httpOnly: true,
+            sameSite: 'lax',
+          });
+        }
+
+        return response;
 
       } catch (error: any) {
         devLog.error('生成エラー:', error);
@@ -435,6 +483,7 @@ ${safe.freeformInput}
       }
     },
     {
+      requireAuth: false, // ゲスト利用を許可
       rateLimit: {
         windowMs: 60000,
         maxRequests: 20,

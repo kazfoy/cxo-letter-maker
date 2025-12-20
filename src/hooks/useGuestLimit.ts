@@ -23,7 +23,7 @@ export function useGuestLimit() {
 
         setLoading(true);
         try {
-            const res = await fetch('/api/guest/usage');
+            const res = await fetch('/api/guest/usage', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setUsage(data);

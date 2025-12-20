@@ -14,11 +14,7 @@ const MultiSourceModal = dynamic(
   { ssr: false }
 );
 
-// StructureSuggestionModalのインポート
-const StructureSuggestionModal = dynamic(
-  () => import('./StructureSuggestionModal').then(mod => ({ default: mod.StructureSuggestionModal })),
-  { ssr: false }
-);
+import { StructureSuggestionModal } from './StructureSuggestionModal';
 
 interface InputFormProps {
   mode: LetterMode;

@@ -89,7 +89,7 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold text-white mb-3">新しい手紙を作成</h2>
         <p className="text-indigo-100 mb-6">AIが効果的な営業手紙を作成します</p>
         <Link
-          href="/"
+          href="/new"
           className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-md hover:bg-indigo-50 transition-colors font-semibold shadow-md"
         >
           <span className="text-xl">✨</span>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
               <div
                 key={history.id}
                 className="flex items-center justify-between p-4 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => router.push(`/?restore=${history.id}`)}
+                onClick={() => router.push(`/new?restore=${history.id}`)}
               >
                 <div className="flex-1">
                   <h3 className="font-medium text-slate-900">{history.targetCompany}</h3>

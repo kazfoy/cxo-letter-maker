@@ -92,7 +92,7 @@ export default function HistoryPage() {
               className="p-6 hover:bg-slate-50 transition-colors"
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1 cursor-pointer" onClick={() => router.push(`/?restore=${history.id}`)}>
+                <div className="flex-1 cursor-pointer" onClick={() => router.push(`/new?restore=${history.id}`)}>
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold text-slate-900">{history.targetCompany}</h3>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${

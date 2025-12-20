@@ -40,7 +40,7 @@ export default function NewLetterPage() {
   const [generatedLetter, setGeneratedLetter] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentLetterId, setCurrentLetterId] = useState<string | undefined>();
   const [currentLetterStatus, setCurrentLetterStatus] = useState<LetterStatus | undefined>();
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
@@ -210,11 +210,10 @@ export default function NewLetterPage() {
             {/* 履歴ボタン（常に表示） */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all font-medium ${
-                isSidebarOpen
-                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
+              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all font-medium ${isSidebarOpen
+                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
               aria-label={isSidebarOpen ? '履歴を閉じる' : '履歴を開く'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,21 +225,19 @@ export default function NewLetterPage() {
             <div className="flex gap-1 flex-1">
               <button
                 onClick={() => setMode('sales')}
-                className={`px-6 py-3 font-medium transition-all rounded-t-md ${
-                  mode === 'sales'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
+                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'sales'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
               >
                 📧 セールスレター
               </button>
               <button
                 onClick={() => setMode('event')}
-                className={`px-6 py-3 font-medium transition-all rounded-t-md ${
-                  mode === 'event'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
+                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'event'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
               >
                 🎫 イベント招待
               </button>
@@ -303,6 +300,7 @@ export default function NewLetterPage() {
                 setIsGenerating={setIsGenerating}
                 formData={formData}
                 setFormData={setFormData}
+                onSampleFill={handleSampleExperience}
               />
             </div>
 

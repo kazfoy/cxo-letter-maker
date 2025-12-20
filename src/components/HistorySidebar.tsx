@@ -160,35 +160,26 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
                 </li>
               </ol>
             </div>
-            {onSampleExperience && (
-              <button
-                onClick={onSampleExperience}
-                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
-              >
-                ✨ サンプルで体験する
-              </button>
-            )}
+
           </div>
         ) : (
           <div className="space-y-3">
             {filteredHistories.map((history) => (
               <div
                 key={history.id}
-                className={`relative border rounded-md p-3 pr-12 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  history.isPinned
+                className={`relative border rounded-md p-3 pr-12 hover:bg-gray-50 cursor-pointer transition-colors ${history.isPinned
                     ? 'bg-amber-50 border-amber-300'
                     : ''
-                }`}
+                  }`}
                 onClick={() => onRestore(history)}
               >
                 {/* Pin button - absolute positioned at top-right */}
                 <button
                   onClick={(e) => handleTogglePin(history.id, e)}
-                  className={`absolute top-2 right-2 p-1.5 rounded-md transition-all hover:scale-110 ${
-                    history.isPinned
+                  className={`absolute top-2 right-2 p-1.5 rounded-md transition-all hover:scale-110 ${history.isPinned
                       ? 'bg-yellow-400 text-yellow-900 shadow-sm'
                       : 'bg-transparent border border-gray-300 text-gray-400 hover:border-gray-400'
-                  }`}
+                    }`}
                   aria-label={history.isPinned ? 'ピン留め解除' : 'ピン留め'}
                   title={history.isPinned ? 'ピン留め解除' : 'ピン留めすると自動削除されません'}
                 >
@@ -209,17 +200,15 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
                       {history.targetCompany}
                     </h3>
                     {/* モードバッジ */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${
-                      (history.mode || 'sales') === 'event'
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${(history.mode || 'sales') === 'event'
                         ? 'bg-orange-100 text-orange-800 border border-orange-200'
                         : 'bg-blue-100 text-blue-800 border border-blue-200'
-                    }`}>
+                      }`}>
                       {(history.mode || 'sales') === 'event' ? 'Event' : 'Letter'}
                     </span>
                     {/* ステータスバッジ */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 border ${
-                      getStatusBadge(history.status).color
-                    }`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 border ${getStatusBadge(history.status).color
+                      }`}>
                       {getStatusBadge(history.status).label}
                     </span>
                   </div>

@@ -53,9 +53,10 @@ interface InputFormProps {
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
+  onSampleFill?: () => void;
 }
 
-export function InputForm({ mode, onGenerate, setIsGenerating, formData, setFormData }: InputFormProps) {
+export function InputForm({ mode, onGenerate, setIsGenerating, formData, setFormData, onSampleFill }: InputFormProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [currentField, setCurrentField] = useState<string>('');
@@ -320,9 +321,21 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
-      <h2 className="text-2xl font-bold mb-6 text-slate-900 leading-relaxed">
-        {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-900 leading-relaxed">
+          {mode === 'sales' ? '手紙の情報を入力' : 'イベント招待状の情報を入力'}
+        </h2>
+        {onSampleFill && (
+          <button
+            type="button"
+            onClick={onSampleFill}
+            className="bg-amber-500 text-white px-4 py-2 rounded-md hover:bg-amber-600 transition-colors font-bold shadow-sm flex items-center gap-2 text-sm"
+          >
+            <span>✨</span>
+            <span>サンプルを入力</span>
+          </button>
+        )}
+      </div>
 
 
 
@@ -333,8 +346,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
             type="button"
             onClick={() => setInputComplexity('simple')}
             className={`px-6 py-2.5 font-medium text-sm transition-colors ${inputComplexity === 'simple'
-                ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
-                : 'text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
+              : 'text-gray-500 hover:text-gray-700'
               }`}
           >
             ⚡ かんたんモード
@@ -343,8 +356,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
             type="button"
             onClick={() => setInputComplexity('detailed')}
             className={`px-6 py-2.5 font-medium text-sm transition-colors ${inputComplexity === 'detailed'
-                ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
-                : 'text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
+              : 'text-gray-500 hover:text-gray-700'
               }`}
           >
             📝 詳細モード
@@ -571,8 +584,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     type="button"
                     onClick={() => setInputMode('step')}
                     className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
-                        ? 'text-purple-600 border-b-2 border-purple-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      : 'text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     ステップ入力（詳細）
@@ -581,8 +594,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     type="button"
                     onClick={() => setInputMode('freeform')}
                     className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
-                        ? 'text-purple-600 border-b-2 border-purple-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-purple-600 border-b-2 border-purple-600'
+                      : 'text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     まとめて入力
@@ -785,8 +798,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     type="button"
                     onClick={() => setInputMode('step')}
                     className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     ステップ入力
@@ -795,8 +808,8 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
                     type="button"
                     onClick={() => setInputMode('freeform')}
                     className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     まとめて入力
@@ -983,10 +996,10 @@ export function InputForm({ mode, onGenerate, setIsGenerating, formData, setForm
           type="submit"
           disabled={isGenerating}
           className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
-              ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-              : isGenerating
-                ? 'bg-indigo-500 text-white cursor-wait'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
+            ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+            : isGenerating
+              ? 'bg-indigo-500 text-white cursor-wait'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label="手紙を生成"
         >

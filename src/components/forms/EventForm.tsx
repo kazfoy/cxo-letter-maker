@@ -14,7 +14,7 @@ interface EventFormProps {
   setInputMode: (mode: 'step' | 'freeform') => void;
 }
 
-export function EventForm({
+export const EventForm = React.memo(function EventForm({
   formData,
   inputMode,
   isAnalyzingSource,
@@ -161,22 +161,20 @@ export function EventForm({
           <button
             type="button"
             onClick={() => setInputMode('step')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
-              inputMode === 'step'
+            className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
                 ? 'text-purple-600 border-b-2 border-purple-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             {TAB_LABELS.stepInputDetailed}
           </button>
           <button
             type="button"
             onClick={() => setInputMode('freeform')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
-              inputMode === 'freeform'
+            className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
                 ? 'text-purple-600 border-b-2 border-purple-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             {TAB_LABELS.freeformInput}
           </button>
@@ -358,4 +356,4 @@ export function EventForm({
       </div>
     </>
   );
-}
+});

@@ -84,3 +84,12 @@ export interface AnalyzeSourceResponse {
   message?: string;
   suggestion?: string;
 }
+
+// APIエラーレスポンス
+export interface ApiErrorResponse {
+  error?: string;
+  message?: string;
+  code?: string;
+  details?: string;
+  suggestion?: string;
+}

@@ -15,7 +15,7 @@ interface SalesFormProps {
   setInputMode: (mode: 'step' | 'freeform') => void;
 }
 
-export function SalesForm({
+export const SalesForm = React.memo(function SalesForm({
   formData,
   inputComplexity,
   inputMode,
@@ -33,22 +33,20 @@ export function SalesForm({
         <button
           type="button"
           onClick={() => setInputComplexity('simple')}
-          className={`px-6 py-2.5 font-medium text-sm transition-colors ${
-            inputComplexity === 'simple'
+          className={`px-6 py-2.5 font-medium text-sm transition-colors ${inputComplexity === 'simple'
               ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
               : 'text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           {TAB_LABELS.simpleMode}
         </button>
         <button
           type="button"
           onClick={() => setInputComplexity('detailed')}
-          className={`px-6 py-2.5 font-medium text-sm transition-colors ${
-            inputComplexity === 'detailed'
+          className={`px-6 py-2.5 font-medium text-sm transition-colors ${inputComplexity === 'detailed'
               ? 'text-blue-600 border-b-2 border-blue-600 -mb-[2px]'
               : 'text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
         >
           {TAB_LABELS.detailedMode}
         </button>
@@ -263,22 +261,20 @@ export function SalesForm({
               <button
                 type="button"
                 onClick={() => setInputMode('step')}
-                className={`px-4 py-2 font-medium text-sm transition-colors ${
-                  inputMode === 'step'
+                className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
                     ? 'text-blue-600 border-b-2 border-blue-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {TAB_LABELS.stepInput}
               </button>
               <button
                 type="button"
                 onClick={() => setInputMode('freeform')}
-                className={`px-4 py-2 font-medium text-sm transition-colors ${
-                  inputMode === 'freeform'
+                className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
                     ? 'text-blue-600 border-b-2 border-blue-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {TAB_LABELS.freeformInput}
               </button>
@@ -458,4 +454,4 @@ export function SalesForm({
       )}
     </>
   );
-}
+});

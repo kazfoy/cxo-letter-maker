@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { LetterFormData, LetterMode, InputComplexity } from '@/types/letter';
+import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse } from '@/types/letter';
 
 interface UseInputFormProps {
   mode: LetterMode;
@@ -43,17 +43,17 @@ export function useInputForm({
   }, [mode]);
 
   // エラーを表示するヘルパー関数
-  const showError = (message: string, suggestion?: string) => {
+  const showError = useCallback((message: string, suggestion?: string) => {
     toast({
       title: "エラーが発生しました",
       description: suggestion ? `${message}\n${suggestion}` : message,
       type: "error",
       duration: 5000,
     });
-  };
+  }, [toast]);
 
   // APIエラーレスポンスを処理するヘルパー関数
-  const handleApiErrorData = (errorData: any) => {
+  const handleApiErrorData = useCallback((errorData: ApiErrorResponse | any) => {
     if (errorData.error) {
       showError(errorData.message || 'エラーが発生しました', errorData.suggestion);
     } else if (errorData.error || typeof errorData === 'string') {
@@ -61,16 +61,16 @@ export function useInputForm({
     } else {
       showError('エラーが発生しました');
     }
-  };
+  }, [showError]);
 
-  const handleChange = (
+  const handleChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, [setFormData]);
 
-  const handleAIAssist = async (field: string) => {
+  const handleAIAssist = useCallback(async (field: string) => {
     if (!formData.companyName || !formData.myServiceDescription) {
       showError('AIアシストを使用するには、企業名と自社サービスの概要を入力してください。');
       return;
@@ -108,20 +108,20 @@ export function useInputForm({
     } finally {
       setIsLoadingAI(false);
     }
-  };
+  }, [formData.companyName, formData.myServiceDescription, formData.eventName, formData.eventDateTime, formData.eventSpeakers, mode, showError]);
 
-  const handleSelectSuggestion = (suggestion: string) => {
+  const handleSelectSuggestion = useCallback((suggestion: string) => {
     setFormData((prev) => ({ ...prev, [currentField]: suggestion }));
     setAiModalOpen(false);
     setAiSuggestions([]);
-  };
+  }, [currentField, setFormData]);
 
-  const handleOpenMultiSourceModal = (type: 'own' | 'target') => {
+  const handleOpenMultiSourceModal = useCallback((type: 'own' | 'target') => {
     setSourceInputType(type);
     setMultiSourceModalOpen(true);
-  };
+  }, []);
 
-  const handleAnalyzeMultiSource = async (urls: string[], pdfText: string | null) => {
+  const handleAnalyzeMultiSource = useCallback(async (urls: string[], pdfText: string | null) => {
     setIsAnalyzingSource(true);
 
     try {
@@ -182,21 +182,21 @@ export function useInputForm({
     } finally {
       setIsAnalyzingSource(false);
     }
-  };
+  }, [sourceInputType, mode, handleApiErrorData, setFormData, showError]);
 
-  const handleOpenStructureSuggestion = () => {
+  const handleOpenStructureSuggestion = useCallback(() => {
     if (!formData.companyName || !formData.myServiceDescription) {
       showError('構成案を提案するには、企業名と自社サービスの概要を入力してください。');
       return;
     }
     setStructureSuggestionModalOpen(true);
-  };
+  }, [formData.companyName, formData.myServiceDescription, showError]);
 
-  const handleSelectApproach = (draftText: string) => {
+  const handleSelectApproach = useCallback((draftText: string) => {
     setFormData((prev) => ({ ...prev, freeformInput: draftText }));
-  };
+  }, [setFormData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
     setIsGeneratingLocal(true);
@@ -224,9 +224,9 @@ export function useInputForm({
       setIsGenerating(false);
       setIsGeneratingLocal(false);
     }
-  };
+  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError]);
 
-  const handleAnalyzeEventUrl = async () => {
+  const handleAnalyzeEventUrl = useCallback(async () => {
     if (!formData.eventUrl) {
       showError('イベントURLを入力してください。');
       return;
@@ -264,7 +264,7 @@ export function useInputForm({
     } finally {
       setIsAnalyzingSource(false);
     }
-  };
+  }, [formData.eventUrl, handleApiErrorData, setFormData, showError]);
 
   return {
     // State

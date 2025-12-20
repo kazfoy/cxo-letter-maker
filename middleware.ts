@@ -40,19 +40,32 @@ export async function middleware(request: NextRequest) {
   console.log('User ID:', user?.id || 'none');
 
   // パブリックルート（未認証でもアクセス可能）
-  const publicRoutes = [
-    '/login',
-    '/auth/callback',
-    '/setup-password', // Magic Link経由の初回アクセスを許可
-    '/',
-    '/_next',
-    '/api',
-  ];
+  const publicRoutes = new Set(['/login', '/auth/callback', '/']);
 
-  // パスがパブリックルートのいずれかで始まる場合は通過
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  // 正確な一致のみ許可（"/"で全ルートがマッチするのを防ぐ）
+  if (publicRoutes.has(pathname)) {
+    return response;
+  }
 
-  if (isPublicRoute) {
+  // 静的アセット系はstartsWithで判定
+  if (pathname.startsWith('/_next') || pathname.startsWith('/api')) {
+    return response;
+  }
+
+  // /setup-password は特別な処理
+  // Magic Link経由の初回アクセス時は認証済みだが、パスワード設定が必要
+  // 認証済みユーザーはアクセス可能、未認証ユーザーは /login へ
+  if (pathname === '/setup-password' || pathname.startsWith('/setup-password')) {
+    if (!user) {
+      // 未認証の場合は /login にリダイレクト
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/login';
+      redirectUrl.searchParams.set('redirect', pathname);
+      console.log('Redirecting to login from setup-password (no auth)');
+      return NextResponse.redirect(redirectUrl);
+    }
+    // 認証済みユーザーは /setup-password にアクセス可能
+    console.log('Allowing access to setup-password (authenticated user)');
     return response;
   }
 

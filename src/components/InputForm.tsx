@@ -29,6 +29,7 @@ interface InputFormProps {
   onSampleFill?: () => void;
   onReset?: () => void;
   disabled?: boolean;
+  onGenerationAttempt?: () => void | Promise<void>;
 }
 
 export function InputForm({
@@ -39,7 +40,8 @@ export function InputForm({
   setFormData,
   onSampleFill,
   onReset,
-  disabled = false
+  disabled = false,
+  onGenerationAttempt,
 }: InputFormProps) {
   const {
     // State
@@ -76,6 +78,7 @@ export function InputForm({
     setFormData,
     onGenerate,
     setIsGenerating,
+    onGenerationAttempt,
   });
 
   const labels = mode === 'sales' ? FORM_LABELS.sales : FORM_LABELS.event;

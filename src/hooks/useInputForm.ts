@@ -8,6 +8,7 @@ interface UseInputFormProps {
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
   onGenerate: (letter: string, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
+  onGenerationAttempt?: () => void | Promise<void>; // Called after every generation attempt (success or failure)
 }
 
 export function useInputForm({
@@ -16,6 +17,7 @@ export function useInputForm({
   setFormData,
   onGenerate,
   setIsGenerating,
+  onGenerationAttempt,
 }: UseInputFormProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
@@ -223,8 +225,12 @@ export function useInputForm({
     } finally {
       setIsGenerating(false);
       setIsGeneratingLocal(false);
+      // ゲスト利用回数を更新（成功・失敗問わず、バックエンドでカウントアップされているため）
+      if (onGenerationAttempt) {
+        await onGenerationAttempt();
+      }
     }
-  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError]);
+  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError, onGenerationAttempt]);
 
   const handleAnalyzeEventUrl = useCallback(async () => {
     if (!formData.eventUrl) {

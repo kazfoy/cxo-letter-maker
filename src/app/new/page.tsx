@@ -85,9 +85,12 @@ export default function NewLetterPage() {
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
     }
-    // ゲスト利用状況を更新
+  };
+
+  // ゲスト利用回数を更新（生成成功・失敗問わず呼ばれる）
+  const handleGenerationAttempt = async () => {
     if (!user) {
-      refetchGuestUsage();
+      await refetchGuestUsage();
     }
   };
 
@@ -315,6 +318,7 @@ export default function NewLetterPage() {
                 onSampleFill={handleSampleExperience}
                 onReset={handleSaveAndReset}
                 disabled={!user && usage?.isLimitReached}
+                onGenerationAttempt={handleGenerationAttempt}
               />
             </div>
 

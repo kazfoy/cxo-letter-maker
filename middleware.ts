@@ -43,6 +43,7 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     '/login',
     '/auth/callback',
+    '/setup-password', // Magic Link経由の初回アクセスを許可
     '/',
     '/_next',
     '/api',

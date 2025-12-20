@@ -39,7 +39,9 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/setup-password`,
+          // emailRedirectToは/auth/callbackのみを指定
+          // コールバック側でパスワード未設定を判定して/setup-passwordにリダイレクト
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 

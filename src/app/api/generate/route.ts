@@ -16,7 +16,19 @@ function getGoogleProvider() {
   if (googleProvider) return googleProvider;
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+
+  // 環境変数の検証ログ（デバッグ用）
+  console.log('[DEBUG] 環境変数チェック:', {
+    hasGoogleGenerativeAI: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    hasGoogleGemini: !!process.env.GOOGLE_GEMINI_API_KEY,
+    apiKeyLength: apiKey?.length || 0,
+    apiKeyPrefix: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'undefined',
+    nodeEnv: process.env.NODE_ENV,
+  });
+
   if (!apiKey) {
+    console.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
+    console.error('Available Env Vars:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET'))); // 安全な環境変数名のみ出力
     throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
   }
 
@@ -59,20 +71,40 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
   const fallbackModel = google('gemini-1.5-flash');
 
   try {
-    return await generateText({
+    console.log(`[DEBUG] プライマリモデルで生成開始: ${primaryModelName}`);
+    const result = await generateText({
       model: primaryModel,
       prompt: prompt,
     });
-  } catch (error) {
+    console.log('[DEBUG] プライマリモデルでの生成成功');
+    return result;
+  } catch (error: any) {
+    console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
+      message: error.message,
+      stack: error.stack,
+      status: error.status,
+      cause: error.cause,
+      fullError: JSON.stringify(error, null, 2),
+    });
     devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-1.5-flash...`, error);
     try {
-      return await generateText({
+      console.log('[DEBUG] フォールバックモデルで生成開始: gemini-1.5-flash');
+      const result = await generateText({
         model: fallbackModel,
         prompt: prompt,
       });
-    } catch (fallbackError) {
+      console.log('[DEBUG] フォールバックモデルでの生成成功');
+      return result;
+    } catch (fallbackError: any) {
       // 両方失敗した場合は、元のエラー（または最後のあがきでfallbackError）を投げる
       // ここでは詳細なエラー情報を呼び出し元に伝えるためにfallbackErrorを投げる
+      console.error('[ERROR] フォールバックモデルも失敗:', {
+        message: fallbackError.message,
+        stack: fallbackError.stack,
+        status: fallbackError.status,
+        cause: fallbackError.cause,
+        fullError: JSON.stringify(fallbackError, null, 2),
+      });
       throw fallbackError;
     }
   }
@@ -443,6 +475,19 @@ ${safe.freeformInput}
         return response;
 
       } catch (error: any) {
+        // 詳細なエラーログ出力（デバッグ用）
+        console.error('[ERROR] 生成エラー詳細:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          status: error.status,
+          statusCode: error.statusCode,
+          code: error.code,
+          cause: error.cause,
+        });
+        // オブジェクトとして直接出力（JSON.stringifyでは消える情報があるため）
+        console.error('[ERROR] Full Error Object:', error);
+
         devLog.error('生成エラー:', error);
 
         // エラーの種類に応じてメッセージを使い分ける

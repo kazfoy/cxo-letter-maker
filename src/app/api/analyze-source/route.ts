@@ -99,12 +99,12 @@ export async function POST(request: Request) {
                   console.error(`[ERROR] URL ${index + 1} fetch error:`, fetchError);
                   devLog.error(`URL ${index + 1} fetch error:`, fetchError);
                   throw new Error(
-                    `URL_NOT_ACCESSIBLE:${fetchError instanceof Error ? fetchError.message : '不明なエラー'}`
+                    `URL_NOT_ACCESSIBLE:情報の取得に失敗しました。『会社概要』『IR情報』などのテキスト情報が多いページでもう一度お試しください。`
                   );
                 }
 
                 if (!response.ok) {
-                  throw new Error(`URL_NOT_ACCESSIBLE:HTTP ${response.status}`);
+                  throw new Error(`URL_NOT_ACCESSIBLE:ページにアクセスできませんでした（HTTP ${response.status}）。『会社概要ページ』などの公開されているページを指定してください。`);
                 }
 
                 const html = await response.text();
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
 
                 if (cleanedText.length < 50) {
                   console.warn(`[WARN] URL ${index + 1} コンテンツが短すぎる (${cleanedText.length}文字)`);
-                  throw new Error('CONTENT_NOT_FOUND:有効なコンテンツが見つかりません');
+                  throw new Error('CONTENT_NOT_FOUND:十分な情報が見つかりませんでした。トップページではなく『会社概要』『代表メッセージ』『IR情報』などのページを指定してください。');
                 }
 
                 return {
@@ -194,7 +194,10 @@ export async function POST(request: Request) {
             ?.filter((r) => r.status === 'rejected')
             .map((r: any) => {
               const reason = r.reason?.message || '';
-              if (reason.includes('URL_NOT_ACCESSIBLE')) {
+              // エラーメッセージから詳細を抽出（ERROR_CODE:詳細メッセージ の形式）
+              if (reason.includes(':')) {
+                return reason.split(':').slice(1).join(':').trim();
+              } else if (reason.includes('URL_NOT_ACCESSIBLE')) {
                 return 'URLにアクセスできませんでした';
               } else if (reason.includes('CONTENT_NOT_FOUND')) {
                 return '有効なコンテンツが見つかりませんでした';

@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Document, Paragraph, Packer, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
+import Link from 'next/link';
 import { updateStatus } from '@/lib/supabaseHistoryUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import type { LetterStatus } from '@/types/letter';
+
+// LocalStorageキー
+const EDIT_USAGE_KEY = 'guest_edit_usage';
+const EDIT_LIMIT = 3; // 未ログインユーザーの制限回数
 
 interface PreviewAreaProps {
   content: string;
@@ -23,9 +29,12 @@ export function PreviewArea({
   currentStatus,
   onStatusChange,
 }: PreviewAreaProps) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [letterStatus, setLetterStatus] = useState<LetterStatus>(currentStatus || 'generated');
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [guestEditUsage, setGuestEditUsage] = useState(0);
 
   // Sync letterStatus when currentStatus changes
   useEffect(() => {
@@ -33,6 +42,29 @@ export function PreviewArea({
       setLetterStatus(currentStatus);
     }
   }, [currentStatus]);
+
+  // 未ログインユーザーの編集利用回数を確認
+  useEffect(() => {
+    if (!user && typeof window !== 'undefined') {
+      const usage = parseInt(localStorage.getItem(EDIT_USAGE_KEY) || '0', 10);
+      setGuestEditUsage(usage);
+    }
+  }, [user]);
+
+  // 未ログインユーザーの編集利用回数を記録
+  const incrementGuestEditUsage = () => {
+    if (!user && typeof window !== 'undefined') {
+      const newUsage = guestEditUsage + 1;
+      localStorage.setItem(EDIT_USAGE_KEY, newUsage.toString());
+      setGuestEditUsage(newUsage);
+    }
+  };
+
+  // 未ログインユーザーの編集制限チェック
+  const canUseEdit = () => {
+    if (user) return true; // ログインユーザーは無制限
+    return guestEditUsage < EDIT_LIMIT; // 未ログインは制限あり
+  };
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -99,22 +131,68 @@ export function PreviewArea({
       return;
     }
 
+    // 未ログインユーザーの制限チェック
+    if (!canUseEdit()) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setIsEditing(true);
 
     try {
+      console.log('[DEBUG] 編集リクエスト:', {
+        editType,
+        isAuthenticated: !!user,
+        guestEditUsage,
+      });
+
       const response = await fetch('/api/edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, editType }),
       });
 
+      console.log('[DEBUG] 編集レスポンス:', {
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[ERROR] 編集エラーレスポンス:', errorData);
+
+        if (response.status === 429) {
+          showNotification('利用制限に達しました。しばらく待ってから再試行してください。', 'error');
+        } else {
+          showNotification(errorData.error || '編集に失敗しました。', 'error');
+        }
+        return;
+      }
+
       const data = await response.json();
       if (data.editedLetter) {
         onContentChange(data.editedLetter);
         showNotification('編集が完了しました！', 'success');
+
+        // 未ログインユーザーの場合、利用回数をカウント
+        if (!user) {
+          incrementGuestEditUsage();
+
+          // 残り回数を通知
+          const remaining = EDIT_LIMIT - guestEditUsage - 1;
+          if (remaining > 0) {
+            setTimeout(() => {
+              showNotification(`お試しあと${remaining}回利用できます`, 'success');
+            }, 3500);
+          } else {
+            setTimeout(() => {
+              showNotification('お試し利用回数を使い切りました。ログインすると無制限で利用できます。', 'error');
+            }, 3500);
+          }
+        }
       }
-    } catch (error) {
-      console.error('編集エラー:', error);
+    } catch (error: any) {
+      console.error('[ERROR] 編集エラー:', error);
       showNotification('編集に失敗しました。', 'error');
     } finally {
       setIsEditing(false);
@@ -274,7 +352,14 @@ export function PreviewArea({
       {/* 自動編集ボタン */}
       {content && (
         <div className="mb-6 space-y-3">
-          <p className="text-sm font-semibold text-slate-700">自動編集</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-700">自動編集</p>
+            {!user && (
+              <p className="text-xs text-slate-500 bg-purple-50 px-2 py-1 rounded border border-purple-200">
+                お試し: あと{EDIT_LIMIT - guestEditUsage}回
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleAutoEdit('casual')}
@@ -386,6 +471,39 @@ export function PreviewArea({
           </div>
         )}
       </div>
+
+      {/* 編集機能制限到達モーダル */}
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-purple-500"></div>
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">お試し利用回数を使い切りました</h3>
+            <p className="text-slate-600 mb-8 leading-relaxed">
+              自動編集機能は1時間に3回までお試しいただけます。<br />
+              無料会員登録すると、無制限で利用可能です。
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                className="block w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105"
+              >
+                無料で会員登録・ログイン
+              </Link>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="block w-full py-3 px-4 text-slate-500 hover:text-slate-700 font-medium transition-colors"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

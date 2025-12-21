@@ -55,16 +55,16 @@ const errorMessages: Record<ErrorCode, { message: string; suggestion: string }> 
     suggestion: '正しいURL（https://...）を入力してください。',
   },
   [ErrorCodes.SCRAPING_FAILED]: {
-    message: 'URLの読み込みに失敗しました。セキュリティ対策されたサイトの可能性があります。',
-    suggestion: 'テキストを直接コピーして貼り付けてください。または、別のURLをお試しください。',
+    message: 'URLの読み込みに失敗しました。',
+    suggestion: '『会社概要』『IR情報』『代表メッセージ』などの情報が多いページを指定してください。',
   },
   [ErrorCodes.URL_NOT_ACCESSIBLE]: {
     message: 'URLにアクセスできませんでした。',
-    suggestion: 'URLが正しいか、サイトがアクセス可能な状態かを確認してください。',
+    suggestion: 'トップページではなく『会社概要ページ』などの公開されているページを指定してください。',
   },
   [ErrorCodes.CONTENT_NOT_FOUND]: {
-    message: 'ページから有効なコンテンツを抽出できませんでした。',
-    suggestion: 'テキストを直接コピーして貼り付けるか、別のURLをお試しください。',
+    message: '十分な情報が見つかりませんでした。',
+    suggestion: 'トップページではなく『会社概要』『代表メッセージ』『IR情報』などのページを指定してください。',
   },
   [ErrorCodes.PDF_PARSE_FAILED]: {
     message: 'PDFの読み込みに失敗しました。',
@@ -75,8 +75,8 @@ const errorMessages: Record<ErrorCode, { message: string; suggestion: string }> 
     suggestion: 'PDFのロックを解除してから再度お試しください。または、テキストをコピーして貼り付けてください。',
   },
   [ErrorCodes.ALL_SOURCES_FAILED]: {
-    message: 'すべてのソースからの情報抽出に失敗しました。',
-    suggestion: '別のURLを試すか、テキストを直接入力してください。',
+    message: '情報の取得に失敗しました。',
+    suggestion: 'トップページではなく『会社概要』『IR情報』『代表メッセージ』などの情報が多いページを指定してください。',
   },
   [ErrorCodes.AI_EXTRACTION_FAILED]: {
     message: 'AI解析に失敗しました。',

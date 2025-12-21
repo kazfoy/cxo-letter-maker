@@ -36,6 +36,13 @@ export async function POST(request: Request) {
     EditSchema,
     async (data, user) => {
       try {
+        console.log('[DEBUG] 編集APIリクエスト:', {
+          isAuthenticated: !!user,
+          userId: user?.id || 'guest',
+          editType: data.editType,
+          contentLength: data.content.length,
+        });
+
         const { content, editType } = data;
 
         // プロンプトインジェクション対策
@@ -153,8 +160,18 @@ ${formatConstraints}
         });
         const editedLetter = result.text;
 
+        console.log('[DEBUG] 編集完了:', {
+          originalLength: content.length,
+          editedLength: editedLetter.length,
+        });
+
         return NextResponse.json({ editedLetter });
-      } catch (error) {
+      } catch (error: any) {
+        console.error('[ERROR] 編集エラー詳細:', {
+          message: error.message,
+          stack: error.stack,
+          fullError: error,
+        });
         devLog.error('編集エラー:', error);
         return NextResponse.json(
           { error: '編集に失敗しました' },
@@ -163,9 +180,10 @@ ${formatConstraints}
       }
     },
     {
+      requireAuth: false, // 未ログインユーザーも利用可能
       rateLimit: {
-        windowMs: 60000,
-        maxRequests: 20,
+        windowMs: 3600000, // 1時間
+        maxRequests: 3, // 未ログインユーザーは1時間に3回まで
       },
     }
   );

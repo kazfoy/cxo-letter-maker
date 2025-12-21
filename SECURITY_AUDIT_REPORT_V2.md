@@ -386,3 +386,4 @@ devLog.error('生成エラー:', error);
 4. `supabase/fix-policies.sql` の実行（Supabaseダッシュボードで）
 
 
+

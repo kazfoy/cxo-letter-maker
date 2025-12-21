@@ -170,6 +170,7 @@ export default function NewLetterPage() {
 
     try {
       // Generate letter with sample data
+      console.log('[DEBUG] サンプル生成リクエスト開始');
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,17 +181,46 @@ export default function NewLetterPage() {
         }),
       });
 
+      console.log('[DEBUG] レスポンス受信:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+
+      // レスポンスのクローンを作成してテキストとしてログ出力（JSONパースエラー対策）
+      const responseClone = response.clone();
+      const responseText = await responseClone.text();
+      console.log('[DEBUG] レスポンス本文(Raw):', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
+
       if (!response.ok) {
+        // エラーレスポンスの本文を取得
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error('[ERROR] エラーレスポンス本文:', errorData);
+        } catch (parseError) {
+          console.error('[ERROR] レスポンス本文のパースに失敗:', parseError);
+          const text = await response.text();
+          console.error('[ERROR] レスポンステキスト:', text);
+        }
+
         // 429エラーの場合は制限モーダルを表示
         if (response.status === 429) {
           setShowLimitModal(true);
           refetchGuestUsage();
           return;
         }
-        throw new Error('生成に失敗しました');
+
+        throw new Error(`生成に失敗しました (${response.status}): ${errorData?.error || errorData?.message || response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('[DEBUG] 生成成功:', {
+        letterLength: data.letter?.length || 0,
+        hasLetter: !!data.letter,
+      });
+
       setGeneratedLetter(data.letter);
       const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
       if (savedLetter) {
@@ -201,9 +231,14 @@ export default function NewLetterPage() {
       if (!user) {
         refetchGuestUsage();
       }
-    } catch (error) {
-      console.error('サンプル生成エラー:', error);
-      alert('サンプルの生成に失敗しました。もう一度お試しください。');
+    } catch (error: any) {
+      console.error('[ERROR] サンプル生成エラー詳細:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        fullError: error,
+      });
+      alert(`サンプルの生成に失敗しました。もう一度お試しください。\n\nエラー: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }

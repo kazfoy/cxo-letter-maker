@@ -205,22 +205,44 @@ export function useInputForm({
     setGenerationSuccess(false);
 
     try {
+      console.log('[DEBUG] 手紙生成リクエスト開始');
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, model: 'flash', mode, inputComplexity }),
       });
 
+      console.log('[DEBUG] レスポンス受信:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+
       const data = await response.json();
+      console.log('[DEBUG] レスポンスデータ:', {
+        hasLetter: !!data.letter,
+        hasError: !!data.error,
+        letterLength: data.letter?.length || 0,
+        errorCode: data.code,
+        errorMessage: data.error,
+      });
+
       if (data.letter) {
         onGenerate(data.letter, formData);
         setGenerationSuccess(true);
         setTimeout(() => setGenerationSuccess(false), 2000);
       } else if (data.error) {
+        console.error('[ERROR] API エラーレスポンス:', data);
         handleApiErrorData(data);
       }
-    } catch (error) {
-      console.error('生成エラー:', error);
+    } catch (error: any) {
+      console.error('[ERROR] 生成エラー詳細:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        fullError: error,
+      });
       showError('手紙の生成に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsGenerating(false);

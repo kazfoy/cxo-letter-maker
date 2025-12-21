@@ -164,7 +164,11 @@ export function MultiSourceModal({
                     type="url"
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
-                    placeholder={`https://example.com ${index > 0 ? `(オプション ${index})` : ''}`}
+                    placeholder={
+                      index === 0
+                        ? "例: https://company.co.jp/about (会社概要ページ)"
+                        : `https://company.co.jp/ir (オプション ${index})`
+                    }
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isAnalyzing}
                   />
@@ -192,6 +196,12 @@ export function MultiSourceModal({
                 + URLを追加
               </button>
             )}
+            {/* URL選択のヒント */}
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-xs text-amber-900 leading-relaxed">
+                💡 <strong>ヒント</strong>: トップページよりも、<strong className="text-amber-700">『会社概要』『代表メッセージ』『IR情報』</strong>などのページを指定すると、より精度の高い手紙が作成できます。
+              </p>
+            </div>
           </div>
 
           {/* PDF入力セクション */}

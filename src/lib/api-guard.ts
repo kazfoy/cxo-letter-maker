@@ -111,31 +111,39 @@ export async function apiGuard<T extends z.ZodType>(
  * バリデーションが不要な場合に使用
  */
 export async function authGuard(
-  handler: (user: User) => Promise<Response | NextResponse>,
+  handler: (user: User | null) => Promise<Response | NextResponse>,
   options: ApiGuardOptions = {}
 ): Promise<Response | NextResponse> {
   try {
+    const requireAuth = options.requireAuth !== false; // デフォルトは true
+
     // 1. 認証チェック
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    let user: User | null = null;
 
-    if (authError || !user) {
-      devLog.warn('Unauthorized API access attempt');
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
-      );
-    }
+    if (requireAuth) {
+      const supabase = await createClient();
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-    // 2. レート制限チェック
-    if (options.rateLimit) {
-      const isLimited = checkRateLimit(user.id, options.rateLimit);
-      if (isLimited) {
-        devLog.warn('Rate limit exceeded');
+      if (authError || !authUser) {
+        devLog.warn('Unauthorized API access attempt');
         return NextResponse.json(
-          { error: 'リクエストが多すぎます。しばらく待ってから再試行してください' },
-          { status: 429 }
+          { error: '認証が必要です' },
+          { status: 401 }
         );
+      }
+
+      user = authUser;
+
+      // 2. レート制限チェック（認証ユーザーのみ）
+      if (options.rateLimit) {
+        const isLimited = checkRateLimit(user.id, options.rateLimit);
+        if (isLimited) {
+          devLog.warn('Rate limit exceeded');
+          return NextResponse.json(
+            { error: 'リクエストが多すぎます。しばらく待ってから再試行してください' },
+            { status: 429 }
+          );
+        }
       }
     }
 

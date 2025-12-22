@@ -29,6 +29,10 @@ export async function POST(request: Request) {
 
             let customerId = profile?.stripe_customer_id;
 
+            // リダイレクト先のベースURLを動的に決定
+            const origin = request.headers.get('origin');
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000';
+
             // Checkout Session作成
             const sessionParams: any = {
                 mode: 'subscription',
@@ -39,8 +43,8 @@ export async function POST(request: Request) {
                         quantity: 1,
                     },
                 ],
-                success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/success`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings?canceled=true`,
+                success_url: `${baseUrl}/checkout/success`,
+                cancel_url: `${baseUrl}/dashboard/settings?canceled=true`,
                 // ユーザーIDをメタデータに含める（Webhookで紐付けに使用）
                 metadata: {
                     userId: user.id,

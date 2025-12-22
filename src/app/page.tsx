@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -92,78 +93,18 @@ export default function LandingPage() {
 
             {/* Right: Visual Mockup */}
             <div className="relative">
-              <div className="relative bg-white rounded-xl shadow-2xl border border-stone-200 p-2 rotate-1 hover:rotate-0 transition-transform duration-500">
-                {/* Mockup Header */}
-                <div className="h-8 bg-stone-50 border-b border-stone-100 rounded-t-lg flex items-center px-4 gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                </div>
-
-                {/* Mockup Body */}
-                <div className="flex h-[400px]">
-                  {/* Sidebar (Form) */}
-                  <div className="w-1/3 border-r border-stone-100 p-4 space-y-4 bg-stone-50/50 rounded-bl-lg">
-                    <div className="h-4 bg-stone-200 rounded w-1/2 mb-6"></div>
-                    <div className="space-y-2">
-                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
-                      <div className="h-8 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
-                      <div className="h-8 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-2 bg-stone-200 rounded w-1/3"></div>
-                      <div className="h-24 bg-white border border-stone-200 rounded w-full shadow-sm"></div>
-                    </div>
-                    <div className="h-10 bg-gradient-to-r from-amber-700 to-amber-800 rounded w-full mt-4 shadow-md opacity-90"></div>
-                  </div>
-
-                  {/* Main (Preview) */}
-                  <div className="w-2/3 p-6 bg-stone-100/50 rounded-br-lg relative overflow-hidden">
-                    <div className="bg-white shadow-md border border-stone-200 h-full rounded-lg p-8 space-y-4 relative">
-                      {/* Paper Texture/Header */}
-                      <div className="absolute top-0 left-0 w-full h-2 bg-amber-800/10"></div>
-
-                      <div className="flex justify-between items-end border-b border-stone-100 pb-4 mb-6">
-                        <div className="space-y-2">
-                          <div className="h-4 bg-stone-800 rounded w-32"></div>
-                          <div className="h-3 bg-stone-400 rounded w-24"></div>
-                        </div>
-                        <div className="h-12 w-12 bg-stone-100 rounded-full border border-stone-200"></div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
-                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
-                        <div className="h-2.5 bg-stone-300 rounded w-11/12"></div>
-                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
-                      </div>
-
-                      <div className="h-8"></div>
-
-                      <div className="space-y-3">
-                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
-                        <div className="h-2.5 bg-stone-300 rounded w-10/12"></div>
-                        <div className="h-2.5 bg-stone-300 rounded w-full"></div>
-                      </div>
-
-                      {/* Signature */}
-                      <div className="mt-8 flex justify-end">
-                        <div className="h-8 w-24 bg-stone-100 rounded rotate-[-2deg]"></div>
-                      </div>
-                    </div>
-
-                    {/* Floating Sparkle */}
-                    <div className="absolute bottom-8 right-8 animate-bounce">
-                      <div className="w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center shadow-xl border-2 border-white">
-                        <Sparkles className="w-7 h-7 text-white" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="relative w-full max-w-lg mx-auto animate-float">
+                <Image
+                  src="/images/hero-mockup.png"
+                  alt="CxO Letter Maker Interface"
+                  width={600}
+                  height={500}
+                  className="w-full h-auto drop-shadow-2xl rounded-lg"
+                  priority
+                />
               </div>
+
+              {/* Background Decoration */}
 
               {/* Background Decoration */}
               <div className="absolute -top-12 -right-12 w-64 h-64 bg-amber-800/5 rounded-full blur-3xl -z-10"></div>

@@ -18,7 +18,15 @@ interface PreviewAreaProps {
   isGenerating: boolean;
   currentLetterId?: string;
   currentStatus?: LetterStatus;
+
   onStatusChange?: () => void;
+  variations?: {
+    standard: string;
+    emotional: string;
+    consultative: string;
+  };
+  activeVariation?: 'standard' | 'emotional' | 'consultative';
+  onVariationSelect?: (variation: 'standard' | 'emotional' | 'consultative') => void;
 }
 
 export function PreviewArea({
@@ -27,7 +35,11 @@ export function PreviewArea({
   isGenerating,
   currentLetterId,
   currentStatus,
+
   onStatusChange,
+  variations,
+  activeVariation,
+  onVariationSelect,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -236,8 +248,8 @@ export function PreviewArea({
       {/* 通知 */}
       {notification && (
         <div className={`mb-4 p-3 rounded-md flex items-center gap-2 ${notification.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+          ? 'bg-green-50 border border-green-200 text-green-800'
+          : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
           {notification.type === 'success' ? (
             <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -441,6 +453,40 @@ export function PreviewArea({
           </div>
         )}
 
+
+        {/* タブUI（バリエーション選択） - 生成されている場合のみ表示 */}
+        {variations && (
+          <div className="flex border-b border-gray-200 mb-0">
+            <button
+              onClick={() => onVariationSelect && onVariationSelect('standard')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'standard'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              王道 (Standard)
+            </button>
+            <button
+              onClick={() => onVariationSelect && onVariationSelect('emotional')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'emotional'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              熱意 (Emotional)
+            </button>
+            <button
+              onClick={() => onVariationSelect && onVariationSelect('consultative')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'consultative'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              課題解決 (Consultative)
+            </button>
+          </div>
+        )}
+
         {isGenerating || isEditing ? (
           <div className="flex items-center justify-center min-h-[600px]">
             <div className="text-center">
@@ -451,16 +497,35 @@ export function PreviewArea({
             </div>
           </div>
         ) : content ? (
-          <textarea
-            value={content}
-            onChange={(e) => onContentChange(e.target.value)}
-            className="w-full min-h-[600px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-md resize-y font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
-            style={{
-              lineHeight: '1.8',
-            }}
-            placeholder="生成された手紙がここに表示されます"
-            aria-label="生成された手紙の編集エリア"
-          />
+          <>
+            <textarea
+              value={content}
+              onChange={(e) => onContentChange(e.target.value)}
+              className="w-full min-h-[600px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-b-md resize-y font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
+              style={{
+                lineHeight: '1.8',
+              }}
+              placeholder="生成された手紙がここに表示されます"
+              aria-label="生成された手紙の編集エリア"
+            />
+            {/* 採用ボタン - タブ切り替え直後などに表示しても良いが、現状は編集したらそれが「採用」とも取れるので、
+                明示的なボタンとしては「この内容で確定（保存）」のような意味合いになる。
+                ここではユーザー要望の「この案を採用する」ボタンを追加する。
+             */}
+            {variations && (
+              <div className="absolute bottom-4 right-4">
+                <button
+                  onClick={() => {
+                    showNotification('この案を採用しました（編集可能です）', 'success');
+                    // 実質的な処理はすでに state に反映されているので、ユーザーへのフィードバックのみ
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition"
+                >
+                  この案を採用する
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[600px] text-gray-400 px-8">
             <div className="text-6xl mb-4">✉️</div>

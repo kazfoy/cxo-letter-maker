@@ -15,8 +15,13 @@ import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/
 
 export default function NewLetterPage() {
   const { user } = useAuth();
+
   const { usage, refetch: refetchGuestUsage } = useGuestLimit();
   const [generatedLetter, setGeneratedLetter] = useState('');
+  // バリエーション保持用のステート追加
+  const [variations, setVariations] = useState<{ standard: string; emotional: string; consultative: string } | undefined>(undefined);
+  const [activeVariation, setActiveVariation] = useState<'standard' | 'emotional' | 'consultative'>('standard');
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -221,7 +226,17 @@ export default function NewLetterPage() {
         hasLetter: !!data.letter,
       });
 
+
       setGeneratedLetter(data.letter);
+
+      // バリエーションがあれば保存
+      if (data.variations) {
+        setVariations(data.variations);
+        setActiveVariation('standard'); // 生成後は標準をセット
+      } else {
+        setVariations(undefined);
+      }
+
       const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
       if (savedLetter) {
         setCurrentLetterId(savedLetter.id);
@@ -359,13 +374,32 @@ export default function NewLetterPage() {
 
             {/* 右側: プレビューエリア（Sticky追従） */}
             <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} md:sticky md:top-[125px] md:max-h-[calc(100vh-140px)] md:overflow-y-auto z-10 transition-all duration-300`}>
+
               <PreviewArea
                 content={generatedLetter}
-                onContentChange={setGeneratedLetter}
+                onContentChange={(newContent) => {
+                  setGeneratedLetter(newContent);
+                  // 編集されたら、現在のバリエーションの内容も更新しておく（タブ切り替えで戻れるようにするかは要検討だが、
+                  // ここではシンプルに「現在表示中のバリエーション」の中身も更新する挙動にする）
+                  if (variations) {
+                    setVariations({
+                      ...variations,
+                      [activeVariation]: newContent
+                    });
+                  }
+                }}
                 isGenerating={isGenerating}
                 currentLetterId={currentLetterId}
                 currentStatus={currentLetterStatus}
                 onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}
+                variations={variations}
+                activeVariation={activeVariation}
+                onVariationSelect={(variation) => {
+                  setActiveVariation(variation);
+                  if (variations) {
+                    setGeneratedLetter(variations[variation]);
+                  }
+                }}
               />
             </div>
           </div>

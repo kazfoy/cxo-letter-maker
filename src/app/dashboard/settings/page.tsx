@@ -115,6 +115,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -174,7 +175,25 @@ export default function SettingsPage() {
   };
 
   const handlePortal = async () => {
-    alert('現在、解約等はサポートへお問い合わせください。');
+    try {
+      setPortalLoading(true);
+      const response = await fetch('/api/create-portal-session', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'ポータルセッションの作成に失敗しました');
+      }
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      alert('カスタマーポータルの起動に失敗しました: ' + (error.message || '不明なエラー'));
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 type TabType = 'login' | 'signup';
@@ -16,15 +16,17 @@ export default function LoginPage() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
   const supabase = createClient();
 
-  // Redirect logged-in users to dashboard
+  // Redirect logged-in users
   useEffect(() => {
     if (user) {
-      console.log('User already logged in, redirecting to dashboard');
-      router.push('/dashboard');
+      console.log('User already logged in, redirecting');
+      router.push(redirectPath);
     }
-  }, [user, router]);
+  }, [user, router, redirectPath]);
 
   // 新規登録: Magic Link (OTP) を送信
   const handleSignUp = async (e: React.FormEvent) => {
@@ -86,15 +88,15 @@ export default function LoginPage() {
         throw error;
       }
 
-      console.log('Signin successful, redirecting to dashboard');
+      console.log('Signin successful, redirecting');
       setMessage({
         type: 'success',
-        text: 'ログインしました。ダッシュボードに移動します...',
+        text: 'ログインしました。移動します...',
       });
 
       // 少し待ってからリダイレクト
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push(redirectPath);
       }, 500);
     } catch (error: any) {
       console.error('Signin error:', error);
@@ -201,8 +203,8 @@ export default function LoginPage() {
                 setPassword('');
               }}
               className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'login'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
             >
               ログイン
@@ -215,8 +217,8 @@ export default function LoginPage() {
                 setPassword('');
               }}
               className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'signup'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
             >
               新規登録
@@ -262,8 +264,8 @@ export default function LoginPage() {
               {message && (
                 <div
                   className={`p-4 rounded-md ${message.type === 'success'
-                      ? 'bg-green-50 border border-green-200 text-green-800'
-                      : 'bg-red-50 border border-red-200 text-red-800'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
                     }`}
                 >
                   <p className="text-sm">{message.text}</p>
@@ -311,8 +313,8 @@ export default function LoginPage() {
               {message && (
                 <div
                   className={`p-4 rounded-md ${message.type === 'success'
-                      ? 'bg-green-50 border border-green-200 text-green-800'
-                      : 'bg-red-50 border border-red-200 text-red-800'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
                     }`}
                 >
                   <p className="text-sm">{message.text}</p>

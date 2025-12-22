@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse } from '@/types/letter';
+import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse, GenerateResponse } from '@/types/letter';
 
 interface UseInputFormProps {
   mode: LetterMode;

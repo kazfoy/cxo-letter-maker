@@ -52,3 +52,33 @@ COMMENT ON COLUMN public.profiles.usage_limit_daily IS 'Daily generation limit f
 COMMENT ON COLUMN public.letters.batch_id IS 'ID to group letters generated in a single batch (e.g. from CSV)';
 COMMENT ON COLUMN public.letters.variations IS 'JSONB array storing multiple variations of the generated content';
 COMMENT ON COLUMN public.letters.source_urls IS 'Array of URLs used as source material for the letter';
+
+-- 3. Additional Extensions (Requested on 2025-12-22)
+-- Add 'stripe_customer_id' to profiles
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'stripe_customer_id') THEN
+        ALTER TABLE public.profiles ADD COLUMN stripe_customer_id text;
+    END IF;
+END $$;
+
+-- Add 'subscription_status' to profiles
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'subscription_status') THEN
+        ALTER TABLE public.profiles ADD COLUMN subscription_status text;
+    END IF;
+END $$;
+
+-- Add 'email_content' to letters
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'letters' AND column_name = 'email_content') THEN
+        ALTER TABLE public.letters ADD COLUMN email_content jsonb;
+    END IF;
+END $$;
+
+-- Comments for new columns
+COMMENT ON COLUMN public.profiles.stripe_customer_id IS 'Stripe Customer ID for payment processing';
+COMMENT ON COLUMN public.profiles.subscription_status IS 'Current subscription status (active, canceled, past_due, etc.)';
+COMMENT ON COLUMN public.letters.email_content IS 'Structured email content (subject, body, etc.) generated for the letter';

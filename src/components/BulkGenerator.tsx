@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Papa from 'papaparse';
-import { Upload, Check, Play, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle } from 'lucide-react';
 
 type Step = 'upload' | 'mapping' | 'execution';
 
@@ -30,6 +30,24 @@ export function BulkGenerator() {
     const [csvData, setCsvData] = useState<AnalyzedRow[]>([]);
     const [headers, setHeaders] = useState<string[]>([]);
     const [fileName, setFileName] = useState('');
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+    const handleDownloadTemplate = () => {
+        // UTF-8 BOM for Excel compatibility
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const headers = ['会社名', '氏名', '役職', '提案内容', '背景', '備考', 'URL'];
+        const exampleRow = ['株式会社サンプル', '山田 太郎', '代表取締役', '業務効率化ツールの導入について', '貴社のDX推進インタビューを拝見し...', '紹介経由', 'https://example.com'];
+
+        const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
+        const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'cxo_letter_template.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const [senderInfo, setSenderInfo] = useState({
         myCompanyName: '',
@@ -213,9 +231,80 @@ export function BulkGenerator() {
                     <p className="text-slate-400 text-sm mt-2">または クリックしてファイルを選択</p>
                 </div>
 
-                <div className="mt-6 bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">
-                    <p className="font-bold mb-1">CSVフォーマットについて</p>
-                    <p>1行目をヘッダーにしてください。「会社名」「氏名」は必須です。</p>
+                <div className="mt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <HelpCircle className="w-5 h-5 text-blue-600" />
+                            CSV作成ガイド
+                        </h3>
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="text-sm flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-200 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                        >
+                            <Download className="w-4 h-4" />
+                            テンプレートをダウンロード
+                        </button>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                        <button
+                            onClick={() => setIsGuideOpen(!isGuideOpen)}
+                            className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-100 transition-colors"
+                        >
+                            <span className="font-semibold text-slate-700">📌 推奨フォーマット・記載項目のヒント</span>
+                            {isGuideOpen ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                        </button>
+
+                        {isGuideOpen && (
+                            <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
+                                <div>
+                                    <h4 className="font-bold text-slate-900 text-sm mb-2 flex items-center gap-2">
+                                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                        共通ルール
+                                    </h4>
+                                    <ul className="list-disc list-inside text-sm text-slate-600 space-y-1 ml-1">
+                                        <li>1行目は必ず<span className="font-bold text-slate-800">「ヘッダー（列名）」</span>にしてください。</li>
+                                        <li><span className="font-bold text-red-600">「会社名」</span>と<span className="font-bold text-red-600">「氏名」</span>は必須項目です。</li>
+                                    </ul>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="bg-blue-50 p-3 rounded border border-blue-100">
+                                        <h5 className="font-bold text-blue-800 text-sm mb-2">🅰️ セールスレター</h5>
+                                        <p className="text-xs text-blue-900 mb-1">推奨列名:</p>
+                                        <ul className="text-xs text-slate-700 list-disc list-inside">
+                                            <li><code className="font-mono bg-white px-1 rounded">役職</code></li>
+                                            <li><code className="font-mono bg-white px-1 rounded">提案内容</code> (件名用)</li>
+                                            <li><code className="font-mono bg-white px-1 rounded">背景</code> (フック)</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-purple-50 p-3 rounded border border-purple-100">
+                                        <h5 className="font-bold text-purple-800 text-sm mb-2">🅱️ イベント招待</h5>
+                                        <p className="text-xs text-purple-900 mb-1">推奨列名:</p>
+                                        <ul className="text-xs text-slate-700 list-disc list-inside">
+                                            <li><code className="font-mono bg-white px-1 rounded">イベント名</code></li>
+                                            <li><code className="font-mono bg-white px-1 rounded">備考</code> (日時・場所)</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-emerald-50 p-3 rounded border border-emerald-100">
+                                        <h5 className="font-bold text-emerald-800 text-sm mb-2">🔍 AI自動調査</h5>
+                                        <p className="text-xs text-emerald-900 mb-1">便利な列:</p>
+                                        <ul className="text-xs text-slate-700 list-disc list-inside">
+                                            <li><code className="font-mono bg-white px-1 rounded">URL</code></li>
+                                        </ul>
+                                        <p className="text-[10px] text-emerald-700 mt-1 leading-tight">
+                                            ※URLを含めるとAIがWebサイトを分析して詳細を補完します。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {!isGuideOpen && (
+                            <div className="px-4 pb-4 text-xs text-slate-500">
+                                クリックして、推奨列名や作成のヒントを確認できます。
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );

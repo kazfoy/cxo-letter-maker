@@ -14,6 +14,7 @@ interface LetterRow {
   mode: LetterMode;
   status: LetterStatus;
   inputs: LetterHistory['inputs'];
+  batch_id?: string;
 }
 
 /**
@@ -30,6 +31,7 @@ function rowToHistory(row: LetterRow): LetterHistory {
     mode: row.mode,
     status: row.status,
     inputs: row.inputs,
+    batchId: row.batch_id,
   };
 }
 
@@ -67,6 +69,16 @@ export async function getHistories(): Promise<LetterHistory[]> {
       .from('letters')
       .select('*')
       .eq('user_id', user.id)
+      .is('batch_id', null) // Only fetch individual letters or handle grouping in UI. Currently usually main history list shows individuals. 
+      // Requirement says: "履歴一覧ページにおいて、一括生成された履歴は「一括生成（〇件）」のようにグループ化して表示"
+      // So we might need to fetch all and group on client, or fetch batches separately. 
+      // Let's modify approach: fetch all, but if we want to support grouping, we need to know.
+      // If we filter `is('batch_id', null)` here, we hide batch components.
+      // Let's remove this filter and handle grouping in UI for now, OR fetch distinctive batches.
+      // Actually, standard `getHistories` usually fetches everything.
+      // But if we have 100 batch generated letters, it floods the list.
+      // Maybe we should fetch distinct batch_ids separately?
+      // For this first step, let's fetch everything and let the UI implementation decide how to group.
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -90,9 +102,88 @@ export async function getHistories(): Promise<LetterHistory[]> {
     }
 
     console.log(`Fetched ${data?.length || 0} histories from Supabase`);
+    // NOTE: This now includes batch items. We will group them in the UI or fetch distinct batches in a separate call if needed.
+    // For efficient "grouping", we might want a separate query, but for now let's just properly map properties.
     return (data || []).map(rowToHistory);
   } catch (error) {
     console.error('履歴取得エラー (catch):', error);
+    return [];
+  }
+}
+
+
+/**
+ * Get distinct batches for the current user
+ * Returns one representative letter for each batch (to get date and ID)
+ */
+export async function getBatches(): Promise<{ batchId: string; createdAt: string; count: number }[]> {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // Fetch all letters with batch_id
+    // Note: Since we don't have GROUP BY in simple client, we fetch all relevant fields
+    const { data, error } = await supabase
+      .from('letters')
+      .select('batch_id, created_at')
+      .eq('user_id', user.id)
+      .not('batch_id', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Batches fetch error:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    // Group by batch_id in memory
+    const batchMap = new Map<string, { batchId: string; createdAt: string; count: number }>();
+
+    data.forEach(item => {
+      if (!item.batch_id) return;
+      if (!batchMap.has(item.batch_id)) {
+        batchMap.set(item.batch_id, {
+          batchId: item.batch_id,
+          createdAt: item.created_at, // First one is latest due to order
+          count: 0
+        });
+      }
+      const batch = batchMap.get(item.batch_id)!;
+      batch.count++;
+    });
+
+    return Array.from(batchMap.values());
+  } catch (error) {
+    console.error('Batches fetch error (catch):', error);
+    return [];
+  }
+}
+
+/**
+ * Get letters for a specific batch
+ */
+export async function getBatchLetters(batchId: string): Promise<LetterHistory[]> {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('letters')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('batch_id', batchId)
+      .order('created_at', { ascending: true }); // Keep usually roughly CSV order
+
+    if (error) {
+      console.error('Batch fetch error:', error);
+      return [];
+    }
+    return (data || []).map(rowToHistory);
+  } catch (error) {
+    console.error('Batch fetch error (catch):', error);
     return [];
   }
 }

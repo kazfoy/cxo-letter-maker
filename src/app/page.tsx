@@ -814,8 +814,8 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                現在、生成回数に制限はありません。必要な数だけ、何通でも無料で生成していただけます。<br />
-                <span className="text-sm text-stone-500">※ サービスの安定運営のため、将来的に生成回数の制限を設ける可能性があります。</span>
+                無料プランでは、1日10通まで生成いただけます。<br />
+                Proプラン（月額980円）にご加入いただくと、無制限で生成可能になります。
               </div>
             </details>
           </div>

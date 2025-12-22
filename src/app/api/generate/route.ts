@@ -147,6 +147,43 @@ export async function POST(request: Request) {
     request,
     GenerateSchema,
     async (data, user) => {
+      // ログインユーザーの制限チェック (Free/Pro)
+      if (user) {
+        const supabase = await createClient();
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. プロファイル情報の取得
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('plan, daily_usage_count, last_usage_date')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          // エラーでも一旦進めるか、エラーにするか。安全のためエラーにはしないがログ出す
+        } else if (profile) {
+          let { daily_usage_count, last_usage_date, plan } = profile;
+
+          // 日付が変わっていたらカウントをリセットして評価
+          if (last_usage_date !== today) {
+            daily_usage_count = 0;
+          }
+
+          // Freeプランかつ上限(10回)に達している場合
+          if (plan === 'free' && daily_usage_count >= 10) {
+            return NextResponse.json(
+              {
+                error: '無料プランの1日の生成上限（10回）に達しました。',
+                code: 'FREE_LIMIT_REACHED',
+                suggestion: 'Proプランにアップグレードすると無制限で利用できます。'
+              },
+              { status: 429 } // 429 Too Many Requests
+            );
+          }
+        }
+      }
+
       // ゲストユーザーのレート制限チェック (DBベース)
       let guestId = '';
       let isNewGuest = false;
@@ -577,6 +614,42 @@ ${jsonInstruction}
             httpOnly: true,
             sameSite: 'lax',
           });
+        }
+
+        // ログインユーザーの場合、生成回数を更新
+        if (user) {
+          const supabase = await createClient();
+          const today = new Date().toISOString().split('T')[0];
+
+          // 現在のカウントを取得してインクリメント記述もできるが、
+          // 並行性を厳密に問わないなら、前段で取った値+1でも、あるいは再取得でも良い。
+          // ここではシンプルに、rpcを使わずとも、再取得またはatomic updateを目指す。
+          // supabaseで value = value + 1 は RPC が必要になることが多いが、
+          // ここではシンプルに Profilesテーブルの update で処理する（Race Conditionは許容）
+
+          // Note: 本来はRPC increment_usage() を作るのがベストだが、今回は直接Update
+          // まず現在値を取得（日付またぎも考慮）
+          const { data: currentProfile } = await supabase
+            .from('profiles')
+            .select('daily_usage_count, last_usage_date')
+            .eq('id', user.id)
+            .single();
+
+          let newCount = 1;
+          if (currentProfile) {
+            if (currentProfile.last_usage_date === today) {
+              newCount = (currentProfile.daily_usage_count || 0) + 1;
+            }
+            // 日付が違うなら newCount = 1 (リセット+今回分)
+          }
+
+          await supabase
+            .from('profiles')
+            .update({
+              daily_usage_count: newCount,
+              last_usage_date: today
+            })
+            .eq('id', user.id);
         }
 
         return response;

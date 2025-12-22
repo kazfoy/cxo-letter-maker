@@ -17,7 +17,7 @@ export default function NewLetterPage() {
   const { user } = useAuth();
 
 
-  const { usage, refetch: refetchGuestUsage } = useGuestLimit();
+  const { usage, increment, refetch: refetchGuestUsage } = useGuestLimit();
   const [generatedLetter, setGeneratedLetter] = useState('');
   // バリエーション保持用のステート追加
   const [variations, setVariations] = useState<{ standard: string; emotional: string; consultative: string } | undefined>(undefined);
@@ -120,14 +120,14 @@ export default function NewLetterPage() {
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
     }
-  };
 
-  // ゲスト利用回数を更新（生成成功・失敗問わず呼ばれる）
-  const handleGenerationAttempt = async () => {
+    // ゲスト利用回数を更新
     if (!user) {
-      await refetchGuestUsage();
+      increment();
     }
   };
+
+
 
   const handleRestore = (history: LetterHistory) => {
     setFormData(history.inputs);
@@ -410,7 +410,7 @@ export default function NewLetterPage() {
                 onSampleFill={handleSampleExperience}
                 onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
-                onGenerationAttempt={handleGenerationAttempt}
+
               />
             </div>
 

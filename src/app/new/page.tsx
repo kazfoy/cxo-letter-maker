@@ -422,6 +422,7 @@ export default function NewLetterPage() {
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 refreshTrigger={refreshHistoryTrigger}
+                selectedId={currentLetterId}
               />
             </div>
 

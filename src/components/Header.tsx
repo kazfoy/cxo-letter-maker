@@ -27,7 +27,8 @@ export function Header() {
       const data = await response.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        // 新しいタブで開く
+        window.open(data.url, '_blank', 'noopener,noreferrer');
       } else {
         alert('決済ページの作成に失敗しました');
       }
@@ -153,10 +154,10 @@ export function Header() {
                         一括生成
                       </Link>
                       <Link
-                        href="/new"
-                        className="px-4 py-2 bg-amber-800 text-white rounded-md font-medium hover:bg-amber-900 transition-all shadow-sm"
+                        href="/dashboard"
+                        className="px-4 py-2 bg-white text-stone-700 border border-stone-200 rounded-md font-medium hover:bg-stone-50 transition-all shadow-sm flex items-center gap-2"
                       >
-                        ＋ 新規作成
+                        ダッシュボードへ移動
                       </Link>
                     </nav>
 

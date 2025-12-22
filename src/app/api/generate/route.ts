@@ -186,8 +186,10 @@ export async function POST(request: Request) {
           eventName = '',
           eventDateTime = '',
           eventSpeakers = '',
+
           invitationReason = '',
           simpleRequirement = '',
+          output_format = 'letter',
         } = data;
 
         // 全ての文字列入力をサニタイズ
@@ -211,6 +213,7 @@ export async function POST(request: Request) {
           invitationReason: sanitizeForPrompt(invitationReason, 2000),
           simpleRequirement: sanitizeForPrompt(simpleRequirement, 1000),
           searchResults: sanitizeForPrompt(data.searchResults || '', 5000),
+          output_format: output_format, // No sanitization needed for enum/fixed string, but good to have in safe obj if used? Actually strict check is better.
         };
 
         // モデル選択 (proの場合は2.0-flash-exp, flashの場合も現状は2.0-flash-expを優先)
@@ -233,165 +236,13 @@ export async function POST(request: Request) {
 }
 `;
 
-        // かんたんモードの場合（セールスモードのみ）
-        if (mode === 'sales' && inputComplexity === 'simple') {
-          prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
-以下の最小限の情報から、経営層に「会いたい」と思わせる、プロフェッショナルで熱意のある営業手紙を作成してください。
-今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
 
-【提供された情報】
-ターゲット企業名: ${safe.companyName}
-自社サービス概要: ${safe.myServiceDescription}
-${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
-${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※直近のニュース記事を参照し、タイムリーな話題を背景に盛り込んでください。` : ''}
+        // ==========================================
+        // プロンプト構築
+        // ==========================================
 
-【3つのパターン定義】
-1. **Pattern A: Standard (王道)**
-   - 礼儀正しく、バランスの取れた構成。信頼感を最優先する。
-2. **Pattern B: Emotional (熱意重視)**
-   - 「なぜ貴社なのか（Why You）」を熱く語る。感情に訴えかけ、書き手の想いを前面に出す。
-3. **Pattern C: Consultative (課題解決重視)**
-   - 相手の課題を鋭く指摘し、論理的な解決策（ソリューション）を提示する。コンサルタントのような立ち位置。
 
-【執筆ルール（共通・厳守）】
-* **禁止事項 (NG)**:
-    * 「つきましては」「この度は」などの接続詞を短期間に繰り返すこと。
-    * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
-    * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
-    * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
-* **出力形式**: 指定されたJSON形式のみを出力すること。
-
-${jsonInstruction}
-`;
-        }
-        // イベント招待モード（まとめて入力）の場合
-        else if (mode === 'event' && inputComplexity === 'simple') {
-          prompt = `あなたはイベント招待状の専門家です。
-以下の最小限の情報から、魅力的で具体的なイベント招待状を作成してください。
-今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
-
-【提供された情報】
-イベントURL: ${safe.eventUrl || '情報なし'}
-${safe.eventName ? `イベント名: ${safe.eventName}` : ''}
-${safe.eventDateTime ? `開催日時・場所: ${safe.eventDateTime}` : ''}
-${safe.eventSpeakers ? `主要登壇者/ゲスト: ${safe.eventSpeakers}` : ''}
-ターゲット企業名: ${safe.companyName}
-${safe.invitationReason ? `誘いたい理由・メモ: ${safe.invitationReason}` : ''}
-
-【差出人（自社）情報】
-会社名: ${safe.myCompanyName || '（記載なし）'}
-氏名: ${safe.myName || '（記載なし）'}
-
-【3つのパターン定義】
-1. **Pattern A: Standard (王道)**
-   - 丁寧で公式なトーン。情報の正確さと礼儀を重視。
-2. **Pattern B: Emotional (熱意重視)**
-   - 「あなたに来てほしい」という強い想いを伝える。イベントの熱量を表現する。
-3. **Pattern C: Consultative (課題解決重視)**
-   - イベント参加が相手のビジネス課題をどう解決するか、メリットを論理的に訴求する。
-
-【フォーマット制約】
-- **重要**: Markdown記法を一切使用しないこと
-- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
-- 手紙として自然で読みやすいプレーンテキスト形式にすること
-- 指定されたJSON形式のみを出力すること。
-
-${jsonInstruction}
-`;
-        }
-        // イベント招待モード（ステップ入力）の場合
-        else if (mode === 'event') {
-          prompt = `あなたはイベント招待状の専門家です。
-以下の情報を基に、丁寧でありながらも相手の時間を尊重した、魅力的なイベント招待状を作成してください。
-今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
-
-【差出人（自社）情報】
-会社名: ${safe.myCompanyName}
-氏名: ${safe.myName}
-自社について: ${safe.myServiceDescription}
-
-【招待先情報】
-企業名: ${safe.companyName}
-役職: ${safe.position || ''}
-氏名: ${safe.name}
-
-【イベント情報】
-イベント名: ${safe.eventName}
-開催日時・場所: ${safe.eventDateTime}
-主要登壇者/ゲスト: ${safe.eventSpeakers || 'なし'}
-イベントURL: ${safe.eventUrl || 'なし'}
-
-【招待の背景（Why You?）】
-${safe.invitationReason}
-
-【3つのパターン定義】
-1. **Pattern A: Standard (王道)**
-   - 丁寧で公式なトーン。情報の正確さと礼儀を重視。
-2. **Pattern B: Emotional (熱意重視)**
-   - 「あなたに来てほしい」という強い想いを伝える。イベントの熱量を表現する。
-3. **Pattern C: Consultative (課題解決重視)**
-   - イベント参加が相手のビジネス課題をどう解決するか、メリットを論理的に訴求する。
-
-【フォーマット制約】
-- **重要**: Markdown記法を一切使用しないこと
-- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
-- 手紙として自然で読みやすいプレーンテキスト形式にすること
-- 指定されたJSON形式のみを出力すること。
-
-${jsonInstruction}
-`;
-        }
-        // まとめて入力モードの場合（セールスモード）
-        else if (freeformInput) {
-          prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
-提供されたテキストから、CxOレターの5つの要素（背景・課題・解決策・実績・オファー）を抽出し、プロフェッショナルで熱意のある営業手紙を作成してください。
-今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
-
-【差出人（自社）情報】
-会社名: ${safe.myCompanyName}
-氏名: ${safe.myName}
-サービス概要: ${safe.myServiceDescription}
-
-【ターゲット情報】
-企業名: ${safe.companyName}
-役職: ${safe.position || '経営者'}
-氏名: ${safe.name}
-
-【提供されたテキスト】
-${safe.freeformInput}
-
-【3つのパターン定義】
-1. **Pattern A: Standard (王道)**
-   - 礼儀正しく、バランスの取れた構成。信頼感を最優先する。
-2. **Pattern B: Emotional (熱意重視)**
-   - 「なぜ貴社なのか（Why You）」を熱く語る。感情に訴えかけ、書き手の想いを前面に出す。
-3. **Pattern C: Consultative (課題解決重視)**
-   - 相手の課題を鋭く指摘し、論理的な解決策（ソリューション）を提示する。コンサルタントのような立ち位置。
-
-【執筆ルール（厳守）】
-* **禁止事項 (NG)**:
-    * 「つきましては」「この度は」などの接続詞を短期間に繰り返すこと。
-    * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
-    * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
-    * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
-* **出力形式**: 指定されたJSON形式のみを出力すること。
-
-${jsonInstruction}
-`;
-        }
-        let prompt = '';
-
-        // 複雑度に応じたプロンプト選択（現状はシンプルかどうかで分岐、将来的に拡張可能）
-        const jsonInstruction = `
-【出力形式（厳守）】
-以下のJSONフォーマットで出力してください。Markdownのコードブロック（\`\`\`json）は不要です。純粋なJSON文字列のみを出力してください。
-{
-  "standard": "王道パターンの手紙本文（プレーンテキスト）",
-  "emotional": "熱意重視パターンの手紙本文（プレーンテキスト）",
-  "consultative": "課題解決重視パターンの手紙本文（プレーンテキスト）"
-}
-`;
-
+        // 1. メール生成モード
         if (output_format === 'email') {
           // ==========================================
           // メール生成モード
@@ -440,7 +291,155 @@ ${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResul
 
 ${emailJsonInstruction}
 `;
-        } else if (mode === 'event') {
+        }
+        // 2. かんたんモード（セールス）
+        else if (mode === 'sales' && inputComplexity === 'simple') {
+          prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
+以下の最小限の情報から、経営層に「会いたい」と思わせる、プロフェッショナルで熱意のある営業手紙を作成してください。
+今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
+
+【提供された情報】
+ターゲット企業名: ${safe.companyName}
+自社サービス概要: ${safe.myServiceDescription}
+${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
+${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※直近のニュース記事を参照し、タイムリーな話題を背景に盛り込んでください。` : ''}
+
+【3つのパターン定義】
+1. **Pattern A: Standard (王道)**
+   - 礼儀正しく、バランスの取れた構成。信頼感を最優先する。
+2. **Pattern B: Emotional (熱意重視)**
+   - 「なぜ貴社なのか（Why You）」を熱く語る。感情に訴えかけ、書き手の想いを前面に出す。
+3. **Pattern C: Consultative (課題解決重視)**
+   - 相手の課題を鋭く指摘し、論理的な解決策（ソリューション）を提示する。コンサルタントのような立ち位置。
+
+【執筆ルール（共通・厳守）】
+* **禁止事項 (NG)**:
+    * 「つきましては」「この度は」などの接続詞を短期間に繰り返すこと。
+    * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
+    * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
+    * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
+* **出力形式**: 指定されたJSON形式のみを出力すること。
+
+${jsonInstruction}
+`;
+        }
+        // 3. イベント招待モード（まとめて入力）
+        else if (mode === 'event' && inputComplexity === 'simple') {
+          prompt = `あなたはイベント招待状の専門家です。
+以下の最小限の情報から、魅力的で具体的なイベント招待状を作成してください。
+今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
+
+【提供された情報】
+イベントURL: ${safe.eventUrl || '情報なし'}
+${safe.eventName ? `イベント名: ${safe.eventName}` : ''}
+${safe.eventDateTime ? `開催日時・場所: ${safe.eventDateTime}` : ''}
+${safe.eventSpeakers ? `主要登壇者/ゲスト: ${safe.eventSpeakers}` : ''}
+ターゲット企業名: ${safe.companyName}
+${safe.invitationReason ? `誘いたい理由・メモ: ${safe.invitationReason}` : ''}
+
+【差出人（自社）情報】
+会社名: ${safe.myCompanyName || '（記載なし）'}
+氏名: ${safe.myName || '（記載なし）'}
+
+【3つのパターン定義】
+1. **Pattern A: Standard (王道)**
+   - 丁寧で公式なトーン。情報の正確さと礼儀を重視。
+2. **Pattern B: Emotional (熱意重視)**
+   - 「あなたに来てほしい」という強い想いを伝える。イベントの熱量を表現する。
+3. **Pattern C: Consultative (課題解決重視)**
+   - イベント参加が相手のビジネス課題をどう解決するか、メリットを論理的に訴求する。
+
+【フォーマット制約】
+- **重要**: Markdown記法を一切使用しないこと
+- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
+- 手紙として自然で読みやすいプレーンテキスト形式にすること
+- 指定されたJSON形式のみを出力すること。
+
+${jsonInstruction}
+`;
+        }
+        // 4. イベント招待モード（ステップ入力）
+        else if (mode === 'event') {
+          prompt = `あなたはイベント招待状の専門家です。
+以下の情報を基に、丁寧でありながらも相手の時間を尊重した、魅力的なイベント招待状を作成してください。
+今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
+
+【差出人（自社）情報】
+会社名: ${safe.myCompanyName}
+氏名: ${safe.myName}
+自社について: ${safe.myServiceDescription}
+
+【招待先情報】
+企業名: ${safe.companyName}
+役職: ${safe.position || ''}
+氏名: ${safe.name}
+
+【イベント情報】
+イベント名: ${safe.eventName}
+開催日時・場所: ${safe.eventDateTime}
+主要登壇者/ゲスト: ${safe.eventSpeakers || 'なし'}
+イベントURL: ${safe.eventUrl || 'なし'}
+
+【招待の背景（Why You?）】
+${safe.invitationReason}
+
+【3つのパターン定義】
+1. **Pattern A: Standard (王道)**
+   - 丁寧で公式なトーン。情報の正確さと礼儀を重視。
+2. **Pattern B: Emotional (熱意重視)**
+   - 「あなたに来てほしい」という強い想いを伝える。イベントの熱量を表現する。
+3. **Pattern C: Consultative (課題解決重視)**
+   - イベント参加が相手のビジネス課題をどう解決するか、メリットを論理的に訴求する。
+
+【フォーマット制約】
+- **重要**: Markdown記法を一切使用しないこと
+- URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
+- 手紙として自然で読みやすいプレーンテキスト形式にすること
+- 指定されたJSON形式のみを出力すること。
+
+${jsonInstruction}
+`;
+        }
+        // 5. まとめて入力モード（セールス）
+        else if (freeformInput) {
+          prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
+提供されたテキストから、CxOレターの5つの要素（背景・課題・解決策・実績・オファー）を抽出し、プロフェッショナルで熱意のある営業手紙を作成してください。
+今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。
+
+【差出人（自社）情報】
+会社名: ${safe.myCompanyName}
+氏名: ${safe.myName}
+サービス概要: ${safe.myServiceDescription}
+
+【ターゲット情報】
+企業名: ${safe.companyName}
+役職: ${safe.position || '経営者'}
+氏名: ${safe.name}
+
+【提供されたテキスト】
+${safe.freeformInput}
+
+【3つのパターン定義】
+1. **Pattern A: Standard (王道)**
+   - 礼儀正しく、バランスの取れた構成。信頼感を最優先する。
+2. **Pattern B: Emotional (熱意重視)**
+   - 「なぜ貴社なのか（Why You）」を熱く語る。感情に訴えかけ、書き手の想いを前面に出す。
+3. **Pattern C: Consultative (課題解決重視)**
+   - 相手の課題を鋭く指摘し、論理的な解決策（ソリューション）を提示する。コンサルタントのような立ち位置。
+
+【執筆ルール（厳守）】
+* **禁止事項 (NG)**:
+    * 「つきましては」「この度は」などの接続詞を短期間に繰り返すこと。
+    * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
+    * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
+    * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
+* **出力形式**: 指定されたJSON形式のみを出力すること。
+
+${jsonInstruction}
+`;
+        }
+        // 6. ステップ入力モード（セールス・従来）
+        else {
           prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
 以下の情報を基に、経営層に「会いたい」と思わせる、プロフェッショナルで熱意のある営業手紙を作成してください。
 今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。

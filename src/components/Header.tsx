@@ -12,7 +12,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  const { plan, isPro } = useUserPlan();
+  const { plan, isPro, loading: planLoading } = useUserPlan();
   const [upgrading, setUpgrading] = useState(false);
 
   const handleUpgrade = async () => {
@@ -129,17 +129,29 @@ export function Header() {
                   <>
                     {/* ログイン時のナビゲーション */}
                     <nav className="hidden md:flex items-center gap-4">
-                      {!isPro && (
-                        <button
-                          onClick={handleUpgrade}
-                          disabled={upgrading}
-                          className="mr-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-full font-bold text-sm hover:from-amber-700 hover:to-amber-800 transition-all shadow-sm flex items-center gap-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          {upgrading ? '処理中...' : 'Proにアップグレード'}
-                        </button>
+                      {/* プラン情報のローディング中は何も表示しない（FOUC防止） */}
+                      {!planLoading && (
+                        <>
+                          {isPro ? (
+                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200 rounded-full font-bold text-xs flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Pro Plan
+                            </span>
+                          ) : (
+                            <button
+                              onClick={handleUpgrade}
+                              disabled={upgrading}
+                              className="mr-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-full font-bold text-sm hover:from-amber-700 hover:to-amber-800 transition-all shadow-sm flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              {upgrading ? '処理中...' : 'Proにアップグレード'}
+                            </button>
+                          )}
+                        </>
                       )}
                       <Link
                         href="/dashboard/history"

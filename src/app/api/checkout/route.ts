@@ -39,7 +39,7 @@ export async function POST(request: Request) {
                         quantity: 1,
                     },
                 ],
-                success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings?success=true`,
+                success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/success`,
                 cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings?canceled=true`,
                 // ユーザーIDをメタデータに含める（Webhookで紐付けに使用）
                 metadata: {

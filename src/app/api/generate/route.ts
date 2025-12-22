@@ -483,11 +483,85 @@ ${jsonInstruction}
 `;
         }
 
+
         // フォールバック付きで生成を実行
         const result = await generateWithFallback(prompt, primaryModelName);
-        const letter = result.text;
+        const generatedText = result.text.trim();
 
-        const response = NextResponse.json({ letter });
+        // JSONパース処理
+        let responseData: any = {};
+        let parseSuccess = false;
+
+        try {
+          // 1. Markdownコードブロックを除去 regex to capture content between ```json and ```
+          // シンプルな除去: ```json ... ```, ``` ... ```, または単に { ... } を抽出
+          let cleanedText = generatedText;
+
+          // Markdown記法 (```json ... ```) がある場合、その中身を取り出す
+          const jsonMatch = generatedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (jsonMatch && jsonMatch[1]) {
+            cleanedText = jsonMatch[1].trim();
+          } else {
+            // 見つからない場合、全体から { ... } の範囲を探す試み (簡易的)
+            const firstBrace = generatedText.indexOf('{');
+            const lastBrace = generatedText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+              cleanedText = generatedText.substring(firstBrace, lastBrace + 1);
+            }
+          }
+
+          const parsed = JSON.parse(cleanedText);
+          parseSuccess = true;
+
+          if (output_format === 'email') {
+            // Emailモードの場合は { subject, body } を期待
+            if (parsed.subject && parsed.body) {
+              responseData = {
+                email: parsed
+              };
+            } else {
+              // パースできたが構造が違う場合、Bodyのみとして扱うなどのフォールバック
+              responseData = {
+                email: {
+                  subject: '件名なし',
+                  body: typeof parsed === 'string' ? parsed : JSON.stringify(parsed)
+                }
+              };
+            }
+          } else {
+            // Letterモードの場合は { standard, emotional, consultative } を期待
+            responseData = {
+              variations: parsed,
+              // 後方互換性: デフォルトはstandard、なければ最初の値
+              letter: parsed.standard || Object.values(parsed)[0] || errorMessage
+            };
+          }
+
+        } catch (e) {
+          console.warn('JSON Parse failed, using fallback.', e);
+          // パース失敗時のフォールバック
+          if (output_format === 'email') {
+            responseData = {
+              email: {
+                subject: '件名なし (自動生成)',
+                body: generatedText
+              }
+            };
+          } else {
+            // 通常モード: 生テキストをそのまま返す（あるいはstandardとして扱う）
+            // 以前の挙動に合わせて letter に入れる
+            responseData = {
+              letter: generatedText,
+              variations: {
+                standard: generatedText, // 仮
+                emotional: generatedText,
+                consultative: generatedText
+              }
+            };
+          }
+        }
+
+        const response = NextResponse.json(responseData);
 
         // 新規ゲストの場合はCookieを発行
         if (isNewGuest && guestId) {

@@ -61,6 +61,7 @@ const GenerateSchema = z.object({
   eventSpeakers: z.string().max(1000, '登壇者情報は1000文字以内で入力してください').optional(),
   invitationReason: z.string().max(2000, '招待理由は2000文字以内で入力してください').optional(),
   simpleRequirement: z.string().max(1000, '要件は1000文字以内で入力してください').optional(),
+  searchResults: z.string().max(5000, '検索結果は5000文字以内で入力してください').optional(),
 });
 
 // ヘルパー関数: フォールバック付きで生成を実行
@@ -207,6 +208,7 @@ export async function POST(request: Request) {
           eventSpeakers: sanitizeForPrompt(eventSpeakers, 1000),
           invitationReason: sanitizeForPrompt(invitationReason, 2000),
           simpleRequirement: sanitizeForPrompt(simpleRequirement, 1000),
+          searchResults: sanitizeForPrompt(data.searchResults || '', 5000),
         };
 
         // モデル選択 (proの場合は2.0-flash-exp, flashの場合も現状は2.0-flash-expを優先)
@@ -226,6 +228,7 @@ export async function POST(request: Request) {
 ターゲット企業名: ${safe.companyName}
 自社サービス概要: ${safe.myServiceDescription}
 ${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
+${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}` : ''}
 
 【あなたの役割】
 提供された情報が少ないため、以下の要素をAIが推測・補完して、完全なCxOレターを作成してください。
@@ -426,6 +429,8 @@ ${safe.freeformInput}
 3. 解決策の提示: ${safe.solution}
 4. 事例・実績: ${safe.caseStudy}
 5. オファー: ${safe.offer}
+
+${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※これらの情報を「背景・フック」として適宜活用し、タイムリーな手紙にしてください。` : ''}
 
 【執筆ルール（厳守）】
 * **禁止事項 (NG)**:

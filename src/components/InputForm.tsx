@@ -125,6 +125,7 @@ export function InputForm({
             handleOpenStructureSuggestion={handleOpenStructureSuggestion}
             setInputComplexity={setInputComplexity}
             setInputMode={setInputMode}
+            setFormData={setFormData}
           />
         ) : (
           <EventForm

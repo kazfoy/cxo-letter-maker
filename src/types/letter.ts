@@ -40,6 +40,9 @@ export interface LetterFormData {
 
   // かんたんモード用フィールド
   simpleRequirement?: string;
+
+  // 検索結果（ニュース統合）
+  searchResults?: string;
 }
 
 // レターの履歴データ構造（クライアント用 - キャメルケース）

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SALES_PLACEHOLDERS } from '@/lib/placeholders';
 import { FIELD_LABELS, BUTTON_TEXTS, MESSAGES, TAB_LABELS, ICONS, REQUIRED_MARK } from '@/lib/constants';
 import type { LetterFormData, InputComplexity } from '@/types/letter';
@@ -13,6 +13,7 @@ interface SalesFormProps {
   handleOpenStructureSuggestion: () => void;
   setInputComplexity: (complexity: InputComplexity) => void;
   setInputMode: (mode: 'step' | 'freeform') => void;
+  setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 }
 
 export const SalesForm = React.memo(function SalesForm({
@@ -25,7 +26,42 @@ export const SalesForm = React.memo(function SalesForm({
   handleOpenStructureSuggestion,
   setInputComplexity,
   setInputMode,
+  setFormData,
 }: SalesFormProps) {
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearchNews = async () => {
+    if (!formData.companyName) {
+      alert('企業名を入力してください');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/search-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: formData.companyName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Search failed');
+
+      setFormData(prev => ({
+        ...prev,
+        searchResults: data.results,
+      }));
+
+      alert('最新ニュースを取得しました。「生成」時に活用されます。');
+
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('ニュースの取得に失敗しました');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <>
       {/* 入力複雑度切り替えタブ */}
@@ -74,6 +110,16 @@ export const SalesForm = React.memo(function SalesForm({
                 className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
                 placeholder={SALES_PLACEHOLDERS.companyName}
               />
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={handleSearchNews}
+                  disabled={isSearching}
+                  className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  {isSearching ? '検索中...' : '🔍 最新ニュースを検索'}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -217,6 +263,16 @@ export const SalesForm = React.memo(function SalesForm({
                   className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
                   placeholder={SALES_PLACEHOLDERS.companyName}
                 />
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={handleSearchNews}
+                    disabled={isSearching}
+                    className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {isSearching ? '検索中...' : '🔍 最新ニュースを検索'}
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

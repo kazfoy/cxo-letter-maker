@@ -602,7 +602,7 @@ export default function LandingPage() {
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-amber-800 mb-2">Pro Plan</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-stone-900">9,800</span>
+                  <span className="text-4xl font-bold text-stone-900">980</span>
                   <span className="text-stone-600 font-medium">円 / 月 (税込)</span>
                 </div>
                 <p className="text-stone-600 mt-4 text-sm mb-6">

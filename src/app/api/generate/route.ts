@@ -533,7 +533,7 @@ ${jsonInstruction}
             responseData = {
               variations: parsed,
               // 後方互換性: デフォルトはstandard、なければ最初の値
-              letter: parsed.standard || Object.values(parsed)[0] || errorMessage
+              letter: parsed.standard || Object.values(parsed)[0] || '生成された手紙'
             };
           }
 

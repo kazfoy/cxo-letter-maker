@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { getProfile, updateProfile, type Profile } from '@/lib/profileUtils';
 import { createClient } from '@/utils/supabase/client';
-import { Upload, X, FileText, Trash2, AlertCircle, Lock } from 'lucide-react';
+import { Upload, X, FileText, Trash2, AlertCircle, Lock, CreditCard, Rocket } from 'lucide-react';
 import { updatePassword } from './actions';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserPlan } from '@/hooks/useUserPlan';
 
 function SecuritySettings() {
   const [newPassword, setNewPassword] = useState('');
@@ -105,11 +107,15 @@ function SecuritySettings() {
 }
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { plan, isPro, loading: planLoading } = useUserPlan();
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -143,10 +149,37 @@ export default function SettingsPage() {
     }
   };
 
+  const handleUpgrade = async () => {
+    try {
+      setUpgrading(true);
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('決済ページの作成に失敗しました');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('決済処理中にエラーが発生しました');
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handlePortal = async () => {
+    alert('現在、解約等はサポートへお問い合わせください。');
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !profile?.id) return;
 
-    // Check current count
     if (formData.reference_docs.length + e.target.files.length > 3) {
       alert('アップロードできるファイルは最大3つまでです。');
       return;
@@ -188,17 +221,11 @@ export default function SettingsPage() {
 
     setFormData(prev => ({ ...prev, reference_docs: newDocs }));
     setUploading(false);
-    // Reset input
     e.target.value = '';
   };
 
   const handleDeleteFile = async (path: string) => {
     if (!confirm('このファイルを削除してもよろしいですか？（保存ボタンを押すと確定します）')) return;
-
-    // Immediately remove from UI list. 
-    // Note: Actual deletion from storage could happen here or on "Save", 
-    // but typically for file managers, we delete from storage immediately or mark for deletion.
-    // For simplicity, let's delete from storage immediately to avoid orphaned files logic complexity.
 
     setUploading(true);
     try {
@@ -248,7 +275,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || planLoading) {
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
@@ -261,165 +288,210 @@ export default function SettingsPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">設定</h1>
-        <p className="text-slate-600">デフォルトの差出人情報や参照資料を設定します</p>
+        <p className="text-slate-600">プロファイル編集、プラン管理、セキュリティ設定</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-2xl">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">デフォルトの差出人情報</h2>
-          <p className="text-sm text-slate-600">
-            ここで設定した情報は、手紙作成画面で自動的に入力されます
-          </p>
+      <div className="space-y-8 max-w-2xl">
+        {/* Plan Management Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-indigo-600" />
+            プラン管理
+          </h2>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">現在のプラン</p>
+              <div className="flex items-center gap-2">
+                <span className={`text-2xl font-bold ${isPro ? 'text-indigo-600' : 'text-slate-700'}`}>
+                  {isPro ? 'Pro Plan' : 'Free Plan'}
+                </span>
+                {isPro && (
+                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
+                    ACTIVE
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {!isPro ? (
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2.5 px-5 rounded-lg shadow transition-all transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <Rocket className="w-4 h-4" />
+                {upgrading ? '準備中...' : 'Proにアップグレード'}
+              </button>
+            ) : (
+              <button
+                onClick={handlePortal}
+                className="text-sm text-slate-500 hover:text-slate-700 underline"
+              >
+                プランの管理・解約
+              </button>
+            )}
+          </div>
+          {!isPro && (
+            <p className="text-xs text-slate-500 mt-3">
+              Proプランでは、無制限の生成、Wordダウンロード、高度な履歴管理が利用可能です。
+            </p>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ... existing fields ... */}
-          <div>
-            <label htmlFor="company_name" className="block text-sm font-medium text-slate-700 mb-2">
-              自社名
-            </label>
-            <input
-              id="company_name"
-              type="text"
-              value={formData.company_name}
-              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="株式会社〇〇"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="user_name" className="block text-sm font-medium text-slate-700 mb-2">
-              氏名
-            </label>
-            <input
-              id="user_name"
-              type="text"
-              value={formData.user_name}
-              onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="山田 太郎"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="service_description" className="block text-sm font-medium text-slate-700 mb-2">
-              自社サービス概要
-            </label>
-            <textarea
-              id="service_description"
-              value={formData.service_description}
-              onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
-              placeholder="弊社は〇〇を提供しています..."
-            />
-          </div>
-
-          <div>
-            <label htmlFor="company_url" className="block text-sm font-medium text-slate-700 mb-2">
-              自社URL
-            </label>
-            <input
-              id="company_url"
-              type="url"
-              value={formData.company_url}
-              onChange={(e) => setFormData({ ...formData, company_url: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="https://example.com"
-            />
-          </div>
-
-          <hr className="my-8 border-slate-200" />
-
-          {/* Security Settings Section */}
-          <SecuritySettings />
-
-          <hr className="my-8 border-slate-200" />
-
-          {/* Security Settings Section */}
-          <SecuritySettings />
-
-          <hr className="my-8 border-slate-200" />
-
-          {/* New Section: Reference Documents */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">参照資料 (PDFのみ)</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              会社案内や製品資料などのPDFをアップロードすると、AIがその内容を参照してより精度の高い手紙を作成します。<br />
-              ※最大3ファイル、各10MBまで
+        {/* Profile Settings */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">デフォルトの差出人情報</h2>
+            <p className="text-sm text-slate-600">
+              ここで設定した情報は、手紙作成画面で自動的に入力されます
             </p>
-
-            <div className="space-y-4">
-              {formData.reference_docs.length < 3 && (
-                <div className="flex items-center justify-center w-full">
-                  <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 ${uploading ? 'opacity-50 cursor-not-allowed' : 'border-slate-300'}`}>
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-2 text-slate-500" />
-                      <p className="text-sm text-slate-500"><span className="font-semibold">クリックしてアップロード</span></p>
-                      <p className="text-xs text-slate-500">PDF (MAX. 10MB)</p>
-                    </div>
-                    <input
-                      id="dropzone-file"
-                      type="file"
-                      className="hidden"
-                      accept=".pdf"
-                      multiple
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                    />
-                  </label>
-                </div>
-              )}
-
-              {uploading && <p className="text-sm text-blue-600 text-center">処理中...</p>}
-
-              {/* File List */}
-              {formData.reference_docs.length > 0 && (
-                <ul className="space-y-2">
-                  {formData.reference_docs.map((doc, index) => (
-                    <li key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-md shadow-sm">
-                      <div className="flex items-center space-x-3 overflow-hidden">
-                        <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 truncate">{doc.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteFile(doc.path)}
-                        disabled={uploading}
-                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                        title="削除"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
 
-          <hr className="my-8 border-slate-200" />
-
-          {message && (
-            <div
-              className={`p-4 rounded-md ${message.type === 'success'
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
-            >
-              <p className="text-sm">{message.text}</p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="company_name" className="block text-sm font-medium text-slate-700 mb-2">
+                自社名
+              </label>
+              <input
+                id="company_name"
+                type="text"
+                value={formData.company_name}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="株式会社〇〇"
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={saving || uploading}
-            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? '保存中...' : '保存して適用'}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="user_name" className="block text-sm font-medium text-slate-700 mb-2">
+                氏名
+              </label>
+              <input
+                id="user_name"
+                type="text"
+                value={formData.user_name}
+                onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="山田 太郎"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="service_description" className="block text-sm font-medium text-slate-700 mb-2">
+                自社サービス概要
+              </label>
+              <textarea
+                id="service_description"
+                value={formData.service_description}
+                onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                placeholder="弊社は〇〇を提供しています..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="company_url" className="block text-sm font-medium text-slate-700 mb-2">
+                自社URL
+              </label>
+              <input
+                id="company_url"
+                type="url"
+                value={formData.company_url}
+                onChange={(e) => setFormData({ ...formData, company_url: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <hr className="my-8 border-slate-200" />
+
+            <div className="space-y-6">
+              <SecuritySettings />
+            </div>
+
+            <hr className="my-8 border-slate-200" />
+
+            {/* Reference Documents */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">参照資料 (PDFのみ)</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                会社案内や製品資料などのPDFをアップロードすると、AIがその内容を参照してより精度の高い手紙を作成します。<br />
+                ※最大3ファイル、各10MBまで
+              </p>
+
+              <div className="space-y-4">
+                {formData.reference_docs.length < 3 && (
+                  <div className="flex items-center justify-center w-full">
+                    <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 ${uploading ? 'opacity-50 cursor-not-allowed' : 'border-slate-300'}`}>
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-2 text-slate-500" />
+                        <p className="text-sm text-slate-500"><span className="font-semibold">クリックしてアップロード</span></p>
+                        <p className="text-xs text-slate-500">PDF (MAX. 10MB)</p>
+                      </div>
+                      <input
+                        id="dropzone-file"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf"
+                        multiple
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {uploading && <p className="text-sm text-blue-600 text-center">処理中...</p>}
+
+                {/* File List */}
+                {formData.reference_docs.length > 0 && (
+                  <ul className="space-y-2">
+                    {formData.reference_docs.map((doc, index) => (
+                      <li key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-md shadow-sm">
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                          <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-slate-700 truncate">{doc.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFile(doc.path)}
+                          disabled={uploading}
+                          className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                          title="削除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <hr className="my-8 border-slate-200" />
+
+            {message && (
+              <div
+                className={`p-4 rounded-md ${message.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+              >
+                <p className="text-sm">{message.text}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={saving || uploading}
+              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? '保存中...' : '保存して適用'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

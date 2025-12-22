@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle } from 'lucide-react';
+import { useUserPlan } from '@/hooks/useUserPlan';
+import { ProFeatureModal } from './ProFeatureModal';
+import Link from 'next/link';
 
 type Step = 'upload' | 'mapping' | 'execution';
 
@@ -40,6 +43,18 @@ interface GenerationStatus {
 }
 
 export function BulkGenerator() {
+    const { isPro } = useUserPlan();
+    const [showProModal, setShowProModal] = useState(false);
+
+    const checkProAccess = (e?: React.MouseEvent | React.ChangeEvent) => {
+        if (!isPro) {
+            e?.preventDefault();
+            setShowProModal(true);
+            return false;
+        }
+        return true;
+    };
+
     const [step, setStep] = useState<Step>('upload');
     const [csvData, setCsvData] = useState<AnalyzedRow[]>([]);
     const [headers, setHeaders] = useState<string[]>([]);
@@ -47,6 +62,8 @@ export function BulkGenerator() {
     const [isGuideOpen, setIsGuideOpen] = useState(true);
 
     const handleDownloadTemplate = () => {
+        if (!checkProAccess()) return;
+
         // UTF-8 BOM for Excel compatibility
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
         const headers = ['会社名', '氏名', '役職', '提案内容', '背景', '備考', 'URL'];
@@ -86,6 +103,8 @@ export function BulkGenerator() {
 
     // ---- Step 1: Upload & Parse ----
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!checkProAccess(event)) return;
+
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -142,6 +161,8 @@ export function BulkGenerator() {
 
     // ---- Step 3: Execution ----
     const startGeneration = async () => {
+        if (!checkProAccess()) return;
+
         setIsGenerating(true);
         setStep('execution');
 
@@ -351,6 +372,11 @@ export function BulkGenerator() {
                         )}
                     </div>
                 </div>
+                <ProFeatureModal
+                    isOpen={showProModal}
+                    onClose={() => setShowProModal(false)}
+                    featureName="CSV一括生成機能"
+                />
             </div>
         );
     }
@@ -609,6 +635,11 @@ export function BulkGenerator() {
                     新しいファイルをアップロード
                 </button>
             </div>
+            <ProFeatureModal
+                isOpen={showProModal}
+                onClose={() => setShowProModal(false)}
+                featureName="CSV一括生成機能"
+            />
         </div>
     );
 }

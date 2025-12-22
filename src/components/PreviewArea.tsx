@@ -6,11 +6,14 @@ import { saveAs } from 'file-saver';
 import Link from 'next/link';
 import { updateStatus } from '@/lib/supabaseHistoryUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserPlan } from '@/hooks/useUserPlan';
+import { ProFeatureModal } from './ProFeatureModal';
 import type { LetterStatus } from '@/types/letter';
 
 // LocalStorageキー
 const EDIT_USAGE_KEY = 'guest_edit_usage';
 const EDIT_LIMIT = 3; // 未ログインユーザーの制限回数
+const FREE_REWRITE_LIMIT = 3; // Freeユーザーのリライト制限回数
 
 interface PreviewAreaProps {
   content: string;
@@ -18,7 +21,6 @@ interface PreviewAreaProps {
   isGenerating: boolean;
   currentLetterId?: string;
   currentStatus?: LetterStatus;
-
 
   onStatusChange?: () => void;
   variations?: {
@@ -42,7 +44,6 @@ export function PreviewArea({
   isGenerating,
   currentLetterId,
   currentStatus,
-
   onStatusChange,
   variations,
   activeVariation,
@@ -52,11 +53,18 @@ export function PreviewArea({
   onSave,
 }: PreviewAreaProps) {
   const { user } = useAuth();
+  const { isPro, isFree } = useUserPlan();
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [letterStatus, setLetterStatus] = useState<LetterStatus>(currentStatus || 'generated');
-  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  // Modals
+  const [showLimitModal, setShowLimitModal] = useState(false); // Guest limit
+  const [showProModal, setShowProModal] = useState(false); // Pro feature modal
+  const [proFeatureName, setProFeatureName] = useState('');
+
   const [guestEditUsage, setGuestEditUsage] = useState(0);
+  const [rewriteCount, setRewriteCount] = useState(0); // FREE user rewrite count for *current generation*
 
   // Sync letterStatus when currentStatus changes
   useEffect(() => {
@@ -64,6 +72,12 @@ export function PreviewArea({
       setLetterStatus(currentStatus);
     }
   }, [currentStatus]);
+
+  // Reset rewrite count when content changes significantly (or ideally when new generation happens)
+  // For now, let's keep it simple: reset when letterId changes
+  useEffect(() => {
+    setRewriteCount(0);
+  }, [currentLetterId]);
 
   // 未ログインユーザーの編集利用回数を確認
   useEffect(() => {
@@ -125,6 +139,23 @@ export function PreviewArea({
   };
 
   const handleExportWord = async () => {
+    // Check Pro plan
+    if (user && !isPro) {
+      setProFeatureName('Wordダウンロード');
+      setShowProModal(true);
+      return;
+    }
+    // Guest usage? Prompt login?
+    // Requirement says: "Freeプラン: ... Proプラン限定機能です... Proプラン: 通常通り"
+    // Guest handling not specified, but usually guest is treated as Free or stricter.
+    // If guest, maybe show same modal or user prompt?
+    // Let's treat guest same as Free for feature restriction (block it).
+    if (!user) {
+      setProFeatureName('Wordダウンロード');
+      setShowProModal(true);
+      return;
+    }
+
     try {
       const paragraphs = content.split('\n').map(
         (line) =>
@@ -156,6 +187,13 @@ export function PreviewArea({
     // 未ログインユーザーの制限チェック
     if (!canUseEdit()) {
       setShowLimitModal(true);
+      return;
+    }
+
+    // Freeプランのリライト制限チェック (Logged in user)
+    if (user && isFree && rewriteCount >= FREE_REWRITE_LIMIT) {
+      setProFeatureName('無制限のAI編集');
+      setShowProModal(true);
       return;
     }
 
@@ -196,9 +234,15 @@ export function PreviewArea({
         onContentChange(data.editedLetter);
         showNotification('編集が完了しました！', 'success');
 
+        // Free user rewrite count check
+        if (user && isFree) {
+          setRewriteCount(prev => prev + 1);
+        }
+
         // 未ログインユーザーの場合、利用回数をカウント
         if (!user) {
           incrementGuestEditUsage();
+          // ... (rest of simple guest usage logic)
 
           // 残り回数を通知
           const remaining = EDIT_LIMIT - guestEditUsage - 1;
@@ -600,6 +644,13 @@ export function PreviewArea({
           </div>
         )}
       </div>
+
+      {/* Pro Feature Modal */}
+      <ProFeatureModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        featureName={proFeatureName}
+      />
 
       {/* 編集機能制限到達モーダル */}
       {showLimitModal && (

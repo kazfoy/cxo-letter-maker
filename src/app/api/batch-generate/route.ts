@@ -24,9 +24,11 @@ const BatchItemSchema = z.object({
 // Define schema for the request body
 const BatchGenerateSchema = z.object({
     items: z.array(BatchItemSchema).max(50, '一度に生成できるのは50件までです'), // Limit batch size
+
     myCompanyName: z.string().optional(),
     myName: z.string().optional(),
     myServiceDescription: z.string().optional(),
+    output_format: z.enum(['letter', 'email']).default('letter'),
 });
 
 // Helper to get Google Provider

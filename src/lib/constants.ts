@@ -80,9 +80,9 @@ export const MESSAGES = {
     checkUrlMessage: 'URLを確認して、もう一度お試しください。',
   },
   info: {
-    simpleMode: '💡 最小限の情報でお試しいただけます。AIが自動的に補完して手紙を作成します。',
-    eventFreeformMode: '💡 最小限の情報でイベント招待状を作成できます。AIがイベント情報を解析し、招待の必然性を構成します。',
-    freeformHelp: '💡 箇条書き、メモ、既存の文章など、どんな形式でもOKです。AIが自動的にCxOレターの形式に整形します。',
+    simpleMode: '最小限の情報でお試しいただけます。AIが自動的に補完して手紙を作成します。',
+    eventFreeformMode: '最小限の情報でイベント招待状を作成できます。AIがイベント情報を解析し、招待の必然性を構成します。',
+    freeformHelp: '箇条書き、メモ、既存の文章など、どんな形式でもOKです。AIが自動的にCxOレターの形式に整形します。',
     simpleRequirementHelp: '手紙の目的を一言で記入してください（例: 「アポを取りたい」「サービス紹介」）',
     eventUrlHelp: 'イベントのURLを入力して「自動解析」をクリックすると、イベント名・日時・登壇者が自動入力されます',
     invitationMemoHelp: '招待したい背景や理由を自由に記入してください。AIが招待状の「Why You?」部分を構成します。',
@@ -96,8 +96,8 @@ export const MESSAGES = {
 
 // タブ・モード切り替えのラベル
 export const TAB_LABELS = {
-  simpleMode: '⚡ かんたんモード',
-  detailedMode: '📝 詳細モード',
+  simpleMode: 'かんたんモード',
+  detailedMode: '詳細モード',
   stepInput: 'ステップ入力',
   freeformInput: 'まとめて入力',
   stepInputDetailed: 'ステップ入力（詳細）',
@@ -105,11 +105,11 @@ export const TAB_LABELS = {
 
 // アイコン
 export const ICONS = {
-  sample: '✨',
-  aiAssist: '🪄',
-  ownHp: '🏢',
-  targetHp: '🔍',
-  submit: '✨',
+  sample: '',
+  aiAssist: '',
+  ownHp: '',
+  targetHp: '',
+  submit: '',
   checkmark: '✓',
   close: '✕',
 };

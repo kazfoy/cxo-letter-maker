@@ -310,7 +310,7 @@ export const SalesForm = React.memo(function SalesForm({
               {formData.searchResults && (
                 <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
                   <label htmlFor="searchResults" className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                    <span>🔍 取得されたニュース情報</span>
+                    <span>取得されたニュース情報</span>
                     <span className="text-xs text-slate-500 font-normal">（生成時に背景として使用されます・編集可）</span>
                   </label>
                   <textarea
@@ -508,7 +508,7 @@ export const SalesForm = React.memo(function SalesForm({
                     className="text-sm bg-purple-50 text-purple-700 border border-purple-300 px-4 py-1.5 rounded-md hover:bg-purple-100 transition-colors font-medium flex items-center gap-1"
                     aria-label={BUTTON_TEXTS.structureSuggestion}
                   >
-                    💡 {BUTTON_TEXTS.structureSuggestion}
+                    {BUTTON_TEXTS.structureSuggestion}
                   </button>
                 </div>
                 <textarea

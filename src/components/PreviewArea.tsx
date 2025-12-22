@@ -510,14 +510,7 @@ export function PreviewArea({
       {/* プレビューエリア */}
       <div className="relative border border-gray-300 rounded-md min-h-[600px] bg-white">
         {/* 編集可能ヒント */}
-        {content && !isGenerating && !isEditing && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200 z-10">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            <span>直接編集できます</span>
-          </div>
-        )}
+
 
 
         {/* タブUI（バリエーション選択） - 生成されている場合のみ表示 */}
@@ -616,23 +609,7 @@ export function PreviewArea({
               placeholder="生成された手紙がここに表示されます"
               aria-label="生成された手紙の編集エリア"
             />
-            {/* 採用ボタン - タブ切り替え直後などに表示しても良いが、現状は編集したらそれが「採用」とも取れるので、
-                明示的なボタンとしては「この内容で確定（保存）」のような意味合いになる。
-                ここではユーザー要望の「この案を採用する」ボタンを追加する。
-             */}
-            {variations && (
-              <div className="absolute bottom-4 right-4">
-                <button
-                  onClick={() => {
-                    showNotification('この案を採用しました（編集可能です）', 'success');
-                    // 実質的な処理はすでに state に反映されているので、ユーザーへのフィードバックのみ
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition"
-                >
-                  この案を採用する
-                </button>
-              </div>
-            )}
+
           </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[600px] text-gray-400 px-8">

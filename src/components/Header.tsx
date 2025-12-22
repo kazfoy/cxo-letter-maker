@@ -105,6 +105,12 @@ export function Header() {
                         履歴一覧
                       </Link>
                       <Link
+                        href="/bulk"
+                        className="px-4 py-2 text-stone-700 hover:text-stone-900 font-medium transition-colors"
+                      >
+                        一括生成
+                      </Link>
+                      <Link
                         href="/new"
                         className="px-4 py-2 bg-amber-800 text-white rounded-md font-medium hover:bg-amber-900 transition-all shadow-sm"
                       >

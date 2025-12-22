@@ -93,13 +93,13 @@ export function InputForm({
             <button
               type="button"
               onClick={onReset}
-              className="text-slate-500 hover:text-slate-700 px-3 py-2 rounded-md hover:bg-slate-100 transition-colors text-sm font-medium flex items-center gap-1"
-              title="現在の内容を履歴に保存してリセット"
+              className="text-slate-500 hover:text-red-600 px-3 py-2 rounded-md hover:bg-red-50 transition-colors text-sm font-medium flex items-center gap-1"
+              title="入力内容をクリアして初期状態に戻します"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>{BUTTON_TEXTS.reset}</span>
+              <span>新規作成（リセット）</span>
             </button>
           )}
           {onSampleFill && (

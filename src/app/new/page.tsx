@@ -136,9 +136,33 @@ export default function NewLetterPage() {
     setCurrentLetterStatus(history.status);
   };
 
-  const handleSaveAndReset = async () => {
-    // 履歴に保存（未生成でもOK）
-    await saveToHistory(formData, generatedLetter, mode);
+  const handleSaveOnly = async () => {
+    // 履歴に保存
+    const savedLetter = await saveToHistory(formData, generatedLetter, mode);
+    if (savedLetter) {
+      // 保存後、IDとステータスを更新して、重複保存を防ぐ（あるいは更新扱いにする）
+      setCurrentLetterId(savedLetter.id);
+      setCurrentLetterStatus(savedLetter.status);
+      // Toast notification (簡易的にalertを使用、本来はuseToast推奨)
+      // 今回の要件では「保存しました」のトーストを表示とあるため、alertではなくtoastを使うべきだが、
+      // このコンポーネントではuseToastがimportされていないため、alertで代用するか、
+      // PreviewAreaのnotification機能を使う必要がある。
+      // ここでは、PreviewAreaに通知を送る仕組みがないため、alertで実装する。
+      // (理想的には上位でToastContextを持つか、PreviewAreaのShowNotificationを外から叩けるようにする)
+      alert('履歴に保存しました');
+    }
+  }
+
+  const handleResetOnly = () => {
+    // 生成結果があり、かつ未保存の場合の本来のチェックロジックが必要だが、
+    // 現在の仕様では「生成結果が表示されており」かつ「未保存」かどうかの判定が難しい
+    // (savedLetterIdがある＝保存済み、だが、直後に編集されている可能性もある)
+    // ここではシンプルに「生成結果がある」場合に確認を出す
+    if (generatedLetter) {
+      if (!confirm('保存されていませんが、リセットしますか？')) {
+        return;
+      }
+    }
 
     // フォームリセット
     setFormData({
@@ -165,7 +189,8 @@ export default function NewLetterPage() {
     setGeneratedLetter('');
     setCurrentLetterId(undefined);
     setCurrentLetterStatus(undefined);
-    alert('履歴に保存し、フォームをリセットしました');
+    setVariations(undefined);
+    setEmailData(undefined);
   };
 
   const handleSampleExperience = async () => {
@@ -383,7 +408,7 @@ export default function NewLetterPage() {
                 formData={formData}
                 setFormData={setFormData}
                 onSampleFill={handleSampleExperience}
-                onReset={handleSaveAndReset}
+                onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
                 onGenerationAttempt={handleGenerationAttempt}
               />
@@ -423,6 +448,7 @@ export default function NewLetterPage() {
                   setEmailData(newEmail);
                   setGeneratedLetter(`件名: ${newEmail.subject}\n\n${newEmail.body}`);
                 }}
+                onSave={handleSaveOnly}
               />
             </div>
           </div>

@@ -33,6 +33,7 @@ interface PreviewAreaProps {
     body: string;
   };
   onEmailChange?: (email: { subject: string; body: string }) => void;
+  onSave?: () => void;
 }
 
 export function PreviewArea({
@@ -48,6 +49,7 @@ export function PreviewArea({
   onVariationSelect,
   emailData,
   onEmailChange,
+  onSave,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -282,6 +284,18 @@ export function PreviewArea({
             {/* Right side: Action buttons (Desktop) */}
             {content && (
               <div className="hidden md:flex gap-2">
+                {onSave && (
+                  <button
+                    onClick={onSave}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-teal-600 text-white hover:bg-teal-700 rounded-md transition-colors font-semibold shadow-sm"
+                    aria-label="履歴に保存"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    履歴に保存
+                  </button>
+                )}
                 <button
                   onClick={handleCopy}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-medium text-gray-700"

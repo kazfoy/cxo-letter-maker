@@ -65,7 +65,17 @@ export interface AISuggestion {
 
 // API生成レスポンス
 export interface GenerateResponse {
+
   letter?: string;
+  variations?: {
+    standard: string;
+    emotional: string;
+    consultative: string;
+  };
+  email?: {
+    subject: string;
+    body: string;
+  };
   error?: string;
   message?: string;
   suggestion?: string;

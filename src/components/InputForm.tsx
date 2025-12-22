@@ -6,7 +6,8 @@ import { useInputForm } from '@/hooks/useInputForm';
 import { SalesForm } from '@/components/forms/SalesForm';
 import { EventForm } from '@/components/forms/EventForm';
 import { FORM_LABELS, BUTTON_TEXTS, MESSAGES, ICONS } from '@/lib/constants';
-import type { LetterFormData, LetterMode } from '@/types/letter';
+
+import type { LetterFormData, LetterMode, GenerateResponse } from '@/types/letter';
 
 // PDF.jsを使用するため、SSRを無効化して動的インポート
 const MultiSourceModal = dynamic(
@@ -18,7 +19,7 @@ import { StructureSuggestionModal } from './StructureSuggestionModal';
 
 interface InputFormProps {
   mode: LetterMode;
-  onGenerate: (letter: string, formData: LetterFormData) => void | Promise<void>;
+  onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
@@ -67,7 +68,10 @@ export function InputForm({
     handleOpenStructureSuggestion,
     handleSelectApproach,
     handleSubmit,
+
+    handleSubmit,
     handleAnalyzeEventUrl,
+    handleGenerateEmail,
   } = useInputForm({
     mode,
     formData,
@@ -140,37 +144,56 @@ export function InputForm({
           />
         )}
 
-        {/* 送信ボタン */}
-        <button
-          type="submit"
-          disabled={isGeneratingLocal || disabled}
-          className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
-            ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-            : isGeneratingLocal
-              ? 'bg-indigo-500 text-white cursor-wait'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          aria-label={labels.submit}
-        >
-          {generationSuccess ? (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{BUTTON_TEXTS.generationComplete}</span>
-            </>
-          ) : isGeneratingLocal ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>{BUTTON_TEXTS.generating}</span>
-            </>
-          ) : (
-            <>
-              <span className="text-lg">{ICONS.submit}</span>
-              <span>{labels.submit}</span>
-            </>
-          )}
-        </button>
+
+        {/* 送信ボタンエリア */}
+        <div className="flex gap-3 flex-col sm:flex-row">
+          <button
+            type="submit"
+            disabled={isGeneratingLocal || disabled}
+            className={`flex-1 py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
+              ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+              : isGeneratingLocal
+                ? 'bg-indigo-500 text-white cursor-wait'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            aria-label={labels.submit}
+          >
+            {generationSuccess ? (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{BUTTON_TEXTS.generationComplete}</span>
+              </>
+            ) : isGeneratingLocal ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>{BUTTON_TEXTS.generating}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-lg">{ICONS.submit}</span>
+                <span>{labels.submit}</span>
+              </>
+            )}
+          </button>
+
+          {/* メール生成ボタン */}
+          <button
+            type="button"
+            onClick={handleGenerateEmail}
+            disabled={isGeneratingLocal || disabled}
+            className={`flex-1 sm:flex-none py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 border-2
+            ${isGeneratingLocal || disabled
+                ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+              }`}
+            aria-label="メールとして生成"
+          >
+            <span className="text-lg">✉️</span>
+            <span>メールとして生成</span>
+          </button>
+        </div>
       </form>
 
       {/* AIアシストモーダル */}

@@ -16,11 +16,14 @@ import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/
 export default function NewLetterPage() {
   const { user } = useAuth();
 
+
   const { usage, refetch: refetchGuestUsage } = useGuestLimit();
   const [generatedLetter, setGeneratedLetter] = useState('');
   // バリエーション保持用のステート追加
   const [variations, setVariations] = useState<{ standard: string; emotional: string; consultative: string } | undefined>(undefined);
   const [activeVariation, setActiveVariation] = useState<'standard' | 'emotional' | 'consultative'>('standard');
+  // メール生成用ステート
+  const [emailData, setEmailData] = useState<{ subject: string; body: string } | undefined>(undefined);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<LetterMode>('sales');
@@ -82,10 +85,37 @@ export default function NewLetterPage() {
     }
   }, [usage, user]);
 
-  const handleGenerate = async (letter: string, data: LetterFormData) => {
-    setGeneratedLetter(letter);
+  const handleGenerate = async (response: import('@/types/letter').GenerateResponse, data: LetterFormData) => {
+    // リセット
+    setVariations(undefined);
+    setEmailData(undefined);
+    setGeneratedLetter('');
+
+    let contentToSave = '';
+
+    if (response.email) {
+      setEmailData(response.email);
+      // メールモードの場合は本文を保存するのが一般的だが、履歴には件名も含めたいかもしれない。
+      // 一旦、本文をメインコンテンツとして保存し、詳細はJSONなどに保存すべきだが、
+      // 既存の履歴DB構造(content: text)に合わせるため、"件名: ...\n\n本文..." の形式で保存するか、
+      // あるいはメール本文のみ保存するか。
+      // ここではわかりやすく結合して保存する。
+      contentToSave = `件名: ${response.email.subject}\n\n${response.email.body}`;
+      setGeneratedLetter(contentToSave); // プレビュー用には使わないが、一応セット
+    } else {
+      const letterText = response.letter || '';
+      setGeneratedLetter(letterText);
+      contentToSave = letterText;
+
+      // バリエーションがあれば保存
+      if (response.variations) {
+        setVariations(response.variations);
+        setActiveVariation('standard'); // 生成後は標準をセット
+      }
+    }
+
     // 履歴に保存
-    const savedLetter = await saveToHistory(data, letter, mode);
+    const savedLetter = await saveToHistory(data, contentToSave, mode);
     if (savedLetter) {
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
@@ -391,6 +421,7 @@ export default function NewLetterPage() {
                 isGenerating={isGenerating}
                 currentLetterId={currentLetterId}
                 currentStatus={currentLetterStatus}
+
                 onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}
                 variations={variations}
                 activeVariation={activeVariation}
@@ -399,6 +430,11 @@ export default function NewLetterPage() {
                   if (variations) {
                     setGeneratedLetter(variations[variation]);
                   }
+                }}
+                emailData={emailData}
+                onEmailChange={(newEmail) => {
+                  setEmailData(newEmail);
+                  setGeneratedLetter(`件名: ${newEmail.subject}\n\n${newEmail.body}`);
                 }}
               />
             </div>

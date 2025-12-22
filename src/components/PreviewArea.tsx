@@ -19,6 +19,7 @@ interface PreviewAreaProps {
   currentLetterId?: string;
   currentStatus?: LetterStatus;
 
+
   onStatusChange?: () => void;
   variations?: {
     standard: string;
@@ -27,6 +28,11 @@ interface PreviewAreaProps {
   };
   activeVariation?: 'standard' | 'emotional' | 'consultative';
   onVariationSelect?: (variation: 'standard' | 'emotional' | 'consultative') => void;
+  emailData?: {
+    subject: string;
+    body: string;
+  };
+  onEmailChange?: (email: { subject: string; body: string }) => void;
 }
 
 export function PreviewArea({
@@ -40,6 +46,8 @@ export function PreviewArea({
   variations,
   activeVariation,
   onVariationSelect,
+  emailData,
+  onEmailChange,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -494,6 +502,48 @@ export function PreviewArea({
               <p className="text-gray-600">
                 {isGenerating ? '手紙を生成中...' : '編集中...'}
               </p>
+            </div>
+          </div>
+
+        ) : emailData ? (
+          <div className="flex flex-col h-full bg-white rounded-md min-h-[600px]">
+            {/* メールヘッダー（件名） */}
+            <div className="p-4 border-b border-gray-200 bg-gray-50 rounded-t-md">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                件名 (Subject)
+              </label>
+              <input
+                type="text"
+                value={emailData.subject}
+                onChange={(e) => onEmailChange && onEmailChange({ ...emailData, subject: e.target.value })}
+                className="w-full bg-transparent border-none text-lg font-semibold text-gray-900 focus:ring-0 px-0 py-1"
+                placeholder="件名を入力"
+              />
+            </div>
+
+            {/* メール本文 */}
+            <textarea
+              value={emailData.body}
+              onChange={(e) => onEmailChange && onEmailChange({ ...emailData, body: e.target.value })}
+              className="flex-1 w-full p-8 focus:outline-none resize-none font-sans text-gray-800 leading-relaxed bg-white text-[15px] rounded-b-md"
+              style={{ lineHeight: '1.6' }}
+              placeholder="メール本文"
+            />
+
+            {/* メール用アクションボタン（簡易） */}
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              <button
+                onClick={() => {
+                  // メールコピー (件名 + 本文)
+                  const fullText = `件名: ${emailData.subject}\n\n${emailData.body}`;
+                  navigator.clipboard.writeText(fullText);
+                  showNotification('件名と本文をコピーしました', 'success');
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                コピー
+              </button>
             </div>
           </div>
         ) : content ? (

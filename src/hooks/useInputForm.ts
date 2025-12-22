@@ -6,7 +6,8 @@ interface UseInputFormProps {
   mode: LetterMode;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
-  onGenerate: (letter: string, formData: LetterFormData) => void | Promise<void>;
+
+  onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   onGenerationAttempt?: () => void | Promise<void>; // Called after every generation attempt (success or failure)
 }
@@ -198,18 +199,24 @@ export function useInputForm({
     setFormData((prev) => ({ ...prev, freeformInput: draftText }));
   }, [setFormData]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 共通生成ロジック
+  const executeGeneration = useCallback(async (outputFormat: 'letter' | 'email') => {
     setIsGenerating(true);
     setIsGeneratingLocal(true);
     setGenerationSuccess(false);
 
     try {
-      console.log('[DEBUG] 手紙生成リクエスト開始');
+      console.log(`[DEBUG] ${outputFormat === 'email' ? 'メール' : '手紙'}生成リクエスト開始`);
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, model: 'flash', mode, inputComplexity }),
+        body: JSON.stringify({
+          ...formData,
+          model: 'flash',
+          mode,
+          inputComplexity,
+          output_format: outputFormat
+        }),
       });
 
       console.log('[DEBUG] レスポンス受信:', {
@@ -219,22 +226,21 @@ export function useInputForm({
         headers: Object.fromEntries(response.headers.entries()),
       });
 
-      const data = await response.json();
+      const data: GenerateResponse = await response.json();
       console.log('[DEBUG] レスポンスデータ:', {
         hasLetter: !!data.letter,
+        hasEmail: !!data.email,
         hasError: !!data.error,
-        letterLength: data.letter?.length || 0,
-        errorCode: data.code,
-        errorMessage: data.error,
+        errorCode: (data as any).code,
       });
 
-      if (data.letter) {
-        onGenerate(data.letter, formData);
+      if (data.letter || data.email) {
+        onGenerate(data, formData); // 修正: データ全体を渡す
         setGenerationSuccess(true);
         setTimeout(() => setGenerationSuccess(false), 2000);
       } else if (data.error) {
         console.error('[ERROR] API エラーレスポンス:', data);
-        handleApiErrorData(data);
+        handleApiErrorData(data as any);
       }
     } catch (error: any) {
       console.error('[ERROR] 生成エラー詳細:', {
@@ -243,16 +249,25 @@ export function useInputForm({
         name: error.name,
         fullError: error,
       });
-      showError('手紙の生成に失敗しました。', 'もう一度お試しください。');
+      showError('生成に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsGenerating(false);
       setIsGeneratingLocal(false);
-      // ゲスト利用回数を更新（成功・失敗問わず、バックエンドでカウントアップされているため）
+      // ゲスト利用回数を更新
       if (onGenerationAttempt) {
         await onGenerationAttempt();
       }
     }
   }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError, onGenerationAttempt]);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    executeGeneration('letter');
+  }, [executeGeneration]);
+
+  const handleGenerateEmail = useCallback(() => {
+    executeGeneration('email');
+  }, [executeGeneration]);
 
   const handleAnalyzeEventUrl = useCallback(async () => {
     if (!formData.eventUrl) {
@@ -320,10 +335,12 @@ export function useInputForm({
     handleAIAssist,
     handleSelectSuggestion,
     handleOpenMultiSourceModal,
+
     handleAnalyzeMultiSource,
     handleOpenStructureSuggestion,
     handleSelectApproach,
     handleSubmit,
+    handleGenerateEmail, // Exported
     handleAnalyzeEventUrl,
   };
 }

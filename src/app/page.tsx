@@ -3,8 +3,32 @@
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
+
+const TypewriterText = ({ text }: { text: string }) => {
+  const [displayText, setDisplayText] = useState('');
+
+  useEffect(() => {
+    let currentIndex = 0;
+    const intervalId = setInterval(() => {
+      if (currentIndex <= text.length) {
+        setDisplayText(text.slice(0, currentIndex));
+        currentIndex++;
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 100);
+    return () => clearInterval(intervalId);
+  }, [text]);
+
+  return (
+    <span className="inline-block">
+      {displayText}
+      <span className="animate-blink border-r-2 border-stone-900 ml-1">&nbsp;</span>
+    </span>
+  );
+};
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -23,18 +47,18 @@ export default function LandingPage() {
             {/* Left: Copy */}
             <div className="space-y-8">
               <div className="inline-block animate-fade-in">
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-800/10 text-amber-800 text-sm font-medium hover:bg-amber-800/20 transition-colors">
-                  <Sparkles className="w-4 h-4 animate-pulse" />
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold shadow-lg animate-pulse">
+                  <Sparkles className="w-4 h-4 text-white" />
                   累計生成数 1,000通突破
                 </span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-stone-900 leading-tight">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-black text-stone-900 leading-tight tracking-tight">
                 決裁者への<br className="md:hidden" />アポ率を<span className="text-amber-800">3倍</span>にする。
               </h1>
 
-              <p className="text-2xl md:text-3xl font-serif text-stone-700 leading-relaxed">
-                AIが書く、本気の手紙。
+              <p className="text-2xl md:text-3xl font-serif text-stone-700 leading-relaxed min-h-[1.5em]">
+                <TypewriterText text="AIが書く、本気の手紙。" />
               </p>
 
               <p className="text-lg text-stone-600 leading-relaxed">

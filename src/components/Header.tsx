@@ -61,28 +61,30 @@ export function Header() {
   // LP用Header（未ログイン時）
   if (!user && isLandingPage) {
     return (
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-md border-b border-stone-200 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* ロゴ */}
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <h1 className="text-2xl font-serif font-bold text-stone-900">CxO Letter Maker</h1>
+              <h1 className="text-2xl md:text-3xl font-serif font-black tracking-tight text-stone-900">
+                CxO Letter Maker
+              </h1>
             </Link>
 
             {/* ナビゲーション */}
-            <nav className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-stone-700 hover:text-stone-900 font-medium transition-colors">
+            <nav className="hidden md:flex items-center gap-6">
+              <a href="#features" className="text-stone-600 hover:text-amber-800 font-bold transition-colors">
                 機能
               </a>
               <Link
                 href="/login"
-                className="text-stone-700 hover:text-stone-900 font-medium transition-colors"
+                className="px-6 py-2.5 text-stone-700 font-bold hover:text-amber-800 transition-colors"
               >
                 ログイン
               </Link>
               <Link
                 href="/new"
-                className="px-6 py-2 bg-stone-900 text-stone-50 rounded-md font-medium hover:bg-stone-800 transition-all shadow-sm"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-700 to-amber-900 text-white rounded-full font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all"
               >
                 無料で始める
               </Link>
@@ -92,13 +94,13 @@ export function Header() {
             <div className="md:hidden flex items-center gap-2">
               <Link
                 href="/login"
-                className="px-4 py-2 text-stone-700 font-medium"
+                className="px-4 py-2 text-stone-700 font-bold"
               >
                 ログイン
               </Link>
               <Link
                 href="/new"
-                className="px-4 py-2 bg-stone-900 text-stone-50 rounded-md font-medium text-sm"
+                className="px-4 py-2 bg-amber-800 text-white rounded-full font-bold text-sm shadow-sm"
               >
                 始める
               </Link>

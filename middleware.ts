@@ -55,12 +55,7 @@ export async function middleware(request: NextRequest) {
   // 正確な一致のみ許可（"/"で全ルートがマッチするのを防ぐ）
   if (publicRoutes.has(pathname)) {
     // トップページ: ログイン済みユーザーは /dashboard にリダイレクト
-    if (pathname === '/' && user) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/dashboard';
-      devLog.log('Redirecting logged-in user from / to /dashboard');
-      return NextResponse.redirect(redirectUrl);
-    }
+
     return response;
   }
 

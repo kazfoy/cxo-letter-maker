@@ -11,16 +11,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
 
-  // ログイン済みユーザーの場合は何も表示しない（リダイレクト中）
-  if (user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-stone-50">

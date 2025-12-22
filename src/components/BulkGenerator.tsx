@@ -16,7 +16,17 @@ interface MappingConfig {
     position: string;
     background: string;
     note: string;
+    url: string;
 }
+
+const ALIASES = {
+    companyName: ['会社名', '企業名', 'Company', '法人名', 'company'],
+    name: ['氏名', '名前', '担当者名', 'Name', 'Full Name', 'name'],
+    position: ['役職', '肩書き', 'Position', 'Title', 'position'],
+    background: ['背景', '目的', 'Background', 'Context', 'background'],
+    note: ['備考', 'Note', 'Memo', 'note'],
+    url: ['URL', 'Webサイト', 'ホームページ', 'Website', 'url']
+};
 
 interface GenerationStatus {
     index: number;
@@ -60,7 +70,8 @@ export function BulkGenerator() {
         name: '',
         position: '',
         background: '',
-        note: ''
+        note: '',
+        url: ''
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -91,16 +102,23 @@ export function BulkGenerator() {
 
     const autoMapHeaders = (fields: string[]) => {
         const newMapping = { ...mapping };
-        const normalize = (s: string) => s.toLowerCase().replace(/[\s_]/g, '');
 
-        fields.forEach(field => {
-            const n = normalize(field);
-            if (n.includes('company') || n.includes('会社') || n.includes('企業')) newMapping.companyName = field;
-            else if (n.includes('name') || n.includes('氏名') || n.includes('名前')) newMapping.name = field;
-            else if (n.includes('position') || n.includes('役職') || n.includes('肩書')) newMapping.position = field;
-            else if (n.includes('background') || n.includes('context') || n.includes('背景') || n.includes('目的')) newMapping.background = field;
-            else if (n.includes('note') || n.includes('備考') || n.includes('memo')) newMapping.note = field;
-        });
+        // Helper to check if a field matches any alias for a key
+        const findMatch = (key: keyof typeof ALIASES) => {
+            const aliases = ALIASES[key].map(a => a.toLowerCase());
+            return fields.find(field => {
+                const normalizedField = field.toLowerCase().replace(/[\s_]/g, '');
+                return aliases.some(alias => normalizedField.includes(alias.toLowerCase()));
+            });
+        };
+
+        newMapping.companyName = findMatch('companyName') || '';
+        newMapping.name = findMatch('name') || '';
+        newMapping.position = findMatch('position') || '';
+        newMapping.background = findMatch('background') || '';
+        newMapping.note = findMatch('note') || '';
+        newMapping.url = findMatch('url') || '';
+
         setMapping(newMapping);
     };
 
@@ -128,7 +146,8 @@ export function BulkGenerator() {
             name: row[mapping.name] || '',
             position: mapping.position ? row[mapping.position] : '',
             background: mapping.background ? row[mapping.background] : '',
-            note: mapping.note ? row[mapping.note] : ''
+            note: mapping.note ? row[mapping.note] : '',
+            url: mapping.url ? row[mapping.url] : ''
         }));
 
         setProgress({ current: 0, total: items.length });
@@ -256,45 +275,61 @@ export function BulkGenerator() {
                         </button>
 
                         {isGuideOpen && (
-                            <div className="p-4 border-t border-slate-200 space-y-4 bg-white">
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-sm mb-2 flex items-center gap-2">
-                                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                        共通ルール
-                                    </h4>
-                                    <ul className="list-disc list-inside text-sm text-slate-600 space-y-1 ml-1">
-                                        <li>1行目は必ず<span className="font-bold text-slate-800">「ヘッダー（列名）」</span>にしてください。</li>
-                                        <li><span className="font-bold text-red-600">「会社名」</span>と<span className="font-bold text-red-600">「氏名」</span>は必須項目です。</li>
-                                    </ul>
-                                </div>
-
-                                <div className="grid md:grid-cols-3 gap-4">
-                                    <div className="bg-blue-50 p-3 rounded border border-blue-100">
-                                        <h5 className="font-bold text-blue-800 text-sm mb-2">🅰️ セールスレター</h5>
-                                        <p className="text-xs text-blue-900 mb-1">推奨列名:</p>
-                                        <ul className="text-xs text-slate-700 list-disc list-inside">
-                                            <li><code className="font-mono bg-white px-1 rounded">役職</code></li>
-                                            <li><code className="font-mono bg-white px-1 rounded">提案内容</code> (件名用)</li>
-                                            <li><code className="font-mono bg-white px-1 rounded">背景</code> (フック)</li>
-                                        </ul>
-                                    </div>
-                                    <div className="bg-purple-50 p-3 rounded border border-purple-100">
-                                        <h5 className="font-bold text-purple-800 text-sm mb-2">🅱️ イベント招待</h5>
-                                        <p className="text-xs text-purple-900 mb-1">推奨列名:</p>
-                                        <ul className="text-xs text-slate-700 list-disc list-inside">
-                                            <li><code className="font-mono bg-white px-1 rounded">イベント名</code></li>
-                                            <li><code className="font-mono bg-white px-1 rounded">備考</code> (日時・場所)</li>
-                                        </ul>
-                                    </div>
-                                    <div className="bg-emerald-50 p-3 rounded border border-emerald-100">
-                                        <h5 className="font-bold text-emerald-800 text-sm mb-2">🔍 AI自動調査</h5>
-                                        <p className="text-xs text-emerald-900 mb-1">便利な列:</p>
-                                        <ul className="text-xs text-slate-700 list-disc list-inside">
-                                            <li><code className="font-mono bg-white px-1 rounded">URL</code></li>
-                                        </ul>
-                                        <p className="text-[10px] text-emerald-700 mt-1 leading-tight">
-                                            ※URLを含めるとAIがWebサイトを分析して詳細を補完します。
+                            <div className="p-4 border-t border-slate-200 bg-white">
+                                <div className="flex flex-col space-y-4">
+                                    {/* Common Rules - Card-like styling for emphasis */}
+                                    <div className="border-l-4 border-slate-800 bg-slate-50 pl-4 py-2 rounded-r">
+                                        <h4 className="font-bold text-slate-800 text-sm mb-1 flex items-center gap-2">
+                                            <FileSpreadsheet className="w-4 h-4" />
+                                            共通ルール
+                                        </h4>
+                                        <p className="text-sm text-slate-600">
+                                            1行目は必ず<span className="font-bold">「ヘッダー（列名）」</span>にしてください。
+                                            <span className="font-bold text-red-600 ml-2">「会社名」「氏名」は必須です。</span>
                                         </p>
+                                    </div>
+
+                                    {/* Vertical Stack of Recommendations */}
+                                    <div className="space-y-3">
+                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col md:flex-row md:items-start gap-3">
+                                            <div className="md:w-32 flex-shrink-0">
+                                                <span className="font-bold text-blue-800 text-sm">🅰️ セールスレター</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs text-blue-900 mb-1 font-semibold">推奨列名とその用途:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-700"><code>役職</code></span>
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-700"><code>提案内容</code> (件名)</span>
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-700"><code>背景</code> (フック文脈)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col md:flex-row md:items-start gap-3">
+                                            <div className="md:w-32 flex-shrink-0">
+                                                <span className="font-bold text-purple-800 text-sm">🅱️ イベント招待</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs text-purple-900 mb-1 font-semibold">推奨列名とその用途:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-purple-200 text-slate-700"><code>イベント名</code></span>
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-purple-200 text-slate-700"><code>備考</code> (日時・場所)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col md:flex-row md:items-start gap-3">
+                                            <div className="md:w-32 flex-shrink-0">
+                                                <span className="font-bold text-emerald-800 text-sm">🔍 AI自動調査</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs text-emerald-900 mb-1 font-semibold">便利な列:</p>
+                                                <div className="flex flex-wrap gap-2 items-center">
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-emerald-200 text-slate-700"><code>URL</code></span>
+                                                    <span className="text-[10px] text-emerald-700 ml-2">※Webサイトを分析し、詳細を補完します。</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -372,6 +407,17 @@ export function BulkGenerator() {
                             <select
                                 value={mapping.note}
                                 onChange={(e) => handleMappingChange('note', e.target.value)}
+                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                            >
+                                <option value="">（使用しない）</option>
+                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">URL（AI分析用）</label>
+                            <select
+                                value={mapping.url}
+                                onChange={(e) => handleMappingChange('url', e.target.value)}
                                 className="w-full border border-slate-300 rounded-md p-2 outline-none"
                             >
                                 <option value="">（使用しない）</option>

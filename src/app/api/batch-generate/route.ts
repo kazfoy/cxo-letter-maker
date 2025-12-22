@@ -16,6 +16,7 @@ const BatchItemSchema = z.object({
     position: z.string().optional(),
     background: z.string().optional(), // 目的・背景
     note: z.string().optional(), // 備考
+    url: z.string().optional(), // WebサイトURL
 });
 
 // Define schema for the request body
@@ -75,12 +76,14 @@ export async function POST(request: Request) {
 企業名: ${item.companyName}
 氏名: ${item.name}
 役職: ${item.position || '担当者'}
+URL: ${item.url || '（なし）'}
 
 【背景・コンテキスト】
 ${item.background || '（特になし）'}
 
 【備考・メモ】
 ${item.note || '（特になし）'}
+※URLが提供されている場合は、その企業のWebサイト情報を踏まえた内容にしてください（可能であれば）。
 
 【作成指示】
 - 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。

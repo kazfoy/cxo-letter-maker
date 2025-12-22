@@ -17,6 +17,8 @@ interface MappingConfig {
     background: string;
     note: string;
     url: string;
+    eventName: string;
+    proposal: string;
 }
 
 const ALIASES = {
@@ -25,7 +27,9 @@ const ALIASES = {
     position: ['役職', '肩書き', 'Position', 'Title', 'position'],
     background: ['背景', '目的', 'Background', 'Context', 'background'],
     note: ['備考', 'Note', 'Memo', 'note'],
-    url: ['URL', 'Webサイト', 'ホームページ', 'Website', 'url']
+    url: ['URL', 'Webサイト', 'ホームページ', 'Website', 'url'],
+    eventName: ['イベント名', 'Event Name', 'Event', 'event_name'],
+    proposal: ['提案内容', 'Proposal', 'Topic', 'proposal', '件名']
 };
 
 interface GenerationStatus {
@@ -71,7 +75,9 @@ export function BulkGenerator() {
         position: '',
         background: '',
         note: '',
-        url: ''
+        url: '',
+        eventName: '',
+        proposal: ''
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -118,6 +124,8 @@ export function BulkGenerator() {
         newMapping.background = findMatch('background') || '';
         newMapping.note = findMatch('note') || '';
         newMapping.url = findMatch('url') || '';
+        newMapping.eventName = findMatch('eventName') || '';
+        newMapping.proposal = findMatch('proposal') || '';
 
         setMapping(newMapping);
     };
@@ -147,7 +155,9 @@ export function BulkGenerator() {
             position: mapping.position ? row[mapping.position] : '',
             background: mapping.background ? row[mapping.background] : '',
             note: mapping.note ? row[mapping.note] : '',
-            url: mapping.url ? row[mapping.url] : ''
+            url: mapping.url ? row[mapping.url] : '',
+            eventName: mapping.eventName ? row[mapping.eventName] : '',
+            proposal: mapping.proposal ? row[mapping.proposal] : ''
         }));
 
         setProgress({ current: 0, total: items.length });
@@ -423,6 +433,34 @@ export function BulkGenerator() {
                                 <option value="">（使用しない）</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
+                        </div>
+
+                        <div className="pt-4 mt-4 border-t border-slate-200">
+                            <p className="text-xs text-slate-500 font-bold mb-2">▼ モード自動切替用（いずれか選択）</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-blue-800">提案内容 (Sales)</label>
+                                    <select
+                                        value={mapping.proposal}
+                                        onChange={(e) => handleMappingChange('proposal', e.target.value)}
+                                        className="w-full border border-blue-200 bg-blue-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-500"
+                                    >
+                                        <option value="">（使用しない）</option>
+                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-purple-800">イベント名 (Invite)</label>
+                                    <select
+                                        value={mapping.eventName}
+                                        onChange={(e) => handleMappingChange('eventName', e.target.value)}
+                                        className="w-full border border-purple-200 bg-purple-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-purple-500"
+                                    >
+                                        <option value="">（使用しない）</option>
+                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

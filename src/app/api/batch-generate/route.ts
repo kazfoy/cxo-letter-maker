@@ -17,6 +17,8 @@ const BatchItemSchema = z.object({
     background: z.string().optional(), // 目的・背景
     note: z.string().optional(), // 備考
     url: z.string().optional(), // WebサイトURL
+    eventName: z.string().optional(), // イベント招待用
+    proposal: z.string().optional(), // セールス提案用
 });
 
 // Define schema for the request body
@@ -62,10 +64,31 @@ export async function POST(request: Request) {
                 for (let i = 0; i < total; i++) {
                     const item = items[i];
 
+                    // Determine Prompt Mode
+                    let role = "あなたは企業のCxOに向けた丁寧な手紙を書く秘書です。礼節を重んじ、相手の心に響く手紙を作成してください。";
+                    let specificInstruction = "- 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。";
+
+                    if (item.eventName) {
+                        // Case A: Event Invitation
+                        role = `あなたはプロのイベントコーディネーターです。「${item.eventName}」への参加を促す、魅力的な招待状を作成してください。`;
+                        specificInstruction = `
+- イベントの内容や魅力を伝え、参加メリットを強調してください。
+- 添付されている日時や場所などの詳細情報（備考欄）を必ず盛り込んでください。
+`;
+                    } else if (item.proposal) {
+                        // Case B: Sales Proposal
+                        role = `あなたは優秀な法人営業担当です。「${item.proposal}」に関する課題解決型の提案レターを作成してください。`;
+                        specificInstruction = `
+- 相手の役職（${item.position || '担当者'}）を考慮し、メリットを訴求してください。
+- 課題解決の視点から、なぜこの提案が必要なのかを論理的に説明してください。
+`;
+                    }
+
                     // Construct Prompt
                     const prompt = `
-あなたはプロのインサイドセールス兼コピーライターです。
-以下の情報を基に、ターゲット企業への質の高い営業手紙を作成してください。
+${role}
+
+以下の情報を基に、ターゲット企業への質の高い手紙を作成してください。
 
 【差出人】
 会社名: ${myCompanyName || '（未設定）'}
@@ -86,7 +109,7 @@ ${item.note || '（特になし）'}
 ※URLが提供されている場合は、その企業のWebサイト情報を踏まえた内容にしてください（可能であれば）。
 
 【作成指示】
-- 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。
+${specificInstruction}
 - 丁寧かつ簡潔に（800文字程度）。
 - Markdownは使用せず、プレーンテキストで出力してください。
 `;

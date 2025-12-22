@@ -60,8 +60,10 @@ const GenerateSchema = z.object({
   eventDateTime: z.string().max(200, '日時・場所は200文字以内で入力してください').optional(),
   eventSpeakers: z.string().max(1000, '登壇者情報は1000文字以内で入力してください').optional(),
   invitationReason: z.string().max(2000, '招待理由は2000文字以内で入力してください').optional(),
+
   simpleRequirement: z.string().max(1000, '要件は1000文字以内で入力してください').optional(),
   searchResults: z.string().max(5000, '検索結果は5000文字以内で入力してください').optional(),
+  output_format: z.enum(['letter', 'email']).default('letter'),
 });
 
 // ヘルパー関数: フォールバック付きで生成を実行
@@ -377,8 +379,68 @@ ${safe.freeformInput}
 ${jsonInstruction}
 `;
         }
-        // ステップ入力モードの場合（従来のロジック）
-        else {
+        let prompt = '';
+
+        // 複雑度に応じたプロンプト選択（現状はシンプルかどうかで分岐、将来的に拡張可能）
+        const jsonInstruction = `
+【出力形式（厳守）】
+以下のJSONフォーマットで出力してください。Markdownのコードブロック（\`\`\`json）は不要です。純粋なJSON文字列のみを出力してください。
+{
+  "standard": "王道パターンの手紙本文（プレーンテキスト）",
+  "emotional": "熱意重視パターンの手紙本文（プレーンテキスト）",
+  "consultative": "課題解決重視パターンの手紙本文（プレーンテキスト）"
+}
+`;
+
+        if (output_format === 'email') {
+          // ==========================================
+          // メール生成モード
+          // ==========================================
+          const emailJsonInstruction = `
+【出力形式（厳守）】
+以下のJSONフォーマットで出力してください。Markdownのコードブロック（\`\`\`json）は不要です。純粋なJSON文字列のみを出力してください。
+{
+  "subject": "件名テキスト",
+  "body": "本文テキスト"
+}
+`;
+          prompt = `
+あなたはプロフェッショナルなCxO向けのメールライターです。
+以下の情報を元に、ビジネスメールを作成してください。
+
+【送信先（ターゲット）】
+* 企業名: ${safe.companyName}
+* 役職: ${safe.position}
+* 氏名: ${safe.name}
+
+【差出人（あなた）】
+* 企業名: ${safe.myCompanyName}
+* 氏名: ${safe.myName}
+* 自社サービス: ${safe.myServiceDescription}
+
+【文面構成要素】
+1. 背景・コンテキスト: ${safe.background}
+2. 課題仮説: ${safe.problem}
+3. 解決策（ソリューション）: ${safe.solution}
+4. 事例・実績: ${safe.caseStudy}
+5. オファー: ${safe.offer}
+
+${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※直近のニュース記事を参照し、タイムリーな話題を背景に盛り込んでください。` : ''}
+
+【作成ルール】
+* **件名 (Subject)**:
+  * 開封したくなる具体的かつ魅力的な件名にすること（30文字以内推奨）。
+  * 具体的メリットや緊急性、あるいは親近感を持たせる工夫をする。
+* **本文 (Body)**:
+  * メール特有の簡潔さを重視する。
+  * 冒頭で「突然のご連絡失礼いたします」等の定型句は最小限にし、本題への導入をスムーズにする。
+  * スマートフォンでも読みやすい改行・段落構成にする。
+* **JSON出力（厳守）**:
+  * 指定されたJSON形式のみを出力すること。
+
+${emailJsonInstruction}
+`;
+        } else if (mode === 'event') {
           prompt = `あなたは大手企業の決裁者向けに、数々のアポイントを獲得してきた伝説のインサイドセールス兼コピーライターです。
 以下の情報を基に、経営層に「会いたい」と思わせる、プロフェッショナルで熱意のある営業手紙を作成してください。
 今回は、アプローチの異なる3つのパターン（王道、熱意、課題解決）を提案してください。

@@ -67,7 +67,6 @@ export function InputForm({
     handleAnalyzeMultiSource,
     handleOpenStructureSuggestion,
     handleSelectApproach,
-    handleSubmit,
 
     handleSubmit,
     handleAnalyzeEventUrl,

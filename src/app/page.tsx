@@ -714,7 +714,15 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                はい、完全無料です。クレジットカードの登録も不要で、すべての機能を制限なくご利用いただけます。生成回数の制限もありません。
+                はい、無料プランをご用意しております。ただし、以下の制限がございます：<br /><br />
+                <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600">
+                  <li>1日10回までの生成</li>
+                  <li>履歴の閲覧は最新10件まで</li>
+                  <li>Word形式でのダウンロードは不可（テキストコピーは可能）</li>
+                  <li>CSV一括生成機能は利用不可</li>
+                </ul>
+                <br />
+                より高度な機能が必要な場合は、月額980円のProプランをご検討ください。
               </div>
             </details>
 

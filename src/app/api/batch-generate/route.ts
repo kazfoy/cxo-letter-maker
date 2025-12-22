@@ -2,146 +2,161 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { apiGuard } from '@/lib/api-guard';
-import { createClient } from '@/utils/supabase/server';
-import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { createClient } from '@supabase/supabase-js';
 
-// バッチ生成用のスキーマ
-const BatchGenerateSchema = z.object({
-    batchId: z.string().uuid(),
-    rowData: z.object({
-        companyName: z.string(),
-        name: z.string(),
-        position: z.string().optional(),
-        purpose: z.string().optional(), // 目的・背景
-        note: z.string().optional(), // 備考
-    }),
-    commonData: z.object({
-        myCompanyName: z.string(),
-        myName: z.string(),
-        myServiceDescription: z.string(),
-        // 共通のテンプレート要素
-        problem: z.string().optional(),
-        solution: z.string().optional(),
-        caseStudy: z.string().optional(),
-        offer: z.string().optional(),
-    }),
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Define schema for a single item in the batch
+const BatchItemSchema = z.object({
+    companyName: z.string(),
+    name: z.string(), // 担当者名
+    position: z.string().optional(),
+    background: z.string().optional(), // 目的・背景
+    note: z.string().optional(), // 備考
 });
 
+// Define schema for the request body
+const BatchGenerateSchema = z.object({
+    items: z.array(BatchItemSchema).max(50, '一度に生成できるのは50件までです'), // Limit batch size
+    myCompanyName: z.string().optional(),
+    myName: z.string().optional(),
+    myServiceDescription: z.string().optional(),
+});
+
+// Helper to get Google Provider
+function getGoogleProvider() {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
+    return createGoogleGenerativeAI({ apiKey });
+}
+
+export const maxDuration = 300; // Allow 5 minutes for batch processing
+
 export async function POST(request: Request) {
-    return await apiGuard(
-        request,
-        BatchGenerateSchema,
-        async (data, user) => {
-            // 1. プランチェック (Proプランのみ)
-            // 注: 開発中はチェックを緩めるか、自分のユーザーをProにする必要があります
-            if (!user) {
-                return NextResponse.json(
-                    { error: 'ログインが必要です' },
-                    { status: 401 }
-                );
-            }
+    try {
+        const json = await request.json();
+        const parseResult = BatchGenerateSchema.safeParse(json);
 
-            const supabase = await createClient();
+        if (!parseResult.success) {
+            return NextResponse.json({ error: 'Invalid input', details: parseResult.error }, { status: 400 });
+        }
 
-            // ユーザーのプランを確認
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('plan')
-                .eq('id', user.id)
-                .single();
+        const { items, myCompanyName, myName, myServiceDescription } = parseResult.data;
+        const batchId = crypto.randomUUID();
+        const total = items.length;
 
-            // TODO: 本番運用時はここを有効化
-            // if (profile?.plan !== 'pro') {
-            //   return NextResponse.json(
-            //     { error: '一括生成機能はProプラン限定です' },
-            //     { status: 403 }
-            //   );
-            // }
+        // Create a TransformStream for streaming the response
+        const encoder = new TextEncoder();
+        const stream = new TransformStream();
+        const writer = stream.writable.getWriter();
 
-            // 2. 生成ロジック
-            const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-            if (!apiKey) {
-                throw new Error("API Key not found");
-            }
+        (async () => {
+            try {
+                const google = getGoogleProvider();
+                const model = google('gemini-2.0-flash-exp'); // Use fast model for batch
 
-            const google = createGoogleGenerativeAI({ apiKey });
-            const model = google('gemini-2.0-flash-exp'); // 高速モデルを使用
+                for (let i = 0; i < total; i++) {
+                    const item = items[i];
 
-            const { rowData, commonData } = data;
-
-            // プロンプト構築
-            const prompt = `
-あなたはプロのセールスライターです。以下の情報を元に、決裁者向けの魅力的な手紙を作成してください。
+                    // Construct Prompt
+                    const prompt = `
+あなたはプロのインサイドセールス兼コピーライターです。
+以下の情報を基に、ターゲット企業への質の高い営業手紙を作成してください。
 
 【差出人】
-会社名: ${commonData.myCompanyName}
-氏名: ${commonData.myName}
-サービス: ${commonData.myServiceDescription}
+会社名: ${myCompanyName || '（未設定）'}
+氏名: ${myName || '（未設定）'}
+サービス概要: ${myServiceDescription || '（未設定）'}
 
 【宛先】
-会社名: ${rowData.companyName}
-役職: ${rowData.position || '担当者様'}
-氏名: ${rowData.name}
-${rowData.purpose ? `目的・背景: ${rowData.purpose}` : ''}
-${rowData.note ? `備考: ${rowData.note}` : ''}
+企業名: ${item.companyName}
+氏名: ${item.name}
+役職: ${item.position || '担当者'}
 
-【提案内容】
-課題: ${commonData.problem || '（業界共通の課題）'}
-解決策: ${commonData.solution || '（貴社サービスによる解決）'}
-事例: ${commonData.caseStudy || '（他社事例）'}
-オファー: ${commonData.offer || '情報交換の機会をいただきたい'}
+【背景・コンテキスト】
+${item.background || '（特になし）'}
 
-【制約】
-- 800文字程度
-- 丁寧だが熱意のあるトーン
-- Markdownは使用しない（プレーンテキスト）
-- 宛名は「${rowData.companyName} ${rowData.position ? rowData.position + ' ' : ''}${rowData.name}様」で始める
-- 末尾は「${commonData.myCompanyName}\n${commonData.myName}」で締める
+【備考・メモ】
+${item.note || '（特になし）'}
+
+【作成指示】
+- 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。
+- 丁寧かつ簡潔に（800文字程度）。
+- Markdownは使用せず、プレーンテキストで出力してください。
 `;
 
-            try {
-                const result = await generateText({
-                    model,
-                    prompt,
-                });
+                    try {
+                        // Generate Text
+                        const result = await generateText({
+                            model,
+                            prompt,
+                        });
+                        const letterContent = result.text;
 
-                const generatedContent = result.text;
+                        // Save to Supabase (letters table)
+                        // Using 'content' as the main body.
+                        const { error: dbError } = await supabase
+                            .from('letters')
+                            .insert({
+                                content: letterContent,
+                                company_name: item.companyName,
+                                // industry: 'Batch Generated', // Removed if column doesn't exist, rely on defaults
+                                batch_id: batchId,
+                            });
 
-                // 3. データベースに保存
-                const { data: savedLetter, error: saveError } = await supabase
-                    .from('letters')
-                    .insert({
-                        user_id: user.id,
-                        content: generatedContent,
-                        inputs: { ...commonData, ...rowData }, // 入力情報を統合して保存
-                        mode: 'sales', // 一括生成は現状セールスモードのみ
-                        status: 'draft',
-                        batch_id: data.batchId, // バッチIDを保存
-                    })
-                    .select()
-                    .single();
+                        if (dbError) {
+                            console.error('DB Insert Error:', dbError);
+                            const errorMsg = JSON.stringify({
+                                type: 'error',
+                                index: i,
+                                message: 'Failed to save to DB: ' + dbError.message
+                            }) + '\n';
+                            await writer.write(encoder.encode(errorMsg));
+                        } else {
+                            const successMsg = JSON.stringify({
+                                type: 'progress',
+                                index: i,
+                                total,
+                                status: 'completed',
+                                generatedContent: letterContent.substring(0, 50) + '...'
+                            }) + '\n';
+                            await writer.write(encoder.encode(successMsg));
+                        }
 
-                if (saveError) {
-                    console.error('Save Error:', saveError);
-                    throw new Error('Failed to save generated letter');
+                    } catch (genError: any) {
+                        console.error('Generation Error:', genError);
+                        const errorMsg = JSON.stringify({
+                            type: 'error',
+                            index: i,
+                            message: genError.message || 'Generation failed'
+                        }) + '\n';
+                        await writer.write(encoder.encode(errorMsg));
+                    }
                 }
 
-                return NextResponse.json({
-                    letter: savedLetter,
-                    success: true
-                });
+                const completeMsg = JSON.stringify({ type: 'done', batchId, total }) + '\n';
+                await writer.write(encoder.encode(completeMsg));
 
-            } catch (error: any) {
-                console.error('Batch Generation Error:', error);
-                return NextResponse.json(
-                    { error: error.message || 'Generation failed' },
-                    { status: 500 }
-                );
+            } catch (err: any) {
+                console.error('Batch Process Error:', err);
+                const fatalMsg = JSON.stringify({ type: 'fatal', message: err.message }) + '\n';
+                await writer.write(encoder.encode(fatalMsg));
+            } finally {
+                await writer.close();
             }
-        },
-        {
-            requireAuth: true, // 必須
-        }
-    );
+        })();
+
+        return new Response(stream.readable, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Content-Type-Options': 'nosniff',
+            },
+        });
+
+    } catch (error: any) {
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
 }

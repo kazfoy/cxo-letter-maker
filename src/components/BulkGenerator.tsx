@@ -2,472 +2,440 @@
 
 import React, { useState } from 'react';
 import Papa from 'papaparse';
-import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
+import { Upload, Check, Play, Loader2, AlertCircle } from 'lucide-react';
 
-interface CSVRow {
+type Step = 'upload' | 'mapping' | 'execution';
+
+interface AnalyzedRow {
     [key: string]: string;
 }
 
+interface MappingConfig {
+    companyName: string;
+    name: string;
+    position: string;
+    background: string;
+    note: string;
+}
+
+interface GenerationStatus {
+    index: number;
+    status: 'pending' | 'generating' | 'completed' | 'error';
+    content?: string;
+    error?: string;
+}
+
 export function BulkGenerator() {
-    const router = useRouter();
-    const [step, setStep] = useState<'upload' | 'mapping' | 'common' | 'processing' | 'complete'>('upload');
-    const [csvData, setCsvData] = useState<CSVRow[]>([]);
+    const [step, setStep] = useState<Step>('upload');
+    const [csvData, setCsvData] = useState<AnalyzedRow[]>([]);
     const [headers, setHeaders] = useState<string[]>([]);
-    const [previewData, setPreviewData] = useState<CSVRow[]>([]);
-    const [isDragging, setIsDragging] = useState(false);
-    const [mapping, setMapping] = useState({
+    const [fileName, setFileName] = useState('');
+
+    const [senderInfo, setSenderInfo] = useState({
+        myCompanyName: '',
+        myName: '',
+        myServiceDescription: ''
+    });
+
+    const [mapping, setMapping] = useState<MappingConfig>({
         companyName: '',
         name: '',
         position: '',
-        purpose: '',
-        note: '',
+        background: '',
+        note: ''
     });
-    const [commonData, setCommonData] = useState({
-        myCompanyName: '',
-        myName: '',
-        myServiceDescription: '',
-        problem: '',
-        solution: '',
-        caseStudy: '',
-        offer: '',
-    });
-    const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
-    const [isProcessing, setIsProcessing] = useState(false);
 
-    // Auto-mapping helper: CSVヘッダーとマッピングキーの一致を試みる
-    const autoMapHeaders = (headerList: string[]) => {
-        const newMapping = { ...mapping };
-        const mappingRules: Record<keyof typeof mapping, string[]> = {
-            companyName: ['会社名', '企業名', 'company', 'companyname'],
-            name: ['氏名', '名前', 'name', 'お名前'],
-            position: ['役職', 'position', '肩書'],
-            purpose: ['目的', '背景', 'purpose', '目的・背景'],
-            note: ['備考', 'note', 'メモ', 'memo'],
-        };
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [progress, setProgress] = useState({ current: 0, total: 0 });
+    const [results, setResults] = useState<GenerationStatus[]>([]);
 
-        Object.entries(mappingRules).forEach(([key, patterns]) => {
-            const matched = headerList.find(h =>
-                patterns.some(p => h.toLowerCase().includes(p.toLowerCase()))
-            );
-            if (matched) {
-                newMapping[key as keyof typeof mapping] = matched;
-            }
-        });
-
-        return newMapping;
-    };
-
-    // 1. CSV Upload Handler
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    // ---- Step 1: Upload & Parse ----
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
         if (!file) return;
-        processCSVFile(file);
-    };
 
-    // Drag and Drop handlers
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type === 'text/csv') {
-            processCSVFile(file);
-        } else {
-            alert('CSVファイルのみアップロード可能です');
-        }
-    };
-
-    // CSV file processing logic
-    const processCSVFile = (file: File) => {
+        setFileName(file.name);
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                const data = results.data as CSVRow[];
-                const headerList = results.meta.fields || [];
-
-                setCsvData(data);
-                setHeaders(headerList);
-                setPreviewData(data.slice(0, 5)); // 最初の5行をプレビュー用に保存
-
-                // 自動マッピングを試みる
-                const autoMapped = autoMapHeaders(headerList);
-                setMapping(autoMapped);
-
+                setCsvData(results.data as AnalyzedRow[]);
+                setHeaders(results.meta.fields || []);
+                autoMapHeaders(results.meta.fields || []);
                 setStep('mapping');
             },
             error: (error) => {
                 console.error('CSV Parse Error:', error);
-                alert('CSVの読み込みに失敗しました');
+                alert('CSVの読み込みに失敗しました。');
             }
         });
     };
 
-    // 2. Mapping Handler
-    const handleMappingChange = (field: keyof typeof mapping, value: string) => {
-        setMapping(prev => ({ ...prev, [field]: value }));
+    const autoMapHeaders = (fields: string[]) => {
+        const newMapping = { ...mapping };
+        const normalize = (s: string) => s.toLowerCase().replace(/[\s_]/g, '');
+
+        fields.forEach(field => {
+            const n = normalize(field);
+            if (n.includes('company') || n.includes('会社') || n.includes('企業')) newMapping.companyName = field;
+            else if (n.includes('name') || n.includes('氏名') || n.includes('名前')) newMapping.name = field;
+            else if (n.includes('position') || n.includes('役職') || n.includes('肩書')) newMapping.position = field;
+            else if (n.includes('background') || n.includes('context') || n.includes('背景') || n.includes('目的')) newMapping.background = field;
+            else if (n.includes('note') || n.includes('備考') || n.includes('memo')) newMapping.note = field;
+        });
+        setMapping(newMapping);
     };
 
-    // 3. Common Data Handler
-    const handleCommonDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setCommonData(prev => ({ ...prev, [name]: value }));
+    // ---- Step 2: Mapping ----
+    const handleMappingChange = (key: keyof MappingConfig, value: string) => {
+        setMapping(prev => ({ ...prev, [key]: value }));
     };
 
-    // 4. Batch Processing
-    const startBatchGeneration = async () => {
-        if (!mapping.companyName || !mapping.name) {
-            alert('必須項目（会社名、氏名）のマッピングを行ってください');
-            return;
-        }
+    const isMappingValid = () => {
+        return mapping.companyName && mapping.name &&
+            senderInfo.myCompanyName && senderInfo.myName && senderInfo.myServiceDescription;
+    };
 
-        setStep('processing');
-        setIsProcessing(true);
-        const batchId = uuidv4();
-        const total = csvData.length;
-        setProgress({ current: 0, total, success: 0, failed: 0 });
+    // ---- Step 3: Execution ----
+    const startGeneration = async () => {
+        setIsGenerating(true);
+        setStep('execution');
 
-        for (let i = 0; i < total; i++) {
-            const row = csvData[i];
-            const rowData = {
-                companyName: row[mapping.companyName] || '',
-                name: row[mapping.name] || '',
-                position: mapping.position ? row[mapping.position] || '' : '',
-                purpose: mapping.purpose ? row[mapping.purpose] || '' : '',
-                note: mapping.note ? row[mapping.note] || '' : '',
-            };
+        // Validate inputs
+        const validItems = csvData.filter(row => row[mapping.companyName] && row[mapping.name]);
 
-            // Skip empty rows
-            if (!rowData.companyName || !rowData.name) {
-                setProgress(prev => ({ ...prev, current: prev.current + 1, failed: prev.failed + 1 }));
-                continue;
-            }
+        // Prepare items for API
+        const items = validItems.map(row => ({
+            companyName: row[mapping.companyName] || '',
+            name: row[mapping.name] || '',
+            position: mapping.position ? row[mapping.position] : '',
+            background: mapping.background ? row[mapping.background] : '',
+            note: mapping.note ? row[mapping.note] : ''
+        }));
 
-            try {
-                const response = await fetch('/api/batch-generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        batchId,
-                        rowData,
-                        commonData,
-                    }),
-                });
+        setProgress({ current: 0, total: items.length });
+        setResults(items.map((_, i) => ({ index: i, status: 'pending' })));
 
-                if (response.ok) {
-                    setProgress(prev => ({ ...prev, current: prev.current + 1, success: prev.success + 1 }));
-                } else {
-                    console.error(`Failed row ${i}:`, await response.text());
-                    setProgress(prev => ({ ...prev, current: prev.current + 1, failed: prev.failed + 1 }));
+        try {
+            const response = await fetch('/api/batch-generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items,
+                    myCompanyName: senderInfo.myCompanyName,
+                    myName: senderInfo.myName,
+                    myServiceDescription: senderInfo.myServiceDescription
+                })
+            });
+
+            if (!response.body) throw new Error('No response body');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                // Keep the last partial line in the buffer
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const msg = JSON.parse(line);
+
+                        if (msg.type === 'progress') {
+                            setResults(prev => {
+                                const newResults = [...prev];
+                                // Update the specific item status
+                                if (newResults[msg.index]) {
+                                    newResults[msg.index] = {
+                                        index: msg.index,
+                                        status: 'completed',
+                                        content: msg.generatedContent
+                                    };
+                                }
+                                return newResults;
+                            });
+                            // Update progress count
+                            setProgress(p => ({ ...p, current: Math.min(p.current + 1, p.total) }));
+
+                        } else if (msg.type === 'error') {
+                            setResults(prev => {
+                                const newResults = [...prev];
+                                if (newResults[msg.index]) {
+                                    newResults[msg.index] = {
+                                        index: msg.index,
+                                        status: 'error',
+                                        error: msg.message
+                                    };
+                                }
+                                return newResults;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('JSON Parse error', e);
+                    }
                 }
-            } catch (error) {
-                console.error(`Error row ${i}:`, error);
-                setProgress(prev => ({ ...prev, current: prev.current + 1, failed: prev.failed + 1 }));
             }
-
-            // Rate limiting / gentle pacing
-            await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+            console.error('Generation Error', error);
+            alert('生成中にエラーが発生しました。');
+        } finally {
+            setIsGenerating(false);
         }
-
-        setIsProcessing(false);
-        setStep('complete');
     };
 
-    return (
-        <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">CSV一括生成 (Beta)</h2>
 
-            {/* Step 1: Upload */}
-            {step === 'upload' && (
-                <div>
-                    <div
-                        className={`text-center py-12 border-2 border-dashed rounded-lg transition-colors ${
-                            isDragging
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : 'border-slate-300 bg-slate-50'
-                        }`}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                    >
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            id="csv-upload"
-                        />
-                        <div className="mb-4">
-                            <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                        </div>
-                        <label
-                            htmlFor="csv-upload"
-                            className="cursor-pointer inline-block bg-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-700 transition-colors"
-                        >
-                            CSVファイルを選択
-                        </label>
-                        <p className="mt-4 text-slate-500 text-sm">
-                            またはファイルをここにドラッグ＆ドロップ
-                        </p>
-                        <p className="mt-2 text-slate-500 text-sm">
-                            ヘッダー行を含むCSVファイルをアップロードしてください。<br />
-                            必須項目: 会社名, 氏名
-                        </p>
-                    </div>
+    // ---- Renderers ----
+
+    if (step === 'upload') {
+        return (
+            <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                    CSVファイルのアップロード
+                </h2>
+
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:bg-slate-50 transition-colors relative">
+                    <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600 font-medium">CSVファイルをここにドラッグ&ドロップ</p>
+                    <p className="text-slate-400 text-sm mt-2">または クリックしてファイルを選択</p>
                 </div>
-            )}
 
-            {/* Step 2: Mapping */}
-            {step === 'mapping' && (
-                <div className="space-y-6">
-                    <h3 className="text-lg font-semibold border-b pb-2">列のマッピング</h3>
-                    <p className="text-sm text-slate-600">CSVのどの列を各項目に使用するか選択してください。</p>
+                <div className="mt-6 bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">
+                    <p className="font-bold mb-1">CSVフォーマットについて</p>
+                    <p>1行目をヘッダーにしてください。「会社名」「氏名」は必須です。</p>
+                </div>
+            </div>
+        );
+    }
 
-                    {/* CSV Preview */}
-                    {previewData.length > 0 && (
-                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                            <h4 className="text-sm font-semibold text-slate-700 mb-2">プレビュー（最初の{previewData.length}行）</h4>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-xs border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-200">
-                                            {headers.map((header, idx) => (
-                                                <th key={idx} className="border border-slate-300 px-2 py-1 text-left font-medium">
-                                                    {header}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {previewData.map((row, rowIdx) => (
-                                            <tr key={rowIdx} className="bg-white hover:bg-slate-50">
-                                                {headers.map((header, colIdx) => (
-                                                    <td key={colIdx} className="border border-slate-300 px-2 py-1">
-                                                        {row[header] || '-'}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
+    if (step === 'mapping') {
+        return (
+            <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                    データのマッピング
+                </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">会社名 (必須)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="block text-sm font-bold text-slate-700">会社名 <span className="text-red-500">*</span></label>
                             <select
                                 value={mapping.companyName}
                                 onChange={(e) => handleMappingChange('companyName', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2"
+                                className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">選択してください</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">氏名 (必須)</label>
+                        <div className="space-y-1">
+                            <label className="block text-sm font-bold text-slate-700">氏名 <span className="text-red-500">*</span></label>
                             <select
                                 value={mapping.name}
                                 onChange={(e) => handleMappingChange('name', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2"
+                                className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">選択してください</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">役職 (推奨)</label>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">役職</label>
                             <select
                                 value={mapping.position}
                                 onChange={(e) => handleMappingChange('position', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2"
+                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
                             >
-                                <option value="">選択してください</option>
+                                <option value="">（使用しない）</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">目的・背景 (推奨)</label>
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">背景・目的</label>
                             <select
-                                value={mapping.purpose}
-                                onChange={(e) => handleMappingChange('purpose', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2"
+                                value={mapping.background}
+                                onChange={(e) => handleMappingChange('background', e.target.value)}
+                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
                             >
-                                <option value="">選択してください</option>
+                                <option value="">（使用しない）</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">備考 (推奨)</label>
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">備考</label>
                             <select
                                 value={mapping.note}
                                 onChange={(e) => handleMappingChange('note', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2"
+                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
                             >
-                                <option value="">選択してください</option>
+                                <option value="">（使用しない）</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button onClick={() => setStep('upload')} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">戻る</button>
-                        <button
-                            onClick={() => setStep('common')}
-                            disabled={!mapping.companyName || !mapping.name}
-                            className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                            次へ
-                        </button>
-                    </div>
                 </div>
-            )}
 
-            {/* Step 3: Common Data */}
-            {step === 'common' && (
-                <div className="space-y-6">
-                    <h3 className="text-lg font-semibold border-b pb-2">共通情報の入力</h3>
-                    <p className="text-sm text-slate-600">すべての手紙に共通する自社情報や提案内容を入力してください。</p>
+                <div className="bg-slate-50 p-4 rounded-lg mb-8">
+                    <h3 className="text-sm font-bold text-slate-700 mb-2">プレビュー（最初の1件）</h3>
+                    {csvData.length > 0 && (
+                        <div className="text-sm text-slate-600 grid grid-cols-2 gap-2">
+                            <div><span className="font-semibold">会社名:</span> {csvData[0][mapping.companyName] || '-'}</div>
+                            <div><span className="font-semibold">氏名:</span> {csvData[0][mapping.name] || '-'}</div>
+                        </div>
+                    )}
+                </div>
 
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                {/* Sender Info Section */}
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 mb-8">
+                    <h3 className="text-md font-bold text-blue-800 mb-4">差出人情報（必須）</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">自社名</label>
                             <input
-                                name="myCompanyName"
-                                placeholder="自社名 (必須)"
-                                value={commonData.myCompanyName}
-                                onChange={handleCommonDataChange}
-                                className="border p-2 rounded"
-                            />
-                            <input
-                                name="myName"
-                                placeholder="担当者名 (必須)"
-                                value={commonData.myName}
-                                onChange={handleCommonDataChange}
-                                className="border p-2 rounded"
+                                type="text"
+                                value={senderInfo.myCompanyName}
+                                onChange={(e) => setSenderInfo(p => ({ ...p, myCompanyName: e.target.value }))}
+                                className="w-full border border-slate-300 rounded-md p-2"
+                                placeholder="例: 株式会社Antigravity"
                             />
                         </div>
-                        <textarea
-                            name="myServiceDescription"
-                            placeholder="自社サービス概要 (必須)"
-                            value={commonData.myServiceDescription}
-                            onChange={handleCommonDataChange}
-                            rows={3}
-                            className="w-full border p-2 rounded"
-                        />
-                        <textarea
-                            name="problem"
-                            placeholder="課題 (共通)"
-                            value={commonData.problem}
-                            onChange={handleCommonDataChange}
-                            rows={2}
-                            className="w-full border p-2 rounded"
-                        />
-                        <textarea
-                            name="solution"
-                            placeholder="解決策 (共通)"
-                            value={commonData.solution}
-                            onChange={handleCommonDataChange}
-                            rows={2}
-                            className="w-full border p-2 rounded"
-                        />
-                        <textarea
-                            name="offer"
-                            placeholder="オファー (共通)"
-                            value={commonData.offer}
-                            onChange={handleCommonDataChange}
-                            rows={2}
-                            className="w-full border p-2 rounded"
-                        />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">差出人名</label>
+                            <input
+                                type="text"
+                                value={senderInfo.myName}
+                                onChange={(e) => setSenderInfo(p => ({ ...p, myName: e.target.value }))}
+                                className="w-full border border-slate-300 rounded-md p-2"
+                                placeholder="例: 佐藤 健太"
+                            />
+                        </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button onClick={() => setStep('mapping')} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">戻る</button>
-                        <button
-                            onClick={startBatchGeneration}
-                            disabled={!commonData.myCompanyName || !commonData.myName || !commonData.myServiceDescription}
-                            className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                            生成開始
-                        </button>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">自社サービス概要</label>
+                        <textarea
+                            value={senderInfo.myServiceDescription}
+                            onChange={(e) => setSenderInfo(p => ({ ...p, myServiceDescription: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-md p-2"
+                            rows={2}
+                            placeholder="例: AIを活用した次世代の営業支援ツールを提供しています。"
+                        />
                     </div>
                 </div>
-            )}
 
-            {/* Step 4: Processing */}
-            {step === 'processing' && (
-                <div className="text-center py-12">
-                    <h3 className="text-xl font-bold mb-4">生成中...</h3>
-                    <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
-                        <div
-                            className="bg-indigo-600 h-4 rounded-full transition-all duration-300"
-                            style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                        ></div>
-                    </div>
-                    <p className="text-lg">
-                        {progress.current} / {progress.total} 件完了
-                    </p>
-                    <div className="flex justify-center gap-6 mt-4 text-sm">
-                        <span className="text-green-600 font-medium">成功: {progress.success}</span>
-                        <span className="text-red-600 font-medium">失敗: {progress.failed}</span>
-                    </div>
-                    <p className="mt-8 text-slate-500 text-sm">
-                        ブラウザを閉じないでください。処理には時間がかかる場合があります。
-                    </p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={() => setStep('upload')}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                    >
+                        戻る
+                    </button>
+                    <button
+                        onClick={startGeneration}
+                        disabled={!isMappingValid()}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        <Play size={18} />
+                        生成を開始する ({csvData.filter(r => r[mapping.companyName] && r[mapping.name]).length}件)
+                    </button>
                 </div>
-            )}
+            </div>
+        );
+    }
 
-            {/* Step 5: Complete */}
-            {step === 'complete' && (
-                <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">生成完了</h3>
-                    <p className="text-slate-600 mb-8">
-                        {progress.total}件中 {progress.success}件の生成に成功しました。
-                    </p>
-                    <div className="flex justify-center gap-4">
-                        <button
-                            onClick={() => setStep('upload')}
-                            className="px-6 py-2 border border-slate-300 rounded hover:bg-slate-50"
-                        >
-                            続けて生成
-                        </button>
-                        <button
-                            onClick={() => router.push('/new')} // TODO: 履歴ページができたらそちらへ
-                            className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                        >
-                            履歴を確認
-                        </button>
-                    </div>
+    // Execution Step
+    return (
+        <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                    生成進捗
+                </h2>
+                <div className="text-sm font-medium text-slate-600">
+                    {progress.current} / {progress.total} 件完了
                 </div>
-            )}
+            </div>
+
+            <div className="w-full bg-slate-100 rounded-full h-2 mb-8 overflow-hidden">
+                <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                />
+            </div>
+
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 sticky top-0">
+                            <tr>
+                                <th className="px-4 py-3 w-16">No.</th>
+                                <th className="px-4 py-3">会社名 / 氏名</th>
+                                <th className="px-4 py-3 w-32">ステータス</th>
+                                <th className="px-4 py-3">結果</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {csvData.filter(r => r[mapping.companyName] && r[mapping.name]).map((row, i) => {
+                                const result = results[i] || { index: i, status: 'pending' };
+                                const company = row[mapping.companyName];
+                                const name = row[mapping.name];
+                                const status = result.status;
+
+                                return (
+                                    <tr key={i} className="hover:bg-slate-50">
+                                        <td className="px-4 py-3 text-slate-500">{i + 1}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-slate-900">{company}</div>
+                                            <div className="text-slate-500 text-xs">{name}</div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {status === 'pending' && <span className="text-slate-400 text-xs">待機中</span>}
+                                            {status === 'generating' && <span className="text-blue-600 flex items-center gap-1 text-xs"><Loader2 size={12} className="animate-spin" /> 生成中</span>}
+                                            {status === 'completed' && <span className="text-green-600 flex items-center gap-1 text-xs"><Check size={12} /> 完了</span>}
+                                            {status === 'error' && <span className="text-red-500 flex items-center gap-1 text-xs"><AlertCircle size={12} /> エラー</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {status === 'completed' && (
+                                                <div className="text-xs text-slate-500 truncate max-w-[300px]" title={result.content}>
+                                                    {result.content}
+                                                </div>
+                                            )}
+                                            {status === 'error' && (
+                                                <span className="text-xs text-red-500">{result.error}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="flex justify-start mt-6">
+                <button
+                    onClick={() => setStep('upload')}
+                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm"
+                >
+                    新しいファイルをアップロード
+                </button>
+            </div>
         </div>
     );
 }

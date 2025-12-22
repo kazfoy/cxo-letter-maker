@@ -115,10 +115,22 @@ export default function NewLetterPage() {
     }
 
     // 履歴に保存
-    const savedLetter = await saveToHistory(data, contentToSave, mode);
-    if (savedLetter) {
+    if (user) {
+      const savedLetter = await saveToHistory(data, contentToSave, mode);
+      if (savedLetter) {
+        setCurrentLetterId(savedLetter.id);
+        setCurrentLetterStatus(savedLetter.status);
+      }
+    } else {
+      // Guest: Save to LocalStorage
+      const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+      const savedLetter = saveToGuestHistory(data, contentToSave, mode);
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
+
+      // Notify sidebar
+      window.dispatchEvent(new Event('guest-history-updated'));
+      window.dispatchEvent(new StorageEvent('storage', { key: 'cxo_guest_history' }));
     }
 
     // ゲスト利用回数を更新
@@ -137,19 +149,24 @@ export default function NewLetterPage() {
   };
 
   const handleSaveOnly = async () => {
-    // 履歴に保存
-    const savedLetter = await saveToHistory(formData, generatedLetter, mode);
-    if (savedLetter) {
-      // 保存後、IDとステータスを更新して、重複保存を防ぐ（あるいは更新扱いにする）
+    if (user) {
+      // 履歴に保存 (Supabase)
+      const savedLetter = await saveToHistory(formData, generatedLetter, mode);
+      if (savedLetter) {
+        setCurrentLetterId(savedLetter.id);
+        setCurrentLetterStatus(savedLetter.status);
+        alert('履歴に保存しました');
+      }
+    } else {
+      // Guest: Save to LocalStorage
+      const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+      const savedLetter = saveToGuestHistory(formData, generatedLetter, mode);
       setCurrentLetterId(savedLetter.id);
       setCurrentLetterStatus(savedLetter.status);
-      // Toast notification (簡易的にalertを使用、本来はuseToast推奨)
-      // 今回の要件では「保存しました」のトーストを表示とあるため、alertではなくtoastを使うべきだが、
-      // このコンポーネントではuseToastがimportされていないため、alertで代用するか、
-      // PreviewAreaのnotification機能を使う必要がある。
-      // ここでは、PreviewAreaに通知を送る仕組みがないため、alertで実装する。
-      // (理想的には上位でToastContextを持つか、PreviewAreaのShowNotificationを外から叩けるようにする)
-      alert('履歴に保存しました');
+
+      // Notify sidebar
+      window.dispatchEvent(new Event('guest-history-updated'));
+      alert('ブラウザに一時保存しました');
     }
   }
 
@@ -279,10 +296,19 @@ export default function NewLetterPage() {
         setVariations(undefined);
       }
 
-      const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
-      if (savedLetter) {
+      if (user) {
+        const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
+        if (savedLetter) {
+          setCurrentLetterId(savedLetter.id);
+          setCurrentLetterStatus(savedLetter.status);
+        }
+      } else {
+        // Guest save
+        const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+        const savedLetter = saveToGuestHistory(sampleFormData, data.letter, mode);
         setCurrentLetterId(savedLetter.id);
         setCurrentLetterStatus(savedLetter.status);
+        window.dispatchEvent(new Event('guest-history-updated'));
       }
       // ゲスト利用状況を更新
       if (!user) {

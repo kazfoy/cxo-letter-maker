@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
 import type { LetterHistory, LetterStatus } from '@/types/letter';
@@ -33,30 +34,47 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
 
   useEffect(() => {
     loadHistories();
+
+    // Add event listener for guest history updates (custom event or storage event if needed)
+    // For simplicity, we mostly rely on poll or parent passing refreshTrigger
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cxo_guest_history') {
+        loadHistories();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [user]);
 
-  // Reload when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      loadHistories();
-    }
-  }, [refreshTrigger]);
+  // ... (refreshTrigger effect - keep same)
 
   // Poll for updates every 10 seconds to catch new letters
   useEffect(() => {
     const interval = setInterval(() => {
-      if (user) {
-        loadHistories();
-      }
-    }, 10000);
+      loadHistories();
+    }, 10000); // Polling valid for both guest (other tabs) and user
 
     return () => clearInterval(interval);
   }, [user]);
 
+  // Custom event listener for local updates
+  useEffect(() => {
+    const handleLocalUpdate = () => loadHistories();
+    window.addEventListener('guest-history-updated', handleLocalUpdate);
+    return () => window.removeEventListener('guest-history-updated', handleLocalUpdate);
+  }, []);
+
   const loadHistories = async () => {
     try {
-      const histories = await getHistories();
-      setHistories(histories);
+      if (user) {
+        const histories = await getHistories();
+        setHistories(histories);
+      } else {
+        // Guest mode
+        // dynamic import to avoid SSR issues if utils uses window directly (though utils has check)
+        const { getGuestHistory } = await import('@/lib/guestHistoryUtils');
+        setHistories(getGuestHistory());
+      }
     } catch (error) {
       console.error('履歴読み込みエラー:', error);
     }
@@ -255,6 +273,24 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
           </div>
         )}
       </div>
+
+      {/* Guest Login CTA */}
+      {!user && (
+        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-center">
+          <p className="text-sm text-indigo-800 font-bold mb-2">履歴は3件まで保存されます</p>
+          <p className="text-xs text-indigo-600 mb-3">ログインすると10件まで自動保存！</p>
+          <Link href="/login" className="inline-block w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+            ログインして保存する
+          </Link>
+        </div>
+      )}
+
+      {/* Free Plan Limit Annotation */}
+      {user && histories.length >= 10 && (
+        <div className="mt-4 text-center">
+          <p className="text-xs text-slate-400">※無料プランでは最新10件のみ表示されます</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -56,12 +56,27 @@ export async function getHistories(): Promise<LetterHistory[]> {
     console.log(`Fetching histories for user: ${user.id}`);
 
     // Sort at database level: pinned DESC (true first), then created_at DESC (newest first)
-    const { data, error } = await supabase
+    // Fetch user profile to check plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single();
+
+    let query = supabase
       .from('letters')
       .select('*')
       .eq('user_id', user.id)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
+
+    // Apply limit if Free plan
+    if (profile?.plan === 'free') {
+      const FREE_LIMIT = 10;
+      query = query.limit(FREE_LIMIT);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('履歴取得エラー:', error);

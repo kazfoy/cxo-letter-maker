@@ -18,9 +18,7 @@ export default function SetupPasswordClient({ user }: Props) {
   const supabase = createClient();
 
   useEffect(() => {
-    console.log('========== SETUP-PASSWORD PAGE MOUNT ==========');
-    console.log('User:', user?.email || 'none');
-    console.log('User metadata:', user?.user_metadata || {});
+    // Mount
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,8 +45,6 @@ export default function SetupPasswordClient({ user }: Props) {
     }
 
     try {
-      console.log('Updating user password...');
-
       const { error } = await supabase.auth.updateUser({
         password: password,
         data: {
@@ -57,11 +53,8 @@ export default function SetupPasswordClient({ user }: Props) {
       });
 
       if (error) {
-        console.error('Password update error:', error);
         throw error;
       }
-
-      console.log('Password updated successfully');
       setMessage({
         type: 'success',
         text: 'パスワードを設定しました。ダッシュボードに移動します...',
@@ -152,11 +145,10 @@ export default function SetupPasswordClient({ user }: Props) {
 
             {message && (
               <div
-                className={`p-4 rounded-md ${
-                  message.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}
+                className={`p-4 rounded-md ${message.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
               >
                 <p className="text-sm">{message.text}</p>
               </div>

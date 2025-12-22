@@ -29,23 +29,12 @@ export async function POST(request: Request) {
   return await authGuard(
     async (user) => {
       try {
-        console.log('[DEBUG] PDF/URL解析APIリクエスト開始', {
-          isAuthenticated: !!user,
-          userId: user?.id || 'guest',
-        });
-
         // FormDataを解析
         const formData = await request.formData();
         const urlsJson = formData.get('urls') as string;
         const pdfText = formData.get('pdfText') as string | null; // PDFファイルではなくテキストを受け取る
         const isEventUrl = formData.get('isEventUrl') === 'true'; // イベントURL解析フラグ
 
-        console.log('[DEBUG] 受信データ:', {
-          hasUrls: !!urlsJson,
-          hasPdfText: !!pdfText,
-          pdfTextLength: pdfText?.length || 0,
-          isEventUrl,
-        });
 
         if (!urlsJson && !pdfText) {
           console.error('[ERROR] URLもPDFテキストも提供されていません');

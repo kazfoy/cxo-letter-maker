@@ -17,14 +17,7 @@ function getGoogleProvider() {
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
 
-  // 環境変数の検証ログ（デバッグ用）
-  console.log('[DEBUG] 環境変数チェック:', {
-    hasGoogleGenerativeAI: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    hasGoogleGemini: !!process.env.GOOGLE_GEMINI_API_KEY,
-    apiKeyLength: apiKey?.length || 0,
-    apiKeyPrefix: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'undefined',
-    nodeEnv: process.env.NODE_ENV,
-  });
+
 
   if (!apiKey) {
     console.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
@@ -74,12 +67,10 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
   const fallbackModel = google('gemini-1.5-flash');
 
   try {
-    console.log(`[DEBUG] プライマリモデルで生成開始: ${primaryModelName}`);
     const result = await generateText({
       model: primaryModel,
       prompt: prompt,
     });
-    console.log('[DEBUG] プライマリモデルでの生成成功');
     return result;
   } catch (error: any) {
     console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
@@ -91,12 +82,10 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
     });
     devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-1.5-flash...`, error);
     try {
-      console.log('[DEBUG] フォールバックモデルで生成開始: gemini-1.5-flash');
       const result = await generateText({
         model: fallbackModel,
         prompt: prompt,
       });
-      console.log('[DEBUG] フォールバックモデルでの生成成功');
       return result;
     } catch (fallbackError: any) {
       // 両方失敗した場合は、元のエラー（または最後のあがきでfallbackError）を投げる

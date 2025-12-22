@@ -160,10 +160,7 @@ ${formatConstraints}
         });
         const editedLetter = result.text;
 
-        console.log('[DEBUG] 編集完了:', {
-          originalLength: content.length,
-          editedLength: editedLetter.length,
-        });
+
 
         return NextResponse.json({ editedLetter });
       } catch (error: any) {

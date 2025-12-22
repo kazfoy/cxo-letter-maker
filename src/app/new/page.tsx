@@ -205,7 +205,7 @@ export default function NewLetterPage() {
 
     try {
       // Generate letter with sample data
-      console.log('[DEBUG] サンプル生成リクエスト開始');
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,17 +216,7 @@ export default function NewLetterPage() {
         }),
       });
 
-      console.log('[DEBUG] レスポンス受信:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
 
-      // レスポンスのクローンを作成してテキストとしてログ出力（JSONパースエラー対策）
-      const responseClone = response.clone();
-      const responseText = await responseClone.text();
-      console.log('[DEBUG] レスポンス本文(Raw):', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
 
       if (!response.ok) {
         // エラーレスポンスの本文を取得
@@ -251,10 +241,7 @@ export default function NewLetterPage() {
       }
 
       const data = await response.json();
-      console.log('[DEBUG] 生成成功:', {
-        letterLength: data.letter?.length || 0,
-        hasLetter: !!data.letter,
-      });
+
 
 
       setGeneratedLetter(data.letter);

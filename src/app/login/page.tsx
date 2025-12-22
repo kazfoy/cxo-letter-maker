@@ -34,7 +34,7 @@ export default function LoginPage() {
     setMagicLinkSent(false);
 
     try {
-      console.log('Sending magic link to:', email);
+
 
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
@@ -200,11 +200,10 @@ export default function LoginPage() {
                 setMessage(null);
                 setPassword('');
               }}
-              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'login'
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'login'
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               ログイン
             </button>
@@ -215,11 +214,10 @@ export default function LoginPage() {
                 setMessage(null);
                 setPassword('');
               }}
-              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'signup'
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'signup'
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               新規登録
             </button>
@@ -263,11 +261,10 @@ export default function LoginPage() {
 
               {message && (
                 <div
-                  className={`p-4 rounded-md ${
-                    message.type === 'success'
+                  className={`p-4 rounded-md ${message.type === 'success'
                       ? 'bg-green-50 border border-green-200 text-green-800'
                       : 'bg-red-50 border border-red-200 text-red-800'
-                  }`}
+                    }`}
                 >
                   <p className="text-sm">{message.text}</p>
                 </div>
@@ -313,11 +310,10 @@ export default function LoginPage() {
 
               {message && (
                 <div
-                  className={`p-4 rounded-md ${
-                    message.type === 'success'
+                  className={`p-4 rounded-md ${message.type === 'success'
                       ? 'bg-green-50 border border-green-200 text-green-800'
                       : 'bg-red-50 border border-red-200 text-red-800'
-                  }`}
+                    }`}
                 >
                   <p className="text-sm">{message.text}</p>
                 </div>

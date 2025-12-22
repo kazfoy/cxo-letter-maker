@@ -44,7 +44,7 @@ export function BulkGenerator() {
     const [csvData, setCsvData] = useState<AnalyzedRow[]>([]);
     const [headers, setHeaders] = useState<string[]>([]);
     const [fileName, setFileName] = useState('');
-    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [isGuideOpen, setIsGuideOpen] = useState(true);
 
     const handleDownloadTemplate = () => {
         // UTF-8 BOM for Excel compatibility

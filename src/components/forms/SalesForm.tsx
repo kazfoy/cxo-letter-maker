@@ -305,6 +305,25 @@ export const SalesForm = React.memo(function SalesForm({
                   />
                 </div>
               </div>
+
+              {/* 検索結果の表示エリア（自動入力） */}
+              {formData.searchResults && (
+                <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
+                  <label htmlFor="searchResults" className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                    <span>🔍 取得されたニュース情報</span>
+                    <span className="text-xs text-slate-500 font-normal">（生成時に背景として使用されます・編集可）</span>
+                  </label>
+                  <textarea
+                    id="searchResults"
+                    name="searchResults"
+                    value={formData.searchResults}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
+                    placeholder="検索結果がここに表示されます"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

@@ -430,7 +430,7 @@ ${safe.freeformInput}
 4. 事例・実績: ${safe.caseStudy}
 5. オファー: ${safe.offer}
 
-${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※これらの情報を「背景・フック」として適宜活用し、タイムリーな手紙にしてください。` : ''}
+${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※直近のニュース記事を参照し、タイムリーな話題を背景に盛り込んでください。` : ''}
 
 【執筆ルール（厳守）】
 * **禁止事項 (NG)**:

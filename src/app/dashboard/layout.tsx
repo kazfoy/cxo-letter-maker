@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { Home, PencilLine, Upload, Clock, Settings, HelpCircle } from 'lucide-react';
+import { EXTERNAL_LINKS } from '@/lib/constants';
 
 export default function DashboardLayout({
   children,
@@ -36,9 +38,11 @@ export default function DashboardLayout({
   }
 
   const menuItems = [
-    { href: '/dashboard', label: 'ホーム', icon: '🏠' },
-    { href: '/dashboard/history', label: '履歴一覧', icon: '📋' },
-    { href: '/dashboard/settings', label: '設定', icon: '⚙️' },
+    { href: '/dashboard', label: 'ダッシュボード', icon: Home },
+    { href: '/new', label: '新規作成', icon: PencilLine },
+    { href: '/bulk', label: '一括作成', icon: Upload },
+    { href: '/dashboard/history', label: '履歴', icon: Clock },
+    { href: '/dashboard/settings', label: '設定', icon: Settings },
   ];
 
   return (
@@ -54,10 +58,11 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-4 flex flex-col">
+          <ul className="space-y-2 flex-1">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
+              const Icon = item.icon;
               return (
                 <li key={item.href}>
                   <Link
@@ -68,13 +73,26 @@ export default function DashboardLayout({
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    <span className="text-xl">{item.icon}</span>
+                    <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
                   </Link>
                 </li>
               );
             })}
           </ul>
+
+          {/* Support Link */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <a
+              href={EXTERNAL_LINKS.support}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3 rounded-md text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <HelpCircle className="w-5 h-5" />
+              <span>お問い合わせ</span>
+            </a>
+          </div>
         </nav>
 
         {/* User Info & Logout */}

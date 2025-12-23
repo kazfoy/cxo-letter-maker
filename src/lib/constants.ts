@@ -116,3 +116,45 @@ export const ICONS = {
 
 // 必須マーク
 export const REQUIRED_MARK = '*';
+
+// 外部リンク
+export const EXTERNAL_LINKS = {
+  support: 'https://forms.gle/your-google-form-id', // TODO: 実際のGoogleフォームURLに置き換えてください
+  termsOfService: '/terms',
+  privacyPolicy: '/privacy',
+};
+
+// ナビゲーション
+export const NAVIGATION = {
+  dashboard: {
+    path: '/dashboard',
+    label: 'ダッシュボード',
+    icon: 'home',
+  },
+  newLetter: {
+    path: '/new',
+    label: '新規作成',
+    icon: 'plus',
+  },
+  bulkGenerate: {
+    path: '/bulk',
+    label: '一括作成',
+    icon: 'upload',
+  },
+  history: {
+    path: '/dashboard/history',
+    label: '履歴',
+    icon: 'clock',
+  },
+  settings: {
+    path: '/dashboard/settings',
+    label: '設定',
+    icon: 'settings',
+  },
+  support: {
+    path: EXTERNAL_LINKS.support,
+    label: 'お問い合わせ',
+    icon: 'help',
+    external: true,
+  },
+};

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { getProfile, updateProfile, type Profile } from '@/lib/profileUtils';
 import { createClient } from '@/utils/supabase/client';
-import { Upload, X, FileText, Trash2, AlertCircle, Lock, CreditCard, Rocket } from 'lucide-react';
+import { Upload, X, FileText, Trash2, AlertCircle, Lock, CreditCard, Rocket, HelpCircle } from 'lucide-react';
 import { updatePassword } from './actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan } from '@/hooks/useUserPlan';
+import { EXTERNAL_LINKS } from '@/lib/constants';
 
 function SecuritySettings() {
   const [newPassword, setNewPassword] = useState('');
@@ -510,6 +511,26 @@ export default function SettingsPage() {
               {saving ? '保存中...' : '保存して適用'}
             </button>
           </form>
+        </div>
+
+        {/* Support Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-indigo-600" />
+            サポート
+          </h2>
+          <p className="text-sm text-slate-600 mb-4">
+            ご不明な点やお困りのことがございましたら、お気軽にお問い合わせください。
+          </p>
+          <a
+            href={EXTERNAL_LINKS.support}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors text-sm font-medium"
+          >
+            <HelpCircle className="w-4 h-4" />
+            お問い合わせフォームを開く
+          </a>
         </div>
       </div>
     </div>

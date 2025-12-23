@@ -6,10 +6,13 @@ import { getHistories } from '@/lib/supabaseHistoryUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { LetterHistory } from '@/types/letter';
+import { useUserPlan } from '@/hooks/useUserPlan';
+import { Upload, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { isPro, loading: planLoading } = useUserPlan();
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,17 +89,60 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-8 mb-8">
-        <h2 className="text-2xl font-bold text-white mb-3">新しい手紙を作成</h2>
-        <p className="text-indigo-100 mb-6">AIが効果的な営業手紙を作成します</p>
-        <Link
-          href="/new"
-          className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-md hover:bg-indigo-50 transition-colors font-semibold shadow-md"
-        >
-          <span className="text-xl">✨</span>
-          <span>手紙を作成する</span>
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* New Letter CTA */}
+        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-white mb-3">新しい手紙を作成</h2>
+          <p className="text-indigo-100 mb-6">AIが効果的な営業手紙を作成します</p>
+          <Link
+            href="/new"
+            className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-md hover:bg-indigo-50 transition-colors font-semibold shadow-md"
+          >
+            <span className="text-xl">✨</span>
+            <span>手紙を作成する</span>
+          </Link>
+        </div>
+
+        {/* Bulk Generate CTA */}
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-white mb-3">CSV一括生成</h2>
+          <p className="text-purple-100 mb-6">CSVファイルから複数の手紙を一度に作成</p>
+          <Link
+            href="/bulk"
+            className="inline-flex items-center gap-2 bg-white text-purple-600 px-6 py-3 rounded-md hover:bg-purple-50 transition-colors font-semibold shadow-md"
+          >
+            <Upload className="w-5 h-5" />
+            <span>一括生成する</span>
+          </Link>
+        </div>
       </div>
+
+      {/* Pro Upgrade CTA - Show only for Free users, prevent flicker */}
+      {!planLoading && !isPro && (
+        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg p-8 mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-6 h-6 text-white" />
+                <h2 className="text-2xl font-bold text-white">Proプランでもっと便利に</h2>
+              </div>
+              <p className="text-white/90 mb-2">無制限の生成、優先サポート、高度な機能をご利用いただけます</p>
+              <ul className="text-sm text-white/80 space-y-1">
+                <li>✓ 無制限の手紙生成</li>
+                <li>✓ CSV一括生成</li>
+                <li>✓ 優先サポート</li>
+              </ul>
+            </div>
+            <Link
+              href="/checkout"
+              className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-md hover:bg-orange-50 transition-colors font-bold shadow-md whitespace-nowrap"
+            >
+              <Zap className="w-5 h-5" />
+              <span>Proへアップグレード</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Recent History */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

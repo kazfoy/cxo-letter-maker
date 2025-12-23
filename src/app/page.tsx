@@ -848,6 +848,11 @@ export default function LandingPage() {
                     ログイン
                   </Link>
                 </li>
+                <li>
+                  <a href="https://forms.gle/your-google-form-id" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    お問い合わせ
+                  </a>
+                </li>
               </ul>
             </div>
 

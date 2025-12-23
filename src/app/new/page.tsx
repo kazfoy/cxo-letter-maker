@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
@@ -15,7 +15,7 @@ import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import { createClient } from '@/utils/supabase/client';
 
-export default function NewLetterPage() {
+function NewLetterPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const restoreId = searchParams.get('restore');
@@ -568,5 +568,20 @@ export default function NewLetterPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function NewLetterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <NewLetterPageContent />
+    </Suspense>
   );
 }

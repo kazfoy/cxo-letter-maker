@@ -5,6 +5,7 @@ import { getHistories, deleteHistory, getBatches } from '@/lib/supabaseHistoryUt
 import { useRouter } from 'next/navigation';
 import type { LetterHistory, LetterStatus } from '@/types/letter';
 import Link from 'next/link';
+import { StatusDropdown } from '@/components/StatusDropdown';
 
 interface BatchSummary {
   batchId: string;
@@ -75,10 +76,12 @@ export default function HistoryPage() {
           >
             <option value="all">すべて表示</option>
             <option value="draft">下書き</option>
-            <option value="generated">作成済</option>
-            <option value="sent">送付済</option>
+            <option value="generated">作成済み</option>
+            <option value="sent">送付済み</option>
             <option value="replied">返信あり</option>
             <option value="meeting_set">アポ獲得</option>
+            <option value="failed">失敗</option>
+            <option value="archived">アーカイブ</option>
           </select>
           <span className="text-sm text-slate-500">
             {filteredHistories.length}件
@@ -156,15 +159,16 @@ export default function HistoryPage() {
                       <div className="flex-1 cursor-pointer" onClick={() => router.push(`/new?restore=${history.id}`)}>
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-lg font-bold text-slate-900">{history.targetCompany}</h3>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${history.status === 'meeting_set' ? 'bg-green-100 text-green-700 border border-green-200' :
-                              history.status === 'replied' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                                history.status === 'sent' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' :
-                                  'bg-blue-100 text-blue-700 border border-blue-200'
-                            }`}>
-                            {history.status === 'meeting_set' ? 'アポ獲得' :
-                              history.status === 'replied' ? '返信あり' :
-                                history.status === 'sent' ? '送付済' : '作成済'}
-                          </span>
+                          <StatusDropdown
+                            letterId={history.id}
+                            currentStatus={history.status || 'generated'}
+                            onStatusChange={(newStatus) => {
+                              // Update local state immediately for better UX
+                              setHistories(prev => prev.map(h =>
+                                h.id === history.id ? { ...h, status: newStatus } : h
+                              ));
+                            }}
+                          />
                           {history.mode === 'event' && (
                             <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
                               Event

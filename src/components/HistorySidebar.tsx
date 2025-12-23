@@ -24,6 +24,8 @@ const getStatusBadge = (status?: LetterStatus) => {
     sent: { label: '送付済', color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
     replied: { label: '返信あり', color: 'bg-orange-100 text-orange-700 border-orange-300' },
     meeting_set: { label: 'アポ獲得', color: 'bg-green-100 text-green-700 border-green-300' },
+    failed: { label: '失敗', color: 'bg-red-100 text-red-700 border-red-300' },
+    archived: { label: 'アーカイブ', color: 'bg-slate-100 text-slate-700 border-slate-300' },
   };
   return badges[s];
 };

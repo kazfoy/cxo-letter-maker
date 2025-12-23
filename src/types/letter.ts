@@ -9,7 +9,7 @@ export type LetterMode = 'sales' | 'event';
 export type InputComplexity = 'simple' | 'detailed';
 
 // レターのステータス
-export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting_set';
+export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting_set' | 'failed' | 'archived';
 
 // レターフォームのデータ構造
 export interface LetterFormData {

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
@@ -12,9 +13,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
+import { createClient } from '@/utils/supabase/client';
 
 export default function NewLetterPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const restoreId = searchParams.get('restore');
 
 
   const { usage, increment, refetch: refetchGuestUsage } = useGuestLimit();
@@ -84,6 +88,55 @@ export default function NewLetterPage() {
       setShowLimitModal(true);
     }
   }, [usage, user]);
+
+  // Restore letter from history
+  useEffect(() => {
+    const restoreLetter = async () => {
+      if (!restoreId) return;
+
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('letters')
+          .select('*')
+          .eq('id', restoreId)
+          .single();
+
+        if (error || !data) {
+          console.error('Failed to fetch letter:', error);
+          return;
+        }
+
+        // Restore form data
+        if (data.inputs) {
+          setFormData(data.inputs as LetterFormData);
+        }
+
+        // Restore generated content
+        if (data.content) {
+          setGeneratedLetter(data.content);
+        }
+
+        // Restore mode
+        if (data.mode) {
+          setMode(data.mode as LetterMode);
+        }
+
+        // Restore letter ID and status
+        setCurrentLetterId(data.id);
+        setCurrentLetterStatus(data.status as LetterStatus);
+
+        // Restore email data if available
+        if (data.email_content) {
+          setEmailData(data.email_content as { subject: string; body: string });
+        }
+      } catch (error) {
+        console.error('Error restoring letter:', error);
+      }
+    };
+
+    restoreLetter();
+  }, [restoreId]);
 
   const handleGenerate = async (response: import('@/types/letter').GenerateResponse, data: LetterFormData) => {
     // リセット

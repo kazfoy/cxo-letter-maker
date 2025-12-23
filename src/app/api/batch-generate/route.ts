@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { apiGuard } from '@/lib/api-guard';
+import { cleanAIResponse, cleanJSONResponse } from '@/lib/text-cleaner';
 
 // Define schema for a single item in the batch
 const BatchItemSchema = z.object({
@@ -127,7 +128,12 @@ ${specificInstruction}
 - output_formatが'email'の場合は、以下のJSON形式で出力してください:
   For Email: {"subject": "件名", "body": "本文"}
   (Subjectは30文字以内、Bodyはプレーンテキスト)
-- output_formatが'letter'の場合は、プレーンテキストの手紙形式（800文字程度）で出力してください。Markdownは使用しないでください。
+- output_formatが'letter'の場合は、プレーンテキストの手紙形式（800文字程度）で出力してください。
+
+【重要】
+- Markdownコードブロックは絶対に使用しないでください
+- プレーンテキストのみで出力してください
+- 装飾記号（アスタリスク、ハッシュ記号など）も使用しないでください
 `;
 
                         try {
@@ -136,18 +142,18 @@ ${specificInstruction}
                                 model,
                                 prompt,
                             });
-                            const generatedText = result.text.trim();
+                            let generatedText = result.text.trim();
+
+                            // Clean AI response to remove markdown code blocks
+                            generatedText = cleanAIResponse(generatedText);
 
                             let contentToSave = generatedText;
                             let emailData = null;
 
                             if (output_format === 'email') {
                                 try {
-                                    // Strip markdown code blocks if present
-                                    let cleaned = generatedText;
-                                    const match = generatedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-                                    if (match) cleaned = match[1];
-
+                                    // Clean JSON response
+                                    const cleaned = cleanJSONResponse(generatedText);
                                     const parsed = JSON.parse(cleaned);
                                     emailData = parsed;
                                     contentToSave = `件名: ${parsed.subject}\n\n${parsed.body}`;

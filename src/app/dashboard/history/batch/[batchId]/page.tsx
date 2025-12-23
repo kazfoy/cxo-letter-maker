@@ -2,17 +2,22 @@
 
 import { useEffect, useState, use } from 'react';
 import { getBatchLetters } from '@/lib/supabaseHistoryUtils';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { LetterHistory } from '@/types/letter';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
+import { StatusDropdown } from '@/components/StatusDropdown';
 
 export default function BatchDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const shouldHighlight = searchParams.get('highlight') === 'true';
+
     const [letters, setLetters] = useState<LetterHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [batchId, setBatchId] = useState<string>('');
+    const [showHighlight, setShowHighlight] = useState(shouldHighlight);
 
     // Unwrap params using React.use()
     const resolvedParams = use(params);
@@ -23,6 +28,16 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             loadBatch(resolvedParams.batchId);
         }
     }, [resolvedParams]);
+
+    // Auto-hide highlight after 5 seconds
+    useEffect(() => {
+        if (shouldHighlight) {
+            const timer = setTimeout(() => {
+                setShowHighlight(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [shouldHighlight]);
 
     const loadBatch = async (id: string) => {
         try {
@@ -105,13 +120,27 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                 </Link>
             </div>
 
+            {/* Highlight Banner */}
+            {showHighlight && (
+                <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg animate-pulse">
+                    <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-yellow-800 font-medium">新しく生成されたアイテムです</span>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 mb-2">一括生成結果詳細</h1>
                     <p className="text-slate-600">
                         生成日時: {letters.length > 0 ? new Date(letters[0].createdAt).toLocaleString('ja-JP') : '-'}
                         <span className="mx-2">|</span>
-                        件数: {letters.length}件
+                        成功: {letters.filter(l => l.status !== 'failed').length}件
+                        <span className="mx-2">|</span>
+                        失敗: {letters.filter(l => l.status === 'failed').length}件
                     </p>
                 </div>
 
@@ -138,44 +167,77 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
-                            {letters.map((letter) => (
-                                <tr key={letter.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-slate-900">{letter.targetCompany}</div>
-                                        <div>{letter.targetName} 様</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                            {letter.status || 'generated'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 max-w-md">
-                                        <p className="line-clamp-2 text-slate-500">{letter.content}</p>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Link
-                                                href={`/new?restore=${letter.id}`}
-                                                className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
-                                            >
-                                                詳細
-                                            </Link>
-                                            <button
-                                                onClick={() => handleCopy(letter.content)}
-                                                className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
-                                            >
-                                                コピー
-                                            </button>
-                                            <button
-                                                onClick={() => handleDownloadWord(letter)}
-                                                className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
-                                            >
-                                                Word
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                            {letters.map((letter) => {
+                                const isFailed = letter.status === 'failed';
+                                const rowClasses = `transition-all duration-500 ${
+                                    isFailed
+                                        ? 'bg-red-50 hover:bg-red-100'
+                                        : showHighlight
+                                            ? 'bg-yellow-50 hover:bg-yellow-100'
+                                            : 'hover:bg-slate-50'
+                                }`;
+
+                                return (
+                                    <tr key={letter.id} className={rowClasses}>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div>
+                                                    <div className="font-bold text-slate-900">{letter.targetCompany}</div>
+                                                    <div>{letter.targetName} 様</div>
+                                                </div>
+                                                {showHighlight && !isFailed && (
+                                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-400 text-yellow-900 animate-pulse">
+                                                        NEW
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <StatusDropdown
+                                                letterId={letter.id}
+                                                currentStatus={letter.status || 'generated'}
+                                                onStatusChange={(newStatus) => {
+                                                    setLetters(prev => prev.map(l =>
+                                                        l.id === letter.id ? { ...l, status: newStatus } : l
+                                                    ));
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4 max-w-md">
+                                            <p className="line-clamp-2 text-slate-500">{letter.content || '（生成失敗）'}</p>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {!isFailed && (
+                                                    <>
+                                                        <Link
+                                                            href={`/new?restore=${letter.id}`}
+                                                            className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
+                                                        >
+                                                            詳細
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleCopy(letter.content)}
+                                                            className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
+                                                        >
+                                                            コピー
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDownloadWord(letter)}
+                                                            className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-slate-700 transition-colors"
+                                                        >
+                                                            Word
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {isFailed && (
+                                                    <span className="text-sm text-red-600">操作不可</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

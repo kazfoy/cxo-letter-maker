@@ -6,6 +6,7 @@ import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, File
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { ProFeatureModal } from './ProFeatureModal';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type Step = 'upload' | 'mapping' | 'execution';
 
@@ -43,6 +44,7 @@ interface GenerationStatus {
 }
 
 export function BulkGenerator() {
+    const router = useRouter();
     const { isPro } = useUserPlan();
     const [showProModal, setShowProModal] = useState(false);
 
@@ -101,6 +103,7 @@ export function BulkGenerator() {
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<GenerationStatus[]>([]);
     const [statistics, setStatistics] = useState({ successCount: 0, failureCount: 0 });
+    const [completedBatchId, setCompletedBatchId] = useState<string | null>(null);
 
     // ---- Step 1: Upload & Parse ----
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,11 +251,17 @@ export function BulkGenerator() {
                             // Update progress count for errors as well
                             setProgress(p => ({ ...p, current: Math.min(p.current + 1, p.total) }));
                         } else if (msg.type === 'done') {
-                            // Store final statistics
+                            // Store final statistics and batch ID
                             setStatistics({
                                 successCount: msg.successCount || 0,
                                 failureCount: msg.failureCount || 0
                             });
+                            setCompletedBatchId(msg.batchId);
+
+                            // Auto-redirect to batch detail page after 3 seconds
+                            setTimeout(() => {
+                                router.push(`/dashboard/history/batch/${msg.batchId}?highlight=true`);
+                            }, 3000);
                         }
                     } catch (e) {
                         console.error('JSON Parse error', e);
@@ -589,26 +598,38 @@ export function BulkGenerator() {
 
             {/* Statistics Summary */}
             {!isGenerating && progress.current === progress.total && progress.total > 0 && (
-                <div className="mb-8 grid grid-cols-2 gap-4">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2">
-                            <Check className="w-5 h-5 text-green-600" />
-                            <div>
-                                <div className="text-sm text-green-700 font-medium">成功</div>
-                                <div className="text-2xl font-bold text-green-900">{statistics.successCount}件</div>
+                <>
+                    <div className="mb-6 grid grid-cols-2 gap-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2">
+                                <Check className="w-5 h-5 text-green-600" />
+                                <div>
+                                    <div className="text-sm text-green-700 font-medium">成功</div>
+                                    <div className="text-2xl font-bold text-green-900">{statistics.successCount}件</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5 text-red-600" />
+                                <div>
+                                    <div className="text-sm text-red-700 font-medium">失敗</div>
+                                    <div className="text-2xl font-bold text-red-900">{statistics.failureCount}件</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-600" />
-                            <div>
-                                <div className="text-sm text-red-700 font-medium">失敗</div>
-                                <div className="text-2xl font-bold text-red-900">{statistics.failureCount}件</div>
+
+                    {/* Redirect Notice */}
+                    {completedBatchId && (
+                        <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                            <div className="flex items-center justify-center gap-2 text-blue-900">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="font-medium">3秒後に結果詳細ページへ自動移動します...</span>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    )}
+                </>
             )}
 
             <div className="border border-slate-200 rounded-lg overflow-hidden">

@@ -59,6 +59,9 @@ export async function POST(request: Request) {
                     const google = getGoogleProvider();
                     const model = google('gemini-2.0-flash-exp'); // Use fast model for batch
 
+                    let successCount = 0;
+                    let failureCount = 0;
+
                     for (let i = 0; i < total; i++) {
                         const item = items[i];
 
@@ -162,36 +165,44 @@ ${specificInstruction}
                                         user_id: user.id, // Explicitly set user_id
                                         content: contentToSave,
                                         email_content: emailData,
-                                        company_name: item.companyName,
+                                        target_company: item.companyName, // Fixed: use target_company instead of company_name
+                                        target_name: item.name, // Fixed: add required target_name field
                                         batch_id: batchId,
                                         status: 'generated',
                                         mode: item.eventName ? 'event' : 'sales', // Simple inference
-                                        model_name: 'gemini-2.0-flash-exp'
+                                        model_name: 'gemini-2.0-flash-exp',
+                                        inputs: item // Store original inputs for reference
                                     });
 
                                 if (dbError) {
                                     console.error('DB Insert Error:', dbError);
+                                    failureCount++;
                                     const errorMsg = JSON.stringify({
                                         type: 'error',
                                         index: i,
+                                        companyName: item.companyName,
                                         message: 'Failed to save to DB: ' + dbError.message
                                     }) + '\n';
                                     await writer.write(encoder.encode(errorMsg));
                                 } else {
+                                    successCount++;
                                     const successMsg = JSON.stringify({
                                         type: 'progress',
                                         index: i,
                                         total,
                                         status: 'completed',
+                                        companyName: item.companyName,
                                         generatedContent: contentToSave.substring(0, 50) + '...'
                                     }) + '\n';
                                     await writer.write(encoder.encode(successMsg));
                                 }
                             } else {
                                 // Should not happen due to apiGuard
+                                failureCount++;
                                 const errorMsg = JSON.stringify({
                                     type: 'error',
                                     index: i,
+                                    companyName: item.companyName,
                                     message: 'User authentication missing'
                                 }) + '\n';
                                 await writer.write(encoder.encode(errorMsg));
@@ -199,16 +210,47 @@ ${specificInstruction}
 
                         } catch (genError: any) {
                             console.error('Generation Error:', genError);
+                            failureCount++;
+
+                            // Save failed record to DB with error message
+                            if (user?.id) {
+                                try {
+                                    await supabase
+                                        .from('letters')
+                                        .insert({
+                                            user_id: user.id,
+                                            content: '', // Empty content for failed generation
+                                            target_company: item.companyName,
+                                            target_name: item.name,
+                                            batch_id: batchId,
+                                            status: 'failed',
+                                            mode: item.eventName ? 'event' : 'sales',
+                                            model_name: 'gemini-2.0-flash-exp',
+                                            inputs: item,
+                                            error_message: genError.message || 'Generation failed'
+                                        });
+                                } catch (dbSaveError) {
+                                    console.error('Failed to save error record to DB:', dbSaveError);
+                                }
+                            }
+
                             const errorMsg = JSON.stringify({
                                 type: 'error',
                                 index: i,
+                                companyName: item.companyName,
                                 message: genError.message || 'Generation failed'
                             }) + '\n';
                             await writer.write(encoder.encode(errorMsg));
                         }
                     }
 
-                    const completeMsg = JSON.stringify({ type: 'done', batchId, total }) + '\n';
+                    const completeMsg = JSON.stringify({
+                        type: 'done',
+                        batchId,
+                        total,
+                        successCount,
+                        failureCount
+                    }) + '\n';
                     await writer.write(encoder.encode(completeMsg));
 
                 } catch (err: any) {

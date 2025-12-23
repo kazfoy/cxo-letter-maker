@@ -15,6 +15,7 @@ interface LetterRow {
   status: LetterStatus;
   inputs: LetterHistory['inputs'];
   batch_id?: string;
+  error_message?: string;
 }
 
 /**

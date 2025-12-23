@@ -100,6 +100,7 @@ export function BulkGenerator() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<GenerationStatus[]>([]);
+    const [statistics, setStatistics] = useState({ successCount: 0, failureCount: 0 });
 
     // ---- Step 1: Upload & Parse ----
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,6 +244,14 @@ export function BulkGenerator() {
                                     };
                                 }
                                 return newResults;
+                            });
+                            // Update progress count for errors as well
+                            setProgress(p => ({ ...p, current: Math.min(p.current + 1, p.total) }));
+                        } else if (msg.type === 'done') {
+                            // Store final statistics
+                            setStatistics({
+                                successCount: msg.successCount || 0,
+                                failureCount: msg.failureCount || 0
                             });
                         }
                     } catch (e) {
@@ -571,12 +580,36 @@ export function BulkGenerator() {
                 </div>
             </div>
 
-            <div className="w-full bg-slate-100 rounded-full h-2 mb-8 overflow-hidden">
+            <div className="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
                 <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
                 />
             </div>
+
+            {/* Statistics Summary */}
+            {!isGenerating && progress.current === progress.total && progress.total > 0 && (
+                <div className="mb-8 grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <Check className="w-5 h-5 text-green-600" />
+                            <div>
+                                <div className="text-sm text-green-700 font-medium">成功</div>
+                                <div className="text-2xl font-bold text-green-900">{statistics.successCount}件</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            <div>
+                                <div className="text-sm text-red-700 font-medium">失敗</div>
+                                <div className="text-2xl font-bold text-red-900">{statistics.failureCount}件</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="max-h-[500px] overflow-y-auto">

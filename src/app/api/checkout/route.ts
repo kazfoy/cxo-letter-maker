@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/errorUtils';
+
 import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
                 .eq('id', user.id)
                 .single();
 
-            let customerId = profile?.stripe_customer_id;
+            const customerId = profile?.stripe_customer_id;
 
             // リダイレクト先のベースURLを動的に決定
             const origin = request.headers.get('origin');
@@ -64,10 +66,10 @@ export async function POST(request: Request) {
             const session = await stripe.checkout.sessions.create(sessionParams);
 
             return NextResponse.json({ url: session.url });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Checkout error:', error);
             return NextResponse.json(
-                { error: 'Failed to create checkout session', details: error.message },
+                { error: 'Failed to create checkout session', details: getErrorMessage(error) },
                 { status: 500 }
             );
         }

@@ -1,10 +1,10 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { apiGuard } from '@/lib/api-guard';
 import { cleanAIResponse, cleanJSONResponse } from '@/lib/text-cleaner';
+import { getErrorMessage } from '@/lib/errorUtils';
 
 // Define schema for a single item in the batch
 const BatchItemSchema = z.object({
@@ -259,9 +259,9 @@ ${specificInstruction}
                     }) + '\n';
                     await writer.write(encoder.encode(completeMsg));
 
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error('Batch Process Error:', err);
-                    const fatalMsg = JSON.stringify({ type: 'fatal', message: err.message }) + '\n';
+                    const fatalMsg = JSON.stringify({ type: 'fatal', message: getErrorMessage(err) }) + '\n';
                     await writer.write(encoder.encode(fatalMsg));
                 } finally {
                     await writer.close();

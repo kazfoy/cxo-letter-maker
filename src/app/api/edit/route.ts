@@ -1,4 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { getErrorDetails } from '@/lib/errorUtils';
+
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -163,10 +165,10 @@ ${formatConstraints}
 
 
         return NextResponse.json({ editedLetter });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorDetails = getErrorDetails(error);
         console.error('[ERROR] 編集エラー詳細:', {
-          message: error.message,
-          stack: error.stack,
+          ...errorDetails,
           fullError: error,
         });
         devLog.error('編集エラー:', error);

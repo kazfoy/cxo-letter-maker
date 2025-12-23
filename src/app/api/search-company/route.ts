@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { getErrorMessage } from '@/lib/errorUtils';
 
 // Input schema
 const SearchSchema = z.object({
@@ -54,13 +55,13 @@ export async function POST(request: Request) {
 
                 return NextResponse.json({ results: resultText });
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Search API Error:', error);
                 return NextResponse.json(
                     {
                         error: 'Failed to fetch search results',
                         code: 'SEARCH_ERROR',
-                        details: error.message
+                        details: getErrorMessage(error)
                     },
                     { status: 500 }
                 );

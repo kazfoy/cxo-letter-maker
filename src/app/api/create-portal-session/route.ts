@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/lib/errorUtils';
+
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/utils/supabase/server';
 
@@ -35,10 +37,10 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Portal session creation failed:', error);
         return NextResponse.json(
-            { error: 'Internal Server Error', details: error.message },
+            { error: 'Internal Server Error', details: getErrorMessage(error) },
             { status: 500 }
         );
     }

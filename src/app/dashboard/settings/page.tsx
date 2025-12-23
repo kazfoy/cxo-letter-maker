@@ -1,9 +1,11 @@
 'use client';
+import { getErrorMessage } from '@/lib/errorUtils';
+
 
 import { useEffect, useState } from 'react';
 import { getProfile, updateProfile, type Profile } from '@/lib/profileUtils';
 import { createClient } from '@/utils/supabase/client';
-import { Upload, X, FileText, Trash2, AlertCircle, Lock, CreditCard, Rocket, HelpCircle } from 'lucide-react';
+import { Upload, FileText, Trash2, Lock, CreditCard, Rocket, HelpCircle } from 'lucide-react';
 import { updatePassword } from './actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan } from '@/hooks/useUserPlan';
@@ -109,7 +111,7 @@ function SecuritySettings() {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { plan, isPro, loading: planLoading } = useUserPlan();
+  const { isPro, loading: planLoading } = useUserPlan();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,9 +191,9 @@ export default function SettingsPage() {
       } else {
         throw new Error(data.error || 'ポータルセッションの作成に失敗しました');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Portal error:', error);
-      alert('カスタマーポータルの起動に失敗しました: ' + (error.message || '不明なエラー'));
+      alert('カスタマーポータルの起動に失敗しました: ' + getErrorMessage(error));
     } finally {
       setPortalLoading(false);
     }
@@ -284,11 +286,11 @@ export default function SettingsPage() {
       } else {
         throw new Error('保存に失敗しました');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Save error:', error);
       setMessage({
         type: 'error',
-        text: error.message || '保存に失敗しました',
+        text: getErrorMessage(error) || '保存に失敗しました',
       });
     } finally {
       setSaving(false);

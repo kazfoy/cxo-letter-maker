@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { getBatchLetters } from '@/lib/supabaseHistoryUtils';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { LetterHistory } from '@/types/letter';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
@@ -10,7 +10,6 @@ import { saveAs } from 'file-saver';
 import { StatusDropdown } from '@/components/StatusDropdown';
 
 export default function BatchDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const shouldHighlight = searchParams.get('highlight') === 'true';
 

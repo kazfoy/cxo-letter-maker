@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/client';
 import type { LetterHistory, LetterStatus, LetterMode } from '@/types/letter';
+import { getErrorMessage } from '@/lib/errorUtils';
 
 // Database type (snake_case for Supabase)
 interface LetterRow {
@@ -473,7 +474,7 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
     console.log('Migration: Cleared LocalStorage data after successful migration');
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Migration: Failed (catch):', error);
 
     // Retry up to 2 times
@@ -483,6 +484,6 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
       return migrateFromLocalStorage(retryCount + 1);
     }
 
-    return { success: false, error: error.message || 'Unknown error' };
+    return { success: false, error: getErrorMessage(error) || 'Unknown error' };
   }
 }

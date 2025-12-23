@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
 
@@ -32,9 +30,6 @@ const TypewriterText = ({ text }: { text: string }) => {
 };
 
 export default function LandingPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
 
 

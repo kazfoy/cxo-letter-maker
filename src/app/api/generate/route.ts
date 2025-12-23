@@ -4,8 +4,9 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
-import { sanitizeForPrompt, detectInjectionAttempt } from '@/lib/prompt-sanitizer';
+import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { createClient } from '@/utils/supabase/server';
 // pdf-parse require moved to function scope to fix build
@@ -125,9 +126,10 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
       prompt: prompt,
     });
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorDetails = getErrorDetails(error);
     console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
-      message: error.message,
+      message: errorDetails.message,
     });
     devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-1.5-flash...`, error);
     try {
@@ -163,7 +165,8 @@ export async function POST(request: Request) {
           console.error('Profile fetch error:', profileError);
           // エラーでも一旦進めるか、エラーにするか。安全のためエラーにはしないがログ出す
         } else if (profile) {
-          let { daily_usage_count, last_usage_date, plan } = profile;
+          let { daily_usage_count } = profile;
+          const { last_usage_date, plan } = profile;
 
           // 日付が変わっていたらカウントをリセットして評価
           if (last_usage_date !== today) {
@@ -218,12 +221,6 @@ export async function POST(request: Request) {
         // ... (Injection check - unchanged)
         // ... (Sanitization - unchanged)
 
-        // Fetch Reference Docs Context if user is logged in
-        let referenceContext = '';
-        if (user) {
-          referenceContext = await getReferenceContext(user.id);
-        }
-
         const {
           mode = 'sales',
           inputComplexity = 'detailed',
@@ -264,9 +261,6 @@ export async function POST(request: Request) {
         const primaryModelName = data.model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
 
         let prompt = '';
-
-        // Context block injection
-        const referenceBlock = referenceContext ? `\n\n【ユーザー提供の参照資料・背景知識】\n${referenceContext}\n※上記資料の情報も踏まえて、より具体的かつ適切な内容にしてください。\n` : '';
 
         // JSON Instruction - unchanged
         const jsonInstruction = `
@@ -533,9 +527,8 @@ ${jsonInstruction}
 
         // JSONパース処理
         let responseData: any = {};
-        let parseSuccess = false;
 
-        try {
+        try{
           // 1. Markdownコードブロックを除去 regex to capture content between ```json and ```
           // シンプルな除去: ```json ... ```, ``` ... ```, または単に { ... } を抽出
           let cleanedText = generatedText;
@@ -554,7 +547,6 @@ ${jsonInstruction}
           }
 
           const parsed = JSON.parse(cleanedText);
-          parseSuccess = true;
 
           if (output_format === 'email') {
             // Emailモードの場合は { subject, body } を期待
@@ -654,16 +646,16 @@ ${jsonInstruction}
 
         return response;
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 詳細なエラーログ出力（デバッグ用）
+        const errorDetails = getErrorDetails(error);
+        const errorObj = error as { status?: number; statusCode?: number; code?: string; cause?: unknown };
         console.error('[ERROR] 生成エラー詳細:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-          status: error.status,
-          statusCode: error.statusCode,
-          code: error.code,
-          cause: error.cause,
+          ...errorDetails,
+          status: errorObj.status,
+          statusCode: errorObj.statusCode,
+          code: errorObj.code,
+          cause: errorObj.cause,
         });
         // オブジェクトとして直接出力（JSON.stringifyでは消える情報があるため）
         console.error('[ERROR] Full Error Object:', error);
@@ -675,19 +667,20 @@ ${jsonInstruction}
         let errorCode = 'UNKNOWN_ERROR';
         let status = 500;
 
-        if (error.message?.includes('429') || error.status === 429) {
+        const message = getErrorMessage(error);
+        if (message?.includes('429') || errorObj.status === 429) {
           errorMessage = 'AIモデルの利用制限に達しました。しばらく待ってから再試行してください。';
           errorCode = 'RATE_LIMIT_EXCEEDED';
           status = 429;
-        } else if (error.message?.includes('API key') || error.status === 401) {
+        } else if (message?.includes('API key') || errorObj.status === 401) {
           errorMessage = 'APIキーが無効か、設定されていません。';
           errorCode = 'AUTH_ERROR';
           status = 401;
-        } else if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+        } else if (message?.includes('safety') || message?.includes('blocked')) {
           errorMessage = '生成された内容が安全基準に抵触したため、表示できません。入力内容を見直してください。';
           errorCode = 'SAFETY_ERROR';
           status = 400;
-        } else if (error.message?.includes('overloaded')) {
+        } else if (message?.includes('overloaded')) {
           errorMessage = 'AIモデルが混雑しています。しばらく待ってから再試行してください。';
           errorCode = 'MODEL_OVERLOADED';
           status = 503;
@@ -697,7 +690,7 @@ ${jsonInstruction}
           {
             error: errorMessage,
             code: errorCode,
-            details: error.message
+            details: message
           },
           { status }
         );

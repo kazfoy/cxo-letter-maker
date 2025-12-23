@@ -14,6 +14,7 @@ import { useGuestLimit } from '@/hooks/useGuestLimit';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import { createClient } from '@/utils/supabase/client';
+import { getErrorDetails } from '@/lib/errorUtils';
 
 function NewLetterPageContent() {
   const { user } = useAuth();
@@ -367,14 +368,13 @@ function NewLetterPageContent() {
       if (!user) {
         refetchGuestUsage();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorDetails = getErrorDetails(error);
       console.error('[ERROR] サンプル生成エラー詳細:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
+        ...errorDetails,
         fullError: error,
       });
-      alert(`サンプルの生成に失敗しました。もう一度お試しください。\n\nエラー: ${error.message}`);
+      alert(`サンプルの生成に失敗しました。もう一度お試しください。\n\nエラー: ${errorDetails.message}`);
     } finally {
       setIsGenerating(false);
     }

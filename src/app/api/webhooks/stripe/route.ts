@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js'; // Use admin client for webhook updates
+import { getErrorMessage } from '@/lib/errorUtils';
 
 // Admin client required to update other users' profiles (bypass RLS)
 const supabase = createClient(
@@ -25,9 +26,10 @@ export async function POST(req: Request) {
             signature,
             process.env.STRIPE_WEBHOOK_SECRET
         );
-    } catch (error: any) {
-        console.error('Webhook signature verification failed.', error.message);
-        return NextResponse.json({ error: `Webhook Error: ${error.message}` }, { status: 400 });
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error('Webhook signature verification failed.', message);
+        return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
     }
 
     try {
@@ -115,7 +117,7 @@ export async function POST(req: Request) {
                 break;
             }
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Webhook handler failed:', error);
         return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
     }

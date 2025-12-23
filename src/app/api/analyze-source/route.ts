@@ -6,10 +6,11 @@ import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors'
 import { authGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
+import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
 
 export const maxDuration = 60;
 
-let googleProvider: any = null;
+let googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null = null;
 
 function getGoogleProvider() {
   if (googleProvider) return googleProvider;
@@ -319,11 +320,10 @@ JSON形式で返してください（説明文は不要）：
             pdfProcessed: extractedTexts.some(t => t.includes('PDF')),
           },
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorDetails = getErrorDetails(error);
         console.error('[ERROR] ソース解析エラー詳細:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
+          ...errorDetails,
           fullError: error,
         });
         devLog.error('ソース解析エラー:', error);
@@ -331,7 +331,7 @@ JSON形式で返してください（説明文は不要）：
           ErrorCodes.INTERNAL_ERROR,
           'ソース解析に失敗しました',
           undefined,
-          { originalError: error instanceof Error ? error.message : String(error) }
+          { originalError: getErrorMessage(error) }
         );
         return NextResponse.json(errorResponse, { status: getHttpStatus(ErrorCodes.INTERNAL_ERROR) });
       }

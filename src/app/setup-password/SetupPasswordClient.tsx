@@ -1,4 +1,6 @@
 'use client';
+import { getErrorMessage } from '@/lib/errorUtils';
+
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -80,11 +82,11 @@ export default function SetupPasswordClient({ user }: Props) {
       setTimeout(() => {
         router.push('/dashboard');
       }, 800);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Setup password error:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'パスワードの設定に失敗しました',
+        text: getErrorMessage(error) || 'パスワードの設定に失敗しました',
       });
     } finally {
       setLoading(false);
@@ -189,6 +191,7 @@ export default function SetupPasswordClient({ user }: Props) {
     </div>
   );
 }
+
 
 
 

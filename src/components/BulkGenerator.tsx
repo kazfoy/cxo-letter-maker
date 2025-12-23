@@ -5,7 +5,6 @@ import Papa from 'papaparse';
 import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { ProFeatureModal } from './ProFeatureModal';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 type Step = 'upload' | 'mapping' | 'execution';
@@ -60,7 +59,6 @@ export function BulkGenerator() {
     const [step, setStep] = useState<Step>('upload');
     const [csvData, setCsvData] = useState<AnalyzedRow[]>([]);
     const [headers, setHeaders] = useState<string[]>([]);
-    const [fileName, setFileName] = useState('');
     const [isGuideOpen, setIsGuideOpen] = useState(true);
 
     const handleDownloadTemplate = () => {
@@ -112,7 +110,6 @@ export function BulkGenerator() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        setFileName(file.name);
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,

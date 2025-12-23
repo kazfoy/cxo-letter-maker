@@ -257,7 +257,7 @@ export function PreviewArea({
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ERROR] 編集エラー:', error);
       showNotification('編集に失敗しました。', 'error');
     } finally {

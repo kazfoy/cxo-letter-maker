@@ -1,4 +1,6 @@
 'use client';
+import { getErrorMessage } from '@/lib/errorUtils';
+
 
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +40,7 @@ function LoginContent() {
     try {
 
 
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           // emailRedirectToは/auth/callbackのみを指定
@@ -58,11 +60,11 @@ function LoginContent() {
         type: 'success',
         text: '登録用リンクを送信しました',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
       setMessage({
         type: 'error',
-        text: error.message || '登録リンクの送信に失敗しました。もう一度お試しください。',
+        text: getErrorMessage(error) || '登録リンクの送信に失敗しました。もう一度お試しください。',
       });
     } finally {
       setLoading(false);
@@ -78,7 +80,7 @@ function LoginContent() {
     try {
       console.log('Starting signin process...');
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -98,17 +100,18 @@ function LoginContent() {
       setTimeout(() => {
         router.push(redirectPath);
       }, 500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signin error:', error);
+      const message = getErrorMessage(error);
       let errorMessage = 'ログインに失敗しました';
 
       // Provide more specific error messages
-      if (error.message.includes('Invalid login credentials')) {
+      if (message.includes('Invalid login credentials')) {
         errorMessage = 'メールアドレスまたはパスワードが正しくありません';
-      } else if (error.message.includes('Email not confirmed')) {
+      } else if (message.includes('Email not confirmed')) {
         errorMessage = 'メールアドレスが確認されていません。登録用リンクから登録を完了してください';
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (message) {
+        errorMessage = message;
       }
 
       setMessage({

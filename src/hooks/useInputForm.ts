@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getErrorMessage, getErrorDetails } from '@/lib/errorUtils';
+
 import { useToast } from '@/hooks/use-toast';
 import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse, GenerateResponse } from '@/types/letter';
 
@@ -56,11 +58,12 @@ export function useInputForm({
   }, [toast]);
 
   // APIエラーレスポンスを処理するヘルパー関数
-  const handleApiErrorData = useCallback((errorData: ApiErrorResponse | any) => {
-    if (errorData.error) {
-      showError(errorData.message || 'エラーが発生しました', errorData.suggestion);
-    } else if (errorData.error || typeof errorData === 'string') {
-      showError(errorData.error || errorData || 'エラーが発生しました');
+  const handleApiErrorData = useCallback((errorData: ApiErrorResponse | unknown) => {
+    if (typeof errorData === 'object' && errorData !== null && 'error' in errorData) {
+      const err = errorData as ApiErrorResponse;
+      showError(err.message || 'エラーが発生しました', err.suggestion);
+    } else if (typeof errorData === 'string') {
+      showError(errorData);
     } else {
       showError('エラーが発生しました');
     }
@@ -231,7 +234,7 @@ export function useInputForm({
         hasLetter: !!data.letter,
         hasEmail: !!data.email,
         hasError: !!data.error,
-        errorCode: (data as any).code,
+        errorCode: (data as GenerateResponse & { code?: string }).code,
       });
 
       if (data.letter || data.email) {
@@ -240,13 +243,12 @@ export function useInputForm({
         setTimeout(() => setGenerationSuccess(false), 2000);
       } else if (data.error) {
         console.error('[ERROR] API エラーレスポンス:', data);
-        handleApiErrorData(data as any);
+        handleApiErrorData(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorDetails = getErrorDetails(error);
       console.error('[ERROR] 生成エラー詳細:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
+        ...errorDetails,
         fullError: error,
       });
       showError('生成に失敗しました。', 'もう一度お試しください。');

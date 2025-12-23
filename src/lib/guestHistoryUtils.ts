@@ -1,4 +1,4 @@
-import { LetterHistory, LetterStatus } from "@/types/letter";
+import { LetterHistory } from "@/types/letter";
 
 const STORAGE_KEY = 'cxo_guest_history';
 const MAX_ITEMS = 3;

@@ -12,7 +12,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  const { plan, isPro, loading: planLoading } = useUserPlan();
+  const { isPro, loading: planLoading } = useUserPlan();
   const [upgrading, setUpgrading] = useState(false);
 
   const handleUpgrade = async () => {

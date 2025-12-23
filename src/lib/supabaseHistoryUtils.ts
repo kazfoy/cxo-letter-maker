@@ -16,6 +16,7 @@ interface LetterRow {
   inputs: LetterHistory['inputs'];
   batch_id?: string;
   error_message?: string;
+  email_content?: { subject: string; body: string };
 }
 
 /**
@@ -33,6 +34,7 @@ function rowToHistory(row: LetterRow): LetterHistory {
     status: row.status,
     inputs: row.inputs,
     batchId: row.batch_id,
+    emailContent: row.email_content,
   };
 }
 

@@ -57,6 +57,7 @@ export interface LetterHistory {
   status?: LetterStatus;
   inputs: LetterFormData;
   batchId?: string;
+  emailContent?: { subject: string; body: string };
 }
 
 // AI提案データ構造

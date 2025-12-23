@@ -13,12 +13,16 @@ interface BatchSummary {
   count: number;
 }
 
+type OutputFormat = 'all' | 'letter' | 'mail';
+
 export default function HistoryPage() {
   const router = useRouter();
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>('all');
+  const [formatFilter, setFormatFilter] = useState<OutputFormat>('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   useEffect(() => {
     loadData();
@@ -51,9 +55,29 @@ export default function HistoryPage() {
     }
   };
 
-  const filteredHistories = statusFilter === 'all'
-    ? histories
-    : histories.filter(h => (h.status || 'generated') === statusFilter);
+  const filteredHistories = histories.filter(h => {
+    // Status filter
+    if (statusFilter !== 'all' && (h.status || 'generated') !== statusFilter) {
+      return false;
+    }
+
+    // Format filter (Letter/Mail)
+    if (formatFilter !== 'all') {
+      const isEmail = !!h.emailContent;
+      if (formatFilter === 'mail' && !isEmail) return false;
+      if (formatFilter === 'letter' && isEmail) return false;
+    }
+
+    // Keyword search (company name or target name)
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.toLowerCase();
+      const matchesCompany = h.targetCompany.toLowerCase().includes(keyword);
+      const matchesName = h.targetName.toLowerCase().includes(keyword);
+      if (!matchesCompany && !matchesName) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div>
@@ -63,29 +87,114 @@ export default function HistoryPage() {
       </div>
 
       {/* Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-        <div className="flex items-center gap-4">
-          <label htmlFor="status-filter" className="text-sm font-medium text-slate-700">
-            ステータスで絞り込み:
-          </label>
-          <select
-            id="status-filter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as LetterStatus | 'all')}
-            className="px-4 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">すべて表示</option>
-            <option value="draft">下書き</option>
-            <option value="generated">作成済み</option>
-            <option value="sent">送付済み</option>
-            <option value="replied">返信あり</option>
-            <option value="meeting_set">アポ獲得</option>
-            <option value="failed">失敗</option>
-            <option value="archived">アーカイブ</option>
-          </select>
-          <span className="text-sm text-slate-500">
-            {filteredHistories.length}件
-          </span>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <div className="space-y-4">
+          {/* Row 1: Format & Status Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Format Filter */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="format-filter" className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                種別:
+              </label>
+              <div className="flex gap-1 bg-slate-100 rounded-md p-1">
+                <button
+                  onClick={() => setFormatFilter('all')}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
+                    formatFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setFormatFilter('letter')}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
+                    formatFilter === 'letter'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  手紙
+                </button>
+                <button
+                  onClick={() => setFormatFilter('mail')}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
+                    formatFilter === 'mail'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  メール
+                </button>
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="status-filter" className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                ステータス:
+              </label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as LetterStatus | 'all')}
+                className="px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              >
+                <option value="all">すべて</option>
+                <option value="draft">下書き</option>
+                <option value="generated">作成済み</option>
+                <option value="sent">送付済み</option>
+                <option value="replied">返信あり</option>
+                <option value="meeting_set">アポ獲得</option>
+                <option value="failed">失敗</option>
+                <option value="archived">アーカイブ</option>
+              </select>
+            </div>
+
+            {/* Result Count */}
+            <span className="text-sm text-slate-500 ml-auto">
+              {filteredHistories.length}件 / {histories.length}件
+            </span>
+          </div>
+
+          {/* Row 2: Keyword Search */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="search-keyword" className="text-sm font-medium text-slate-700 whitespace-nowrap">
+              検索:
+            </label>
+            <div className="relative flex-1 max-w-md">
+              <input
+                id="search-keyword"
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="会社名・宛名で検索..."
+                className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              />
+              <svg
+                className="w-5 h-5 text-slate-400 absolute left-3 top-2.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            {searchKeyword && (
+              <button
+                onClick={() => setSearchKeyword('')}
+                className="text-sm text-slate-500 hover:text-slate-700 font-medium"
+              >
+                クリア
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -169,6 +278,14 @@ export default function HistoryPage() {
                               ));
                             }}
                           />
+                          {/* Format Badge */}
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            history.emailContent
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : 'bg-green-100 text-green-800 border border-green-200'
+                          }`}>
+                            {history.emailContent ? 'メール' : '手紙'}
+                          </span>
                           {history.mode === 'event' && (
                             <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
                               Event

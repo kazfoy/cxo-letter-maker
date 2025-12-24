@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase/client';
+import { type PlanType, getDailyBatchLimit } from '@/config/subscriptionPlans';
 
-export type UserPlan = 'free' | 'pro';
+export type UserPlan = PlanType;
 
 export function useUserPlan() {
     const { user } = useAuth();
@@ -43,5 +44,12 @@ export function useUserPlan() {
         fetchPlan();
     }, [user]);
 
-    return { plan, loading, isPro: plan === 'pro', isFree: plan === 'free' };
+    return {
+        plan,
+        loading,
+        isPro: plan === 'pro',
+        isPremium: plan === 'premium',
+        isFree: plan === 'free',
+        dailyBatchLimit: getDailyBatchLimit(plan),
+    };
 }

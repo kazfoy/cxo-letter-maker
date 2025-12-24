@@ -102,6 +102,13 @@ export function BulkGenerator() {
     const [results, setResults] = useState<GenerationStatus[]>([]);
     const [statistics, setStatistics] = useState({ successCount: 0, failureCount: 0 });
     const [completedBatchId, setCompletedBatchId] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [usageInfo, setUsageInfo] = useState<{
+        usedToday: number;
+        dailyLimit: number;
+        remaining: number;
+        userPlan: string;
+    } | null>(null);
 
     // ---- Step 1: Upload & Parse ----
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +173,8 @@ export function BulkGenerator() {
 
         setIsGenerating(true);
         setStep('execution');
+        setErrorMessage(null); // Clear previous errors
+        setUsageInfo(null);
 
         // Validate inputs
         const validItems = csvData.filter(row => row[mapping.companyName] && row[mapping.name]);
@@ -196,6 +205,17 @@ export function BulkGenerator() {
                     myServiceDescription: senderInfo.myServiceDescription
                 })
             });
+
+            // 日次制限エラーのチェック
+            if (!response.ok) {
+                const errorData = await response.json();
+                setErrorMessage(errorData.error || '生成に失敗しました');
+                if (errorData.usage) {
+                    setUsageInfo(errorData.usage);
+                }
+                setIsGenerating(false);
+                return; // Stop execution
+            }
 
             if (!response.body) throw new Error('No response body');
 
@@ -267,8 +287,8 @@ export function BulkGenerator() {
             }
         } catch (error) {
             console.error('Generation Error', error);
-            alert('生成中にエラーが発生しました。');
-        } finally {
+            const errorMsg = error instanceof Error ? error.message : '生成中にエラーが発生しました。';
+            setErrorMessage(errorMsg);
             setIsGenerating(false);
         }
     };
@@ -585,6 +605,66 @@ export function BulkGenerator() {
                     {progress.current} / {progress.total} 件完了
                 </div>
             </div>
+
+            {/* Error Display */}
+            {errorMessage && (
+                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <h3 className="font-bold text-red-900 mb-2">エラーが発生しました</h3>
+                            <p className="text-sm text-red-800 mb-3">{errorMessage}</p>
+
+                            {/* Usage Statistics */}
+                            {usageInfo && (
+                                <div className="bg-white rounded-md p-3 border border-red-100">
+                                    <div className="text-xs font-semibold text-red-900 mb-2">📊 本日の使用状況</div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <div>
+                                            <span className="text-slate-600">使用済み:</span>
+                                            <span className="ml-1 font-bold text-red-800">{usageInfo.usedToday}件</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-600">上限:</span>
+                                            <span className="ml-1 font-bold text-slate-900">{usageInfo.dailyLimit}件</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-600">残り:</span>
+                                            <span className="ml-1 font-bold text-blue-600">{usageInfo.remaining}件</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-red-100">
+                                        <span className="text-xs text-slate-600">現在のプラン: </span>
+                                        <span className="text-xs font-bold text-slate-900 uppercase">{usageInfo.userPlan}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    onClick={() => {
+                                        setErrorMessage(null);
+                                        setUsageInfo(null);
+                                        setStep('mapping');
+                                    }}
+                                    className="px-4 py-2 text-sm bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 font-medium"
+                                >
+                                    設定を修正
+                                </button>
+                                {usageInfo && usageInfo.userPlan !== 'premium' && (
+                                    <button
+                                        onClick={() => router.push('/dashboard/pricing')}
+                                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                                    >
+                                        プランをアップグレード
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
                 <div

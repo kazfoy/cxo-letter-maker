@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/client';
 import type { LetterHistory, LetterStatus, LetterMode } from '@/types/letter';
 import { getErrorMessage } from '@/lib/errorUtils';
+import { FREE_HISTORY_LIMIT } from '@/config/subscriptionPlans';
 
 // Database type (snake_case for Supabase)
 interface LetterRow {
@@ -88,8 +89,7 @@ export async function getHistories(): Promise<LetterHistory[]> {
 
     // Apply limit if Free plan
     if (profile?.plan === 'free') {
-      const FREE_LIMIT = 10;
-      query = query.limit(FREE_LIMIT);
+      query = query.limit(FREE_HISTORY_LIMIT);
     }
 
     const { data, error } = await query;

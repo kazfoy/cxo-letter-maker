@@ -2,9 +2,12 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
 import { cleanAIResponse, cleanJSONResponse } from '@/lib/text-cleaner';
 import { getErrorMessage } from '@/lib/errorUtils';
+import { MAX_BATCH_SIZE_PER_REQUEST } from '@/config/subscriptionPlans';
+import { validateDailyBatchLimit } from '@/lib/dailyLimitChecker';
 
 // Define schema for a single item in the batch
 const BatchItemSchema = z.object({
@@ -20,7 +23,7 @@ const BatchItemSchema = z.object({
 
 // Define schema for the request body
 const BatchGenerateSchema = z.object({
-    items: z.array(BatchItemSchema).max(50, '一度に生成できるのは50件までです'), // Limit batch size
+    items: z.array(BatchItemSchema).max(MAX_BATCH_SIZE_PER_REQUEST, `一度に生成できるのは${MAX_BATCH_SIZE_PER_REQUEST}件までです`),
 
     myCompanyName: z.string().optional(),
     myName: z.string().optional(),
@@ -43,6 +46,26 @@ export async function POST(request: Request) {
         BatchGenerateSchema,
         async (data, user) => {
             const { items, myCompanyName, myName, myServiceDescription, output_format } = data;
+
+            // 日次制限チェック
+            if (!user) {
+                return NextResponse.json(
+                    { error: '認証が必要です' },
+                    { status: 401 }
+                );
+            }
+
+            const limitCheck = await validateDailyBatchLimit(user.id, items.length);
+
+            if (!limitCheck.allowed) {
+                return NextResponse.json(
+                    {
+                        error: limitCheck.errorMessage,
+                        usage: limitCheck.usage,
+                    },
+                    { status: 429 } // Too Many Requests
+                );
+            }
 
             // Server-side supabase client for DB operations (using logged in user context)
             const supabase = await createClient();

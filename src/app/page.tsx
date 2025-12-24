@@ -499,7 +499,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {/* Free Plan */}
             <div className="bg-stone-50 rounded-2xl p-8 border border-stone-200 shadow-sm flex flex-col">
               <div className="mb-8">
@@ -555,14 +555,14 @@ export default function LandingPage() {
             </div>
 
             {/* Pro Plan */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-amber-800 shadow-xl relative flex flex-col transform md:-translate-y-4">
+            <div className="bg-white rounded-2xl p-8 border-2 border-amber-800 shadow-xl relative flex flex-col">
               <div className="absolute top-0 right-0 bg-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
                 RECOMMENDED
               </div>
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-amber-800 mb-2">Pro Plan</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-stone-900">980</span>
+                  <span className="text-4xl font-bold text-stone-900">2,980</span>
                   <span className="text-stone-600 font-medium">円 / 月 (税込)</span>
                 </div>
                 <p className="text-stone-600 mt-4 text-sm mb-6">
@@ -611,7 +611,10 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span className="text-amber-800 font-bold">CSV一括生成機能</span>
+                    <div>
+                      <span className="text-amber-800 font-bold">CSV一括生成機能</span>
+                      <p className="text-xs text-stone-600 mt-0.5">1日100件まで生成可能</p>
+                    </div>
                   </li>
                   <li className="flex items-start gap-3 text-stone-900 font-medium">
                     <div className="bg-amber-100 rounded-full p-1">
@@ -620,6 +623,78 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <span>優先メールサポート</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 border-2 border-slate-700 shadow-2xl relative flex flex-col text-white">
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                BUSINESS
+              </div>
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold text-white mb-2">Premium Plan</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-white">9,800</span>
+                  <span className="text-slate-300 font-medium">円 / 月 (税込)</span>
+                </div>
+                <p className="text-slate-300 mt-4 text-sm mb-6">
+                  大量生成が必要なプロ・法人向け
+                </p>
+                <Link
+                  href="/login?redirect=/checkout"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-center rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg transform hover:scale-[1.02]"
+                >
+                  Premiumプランで始める
+                </Link>
+              </div>
+
+              <div className="flex-1 space-y-4">
+                <p className="text-sm font-bold text-white">Proプランの全機能に加え:</p>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3 text-white font-medium">
+                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
+                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-blue-400 font-bold text-lg">CSV一括生成 1,000件/日</span>
+                      <p className="text-xs text-slate-300 mt-0.5">月間最大30,000件のレター生成が可能</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-200">
+                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
+                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span>圧倒的コストパフォーマンス</span>
+                      <p className="text-xs text-slate-400 mt-0.5">1件あたり約0.3円。外注費を劇的に削減</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-200">
+                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
+                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span>ビジネススピード加速</span>
+                      <p className="text-xs text-slate-400 mt-0.5">展示会やイベントの大量フォローを即座に実行</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-200">
+                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
+                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span>専任カスタマーサポート</span>
                   </li>
                 </ul>
               </div>
@@ -658,7 +733,11 @@ export default function LandingPage() {
                   <li>CSV一括生成機能は利用不可</li>
                 </ul>
                 <br />
-                より高度な機能が必要な場合は、月額980円のProプランをご検討ください。
+                より高度な機能が必要な場合は、以下の有料プランをご検討ください：
+                <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600 mt-2">
+                  <li><strong>Proプラン（月額2,980円）</strong>: CSV一括生成100件/日、履歴無制限</li>
+                  <li><strong>Premiumプラン（月額9,800円）</strong>: CSV一括生成1,000件/日、専任サポート</li>
+                </ul>
               </div>
             </details>
 
@@ -750,8 +829,12 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                無料プランでは、1日10通まで生成いただけます。<br />
-                Proプラン（月額980円）にご加入いただくと、無制限で生成可能になります。
+                プランごとに生成可能な件数が異なります：<br /><br />
+                <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600">
+                  <li><strong>無料プラン</strong>: 1日10通まで（個別生成のみ）</li>
+                  <li><strong>Proプラン（月額2,980円）</strong>: 個別生成無制限 + CSV一括生成100件/日</li>
+                  <li><strong>Premiumプラン（月額9,800円）</strong>: 個別生成無制限 + CSV一括生成1,000件/日</li>
+                </ul>
               </div>
             </details>
           </div>

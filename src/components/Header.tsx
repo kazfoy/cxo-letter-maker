@@ -6,10 +6,12 @@ import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useCheckout } from '@/hooks/useCheckout';
+import { PlanSelectionModal } from '@/components/PlanSelectionModal';
 
 export function Header() {
   const { user, signOut, loading } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -117,14 +119,13 @@ export function Header() {
                             </span>
                           ) : (
                             <button
-                              onClick={() => handleUpgrade('pro')}
-                              disabled={upgrading}
+                              onClick={() => setIsUpgradeModalOpen(true)}
                               className="mr-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-full font-bold text-sm hover:from-amber-700 hover:to-amber-800 transition-all shadow-sm flex items-center gap-1"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
-                              {upgrading ? '処理中...' : 'Proにアップグレード'}
+                              プランをアップグレード
                             </button>
                           )}
                         </>
@@ -242,6 +243,10 @@ export function Header() {
           </div>
         </div>
       </div>
+      <PlanSelectionModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </header>
   );
 }

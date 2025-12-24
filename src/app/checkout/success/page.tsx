@@ -2,93 +2,89 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, ArrowRight, Zap, List } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Zap } from 'lucide-react';
+import { Suspense } from 'react';
 
-export default function CheckoutSuccessPage() {
+function SuccessContent() {
     const searchParams = useSearchParams();
     const plan = searchParams.get('plan') || 'pro';
-    const isPremium = plan === 'premium';
+    const planInfo = plan === 'premium' ?
+        { name: 'Premium', limit: '1,000件', features: ['CSV一括生成（1,000件/日）', '全履歴の保存', 'Wordダウンロード', '最優先サポート'] } :
+        { name: 'Pro', limit: '100件', features: ['CSV一括生成（100件/日）', '全履歴の保存', 'Wordダウンロード', '優先サポート'] };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden">
-                {/* Header Section */}
-                <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
-                    <div className="relative z-10">
-                        <div className="mx-auto bg-white/20 w-20 h-20 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-                            <CheckCircle className="w-10 h-10 text-white" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-white mb-2">
-                            アップグレード完了！
-                        </h1>
-                        <p className="text-indigo-100">
-                            {isPremium ? 'Premium' : 'Pro'}プランへの登録が完了しました。
-                        </p>
+        <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-12 text-center text-white">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+                        <CheckCircle2 className="w-12 h-12 text-white" />
                     </div>
-
-                    {/* Decorative background elements */}
-                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-white blur-xl"></div>
-                        <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-white blur-xl"></div>
-                    </div>
+                    <h1 className="text-3xl font-bold mb-2">アップグレード完了！</h1>
+                    <p className="text-emerald-50 opacity-90 text-lg">
+                        {planInfo.name}プランへの登録が正常に完了しました
+                    </p>
                 </div>
 
-                {/* Content Section */}
-                <div className="p-8">
-                    <div className="text-center mb-8">
-                        <p className="text-slate-600">
-                            すべての機能が解放されました。<br />
-                            さっそく、より高度な手紙作成を始めましょう。
-                        </p>
-                    </div>
-
-                    <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
-                        {isPremium ? 'Premium' : 'Pro'} Plan Features
-                    </h2>
-
-                    <div className="grid gap-4 mb-8">
-                        <div className="flex items-start gap-4 p-4 rounded-lg bg-indigo-50 border border-indigo-100">
-                            <div className="bg-indigo-100 p-2 rounded-md">
-                                <List className="w-5 h-5 text-indigo-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-slate-900">CSV一括生成</h3>
-                                <p className="text-sm text-slate-600 mt-1">
-                                    {isPremium ? '1日1,000件' : '1日100件'}までのCSV一括生成が可能です。
-                                </p>
+                <div className="p-8 md:p-12">
+                    <div className="space-y-8">
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
+                                新しく利用可能になった機能
+                            </h2>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                {planInfo.features.map((feature, i) => (
+                                    <div key={i} className="flex items-center gap-3 text-slate-700">
+                                        <Zap className="w-5 h-5 text-amber-500" />
+                                        <span className="font-medium">{feature}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-4 p-4 rounded-lg bg-indigo-50 border border-indigo-100">
-                            <div className="bg-indigo-100 p-2 rounded-md">
-                                <Zap className="w-5 h-5 text-indigo-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-slate-900">無制限のAI生成</h3>
-                                <p className="text-sm text-slate-600 mt-1">
-                                    1日の回数制限を気にせず、納得いくまで何度もリライトや生成を試せます。
-                                </p>
+                        <div className="text-center space-y-4">
+                            <p className="text-slate-600">
+                                本日から、CSV一括生成が <span className="text-indigo-600 font-bold">{planInfo.limit}/日</span> までご利用いただけます。
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                                <Link
+                                    href="/dashboard"
+                                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    ダッシュボードへ
+                                    <ArrowRight className="w-5 h-5" />
+                                </Link>
+                                <Link
+                                    href="/bulk"
+                                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-slate-900 border-2 border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                                >
+                                    一括作成を始める
+                                    <Zap className="w-5 h-5 text-amber-500" />
+                                </Link>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <Link
-                            href="/dashboard"
-                            className="flex-1 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                            ダッシュボードへ
-                        </Link>
-                        <Link
-                            href="/new"
-                            className="flex-1 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                        >
-                            手紙を作成する
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
                     </div>
                 </div>
             </div>
+
+            <p className="text-center mt-8 text-slate-500 text-sm">
+                領収書はご登録のメールアドレスに送信されます。<br />
+                プランの管理・解約は設定画面からいつでも行えます。
+            </p>
+        </div>
+    );
+}
+
+export default function CheckoutSuccessPage() {
+    return (
+        <div className="min-h-screen bg-slate-50 py-12 px-4 md:py-20">
+            <Suspense fallback={
+                <div className="flex flex-col items-center justify-center min-h-[400px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <p className="text-slate-600">読み込み中...</p>
+                </div>
+            }>
+                <SuccessContent />
+            </Suspense>
         </div>
     );
 }

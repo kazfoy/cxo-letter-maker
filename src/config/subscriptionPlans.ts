@@ -26,13 +26,14 @@ export interface PlanConfig {
 
 /**
  * プラン定義
+ * ※ Stripe Price ID は環境変数から動的に取得することを推奨（Next.jsのサーバーサイドでの評価タイミングの問題回避）
  */
 export const PLANS: Record<PlanType, PlanConfig> = {
   free: {
     label: 'Free',
-    dailyBatchLimit: 0, // CSV一括生成不可
+    dailyBatchLimit: 0,
     price: 0,
-    modelId: 'gemini-1.5-flash',
+    modelId: 'gemini-2.0-flash',
     description: '個人利用向けの無料プラン',
     features: [
       '手紙の個別生成（無制限）',
@@ -42,35 +43,54 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   },
   pro: {
     label: 'Pro',
-    dailyBatchLimit: 100, // 100件/日
+    dailyBatchLimit: 100,
     price: 980,
-    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
-    modelId: 'gemini-1.5-flash',
+    stripePriceId: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+    modelId: 'gemini-2.0-flash',
     description: '本格的な営業活動に最適なプラン',
     features: [
       '手紙の個別生成（無制限）',
       'CSV一括生成（100件/日）',
       '全履歴の無制限保存',
-      'Word形式ダウンロード',
+      '最新AI（Gemini 2.0）による高度な生成',
       '優先メールサポート',
     ],
   },
   premium: {
     label: 'Premium',
-    dailyBatchLimit: 1000, // 1000件/日
+    dailyBatchLimit: 1000,
     price: 9800,
-    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PREMIUM,
-    modelId: 'gemini-1.5-flash',
+    stripePriceId: process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
+    modelId: 'gemini-3-flash',
     description: '大規模な営業活動を行う法人向けプラン',
     features: [
       '手紙の個別生成（無制限）',
       'CSV一括生成（1,000件/日）',
       '全履歴の無制限保存',
-      'Word形式ダウンロード',
+      '業界最先端のAI（Gemini 3）を活用',
       '優先メールサポート（最優先対応）',
     ],
   },
 } as const;
+
+/**
+ * 堅牢なプラン設定取得関数
+ * 環境変数が定義されていない場合のエラーハンドリングを行う
+ */
+export function getPlanConfig(planType: PlanType): PlanConfig {
+  const plan = PLANS[planType];
+
+  // サーバーサイドでの実行時、環境変数を再評価
+  const stripePriceId =
+    planType === 'pro' ? process.env.STRIPE_PRICE_ID_PRO_MONTHLY :
+      planType === 'premium' ? process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY :
+        undefined;
+
+  return {
+    ...plan,
+    stripePriceId: stripePriceId || plan.stripePriceId,
+  };
+}
 
 /**
  * プラン名の配列
@@ -126,4 +146,4 @@ export const FREE_HISTORY_LIMIT = 10;
  * 1回のバッチ生成リクエストあたりの最大件数
  * （APIのパフォーマンス保護のため）
  */
-export const MAX_BATCH_SIZE_PER_REQUEST = 50;
+export const MAX_BATCH_SIZE_PER_REQUEST = 1000;

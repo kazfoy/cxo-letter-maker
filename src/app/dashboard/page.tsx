@@ -9,12 +9,14 @@ import type { LetterHistory } from '@/types/letter';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useCheckout } from '@/hooks/useCheckout';
 import { Upload, Zap } from 'lucide-react';
+import { PlanSelectionModal } from '@/components/PlanSelectionModal';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { isPro, isPremium, loading: planLoading } = useUserPlan();
   const { handleUpgrade, loading: upgrading } = useCheckout();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -142,7 +144,7 @@ export default function DashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span>1回のリクエストで最大50件生成</span>
+                  <span>1回のリクエストで最大1,000件生成</span>
                 </div>
                 <div className="flex items-start gap-2 text-indigo-100/70 text-sm">
                   <div className="mt-1 bg-white/10 rounded-full p-0.5">
@@ -150,36 +152,24 @@ export default function DashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span>Word形式ダウンロード対応</span>
+                  <span>業界最先端のAIによる高度な生成</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-              {!isPro && !isPremium && (
-                <button
-                  onClick={() => handleUpgrade('pro')}
-                  disabled={upgrading}
-                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group disabled:opacity-50"
-                >
-                  <Zap className="w-5 h-5 text-indigo-600" />
-                  {upgrading ? '処理中...' : 'Proへ (¥980)'}
-                </button>
-              )}
-              {!isPremium && (
-                <button
-                  onClick={() => handleUpgrade('premium')}
-                  disabled={upgrading}
-                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-bold shadow-lg text-lg border border-white/20 group disabled:opacity-50"
-                >
-                  <Zap className="w-5 h-5 text-yellow-300" />
-                  {upgrading ? '処理中...' : 'Premiumへ (¥9,800)'}
-                </button>
-              )}
-              {isPremium && (
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto text">
+              {isPremium ? (
                 <div className="px-8 py-4 bg-white/10 text-white rounded-xl font-bold border border-white/20">
                   Premiumプランをご利用中
                 </div>
+              ) : (
+                <button
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group"
+                >
+                  <Zap className="w-5 h-5 text-indigo-600" />
+                  プランをアップグレード
+                </button>
               )}
             </div>
           </div>
@@ -240,6 +230,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      <PlanSelectionModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </div>
   );
 }

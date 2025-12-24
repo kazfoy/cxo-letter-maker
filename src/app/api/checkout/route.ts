@@ -4,7 +4,7 @@ import { getErrorMessage } from '@/lib/errorUtils';
 import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
-import { PLANS, PlanType } from '@/config/subscriptionPlans';
+import { PlanType, getPlanConfig } from '@/config/subscriptionPlans';
 
 export async function POST(request: Request) {
     return await authGuard(async (user) => {
@@ -14,13 +14,28 @@ export async function POST(request: Request) {
             }
 
             const { planType = 'pro' } = await request.json();
-            const plan = PLANS[planType as PlanType];
+            console.log(`[Checkout API] planType received: ${planType}`);
+
+            // USE getPlanConfig for robust environment variable resolution
+            const plan = getPlanConfig(planType as PlanType);
+            console.log(`[Checkout API] Resolved plan configuration:`, {
+                label: plan.label,
+                hasPriceId: !!plan.stripePriceId,
+                priceId: plan.stripePriceId?.substring(0, 8) + '...' // Log partially for privacy, but confirm it exists
+            });
 
             if (!plan || !plan.stripePriceId) {
-                return NextResponse.json({ error: 'Invalid plan selected or Stripe configuration is missing' }, { status: 400 });
+                const envVarName = planType === 'pro' ? 'STRIPE_PRICE_ID_PRO_MONTHLY' : 'STRIPE_PRICE_ID_PREMIUM_MONTHLY';
+                const errorMsg = `Stripe Price ID is missing for plan: ${planType}. Please check if ${envVarName} is set in your environment variables (.env.local).`;
+                console.error(`[Checkout API Error] ${errorMsg}`);
+                return NextResponse.json({
+                    error: 'Invalid plan selected or Stripe configuration is missing',
+                    details: process.env.NODE_ENV === 'development' ? errorMsg : undefined
+                }, { status: 400 });
             }
 
             const priceId = plan.stripePriceId;
+            console.log(`[Checkout API] Proceeding with priceId: ${priceId}`);
 
             // 既存のCustomerIDを取得するか確認
             // (ここでは簡単のため、毎回Checkoutで顧客を作成するのではなく、

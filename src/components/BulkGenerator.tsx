@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { ProFeatureModal } from './ProFeatureModal';
@@ -117,20 +118,46 @@ export function BulkGenerator() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-                setCsvData(results.data as AnalyzedRow[]);
-                setHeaders(results.meta.fields || []);
-                autoMapHeaders(results.meta.fields || []);
-                setStep('mapping');
-            },
-            error: (error) => {
-                console.error('CSV Parse Error:', error);
-                alert('CSVの読み込みに失敗しました。');
-            }
-        });
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+        if (isExcel) {
+            // Excel file handling
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const firstSheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json<AnalyzedRow>(firstSheet, { defval: '' });
+                    const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
+                    setCsvData(jsonData);
+                    setHeaders(headers);
+                    autoMapHeaders(headers);
+                    setStep('mapping');
+                } catch (error) {
+                    console.error('Excel Parse Error:', error);
+                    alert('Excelファイルの読み込みに失敗しました。');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            // CSV file handling (existing logic)
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    setCsvData(results.data as AnalyzedRow[]);
+                    setHeaders(results.meta.fields || []);
+                    autoMapHeaders(results.meta.fields || []);
+                    setStep('mapping');
+                },
+                error: (error) => {
+                    console.error('CSV Parse Error:', error);
+                    alert('CSVの読み込みに失敗しました。');
+                }
+            });
+        }
     };
 
     const autoMapHeaders = (fields: string[]) => {
@@ -301,19 +328,19 @@ export function BulkGenerator() {
             <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                    CSVファイルのアップロード
+                    CSV / Excelファイルのアップロード
                 </h2>
 
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:bg-slate-50 transition-colors relative">
                     <input
                         type="file"
-                        accept=".csv"
+                        accept=".csv,.xlsx,.xls"
                         onChange={handleFileUpload}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600 font-medium">CSVファイルをここにドラッグ&ドロップ</p>
-                    <p className="text-slate-400 text-sm mt-2">または クリックしてファイルを選択</p>
+                    <p className="text-slate-600 font-medium">CSV / Excelファイルをここにドラッグ&ドロップ</p>
+                    <p className="text-slate-400 text-sm mt-2">または クリックしてファイルを選択（.csv, .xlsx, .xls）</p>
                 </div>
 
                 <div className="mt-8">

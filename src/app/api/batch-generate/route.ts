@@ -21,9 +21,9 @@ const BatchItemSchema = z.object({
     proposal: z.string().optional(), // セールス提案用
 });
 
-// Define schema for the request body
+// Define schema for the request body (no max limit - we handle slicing server-side)
 const BatchGenerateSchema = z.object({
-    items: z.array(BatchItemSchema).max(MAX_BATCH_SIZE_PER_REQUEST, `一度に生成できるのは${MAX_BATCH_SIZE_PER_REQUEST}件までです`),
+    items: z.array(BatchItemSchema),
 
     myCompanyName: z.string().optional(),
     myName: z.string().optional(),
@@ -67,11 +67,16 @@ export async function POST(request: Request) {
                 );
             }
 
+            // Slice items to remaining daily allowance (partial success behavior)
+            const remainingAllowance = limitCheck.usage?.remaining || 0;
+            const itemsToProcess = items.slice(0, remainingAllowance);
+            const skippedCount = items.length - itemsToProcess.length;
+
             // Server-side supabase client for DB operations (using logged in user context)
             const supabase = await createClient();
 
             const batchId = crypto.randomUUID();
-            const total = items.length;
+            const total = itemsToProcess.length;
 
             // Create a TransformStream for streaming the response
             const encoder = new TextEncoder();
@@ -90,7 +95,7 @@ export async function POST(request: Request) {
                     let failureCount = 0;
 
                     for (let i = 0; i < total; i++) {
-                        const item = items[i];
+                        const item = itemsToProcess[i];
 
                         // Determine Prompt Mode
                         let role = "あなたは企業のCxOに向けた丁寧な手紙を書く秘書です。礼節を重んじ、相手の心に響く手紙を作成してください。";
@@ -281,7 +286,8 @@ ${specificInstruction}
                         batchId,
                         total,
                         successCount,
-                        failureCount
+                        failureCount,
+                        skippedCount,
                     }) + '\n';
                     await writer.write(encoder.encode(completeMsg));
 

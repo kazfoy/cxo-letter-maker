@@ -119,7 +119,7 @@ export const REQUIRED_MARK = '*';
 
 // 外部リンク
 export const EXTERNAL_LINKS = {
-  support: 'https://forms.gle/your-google-form-id', // TODO: 実際のGoogleフォームURLに置き換えてください
+  support: 'https://forms.gle/eRc3L6aGr65b5CVM8',
   termsOfService: '/terms',
   privacyPolicy: '/privacy',
 };

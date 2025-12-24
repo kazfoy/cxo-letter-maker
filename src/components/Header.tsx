@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useUserPlan } from '@/hooks/useUserPlan';
+import { useCheckout } from '@/hooks/useCheckout';
 
 export function Header() {
   const { user, signOut, loading } = useAuth();
@@ -13,32 +14,7 @@ export function Header() {
   const pathname = usePathname();
 
   const { isPro, loading: planLoading } = useUserPlan();
-  const [upgrading, setUpgrading] = useState(false);
-
-  const handleUpgrade = async (planType: string = 'pro') => {
-    try {
-      setUpgrading(true);
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id, planType })
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        // 新しいタブで開く
-        window.open(data.url, '_blank', 'noopener,noreferrer');
-      } else {
-        alert('決済ページの作成に失敗しました');
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('決済処理中にエラーが発生しました');
-    } finally {
-      setUpgrading(false);
-    }
-  };
+  const { handleUpgrade, loading: upgrading } = useCheckout();
 
   // LPページかどうかを判定（トップページのみLP扱い）
   const isLandingPage = pathname === '/';

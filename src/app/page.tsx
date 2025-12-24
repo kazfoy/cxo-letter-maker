@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
+import { useCheckout } from '@/hooks/useCheckout';
 
 const TypewriterText = ({ text }: { text: string }) => {
   const [displayText, setDisplayText] = useState('');
@@ -30,6 +31,7 @@ const TypewriterText = ({ text }: { text: string }) => {
 };
 
 export default function LandingPage() {
+  const { handleUpgrade, loading: upgrading } = useCheckout();
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
 
 
@@ -568,14 +570,13 @@ export default function LandingPage() {
                 <p className="text-stone-600 mt-4 text-sm mb-6">
                   本格的に営業成果を上げたい方に
                 </p>
-                <Link
-                  href="/login?redirect=/checkout"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02]"
+                <button
+                  onClick={() => handleUpgrade('pro')}
+                  disabled={upgrading}
+                  className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02] disabled:opacity-50"
                 >
-                  Proプランで始める
-                </Link>
+                  {upgrading ? '処理中...' : 'Proプランで始める'}
+                </button>
               </div>
 
               <div className="flex-1 space-y-4">
@@ -642,14 +643,13 @@ export default function LandingPage() {
                 <p className="text-slate-300 mt-4 text-sm mb-6">
                   大量生成が必要なプロ・法人向け
                 </p>
-                <Link
-                  href="/login?redirect=/checkout"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-center rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg transform hover:scale-[1.02]"
+                <button
+                  onClick={() => handleUpgrade('premium')}
+                  disabled={upgrading}
+                  className="block w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-center rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
                 >
-                  Premiumプランで始める
-                </Link>
+                  {upgrading ? '処理中...' : 'Premiumプランで始める'}
+                </button>
               </div>
 
               <div className="flex-1 space-y-4">
@@ -927,7 +927,7 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li>
-                  <a href="https://forms.gle/your-google-form-id" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <a href="https://forms.gle/eRc3L6aGr65b5CVM8" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     お問い合わせ
                   </a>
                 </li>

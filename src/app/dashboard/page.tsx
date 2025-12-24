@@ -7,12 +7,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { LetterHistory } from '@/types/letter';
 import { useUserPlan } from '@/hooks/useUserPlan';
+import { useCheckout } from '@/hooks/useCheckout';
 import { Upload, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { isPro, isPremium, loading: planLoading } = useUserPlan();
+  const { handleUpgrade, loading: upgrading } = useCheckout();
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -156,42 +158,22 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
               {!isPro && !isPremium && (
                 <button
-                  onClick={() => {
-                    const handleUpgrade = async (plan: string) => {
-                      const res = await fetch('/api/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ planType: plan })
-                      });
-                      const { url } = await res.json();
-                      if (url) window.location.href = url;
-                    };
-                    handleUpgrade('pro');
-                  }}
-                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group"
+                  onClick={() => handleUpgrade('pro')}
+                  disabled={upgrading}
+                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group disabled:opacity-50"
                 >
                   <Zap className="w-5 h-5 text-indigo-600" />
-                  Proへ (¥980)
+                  {upgrading ? '処理中...' : 'Proへ (¥980)'}
                 </button>
               )}
               {!isPremium && (
                 <button
-                  onClick={() => {
-                    const handleUpgrade = async (plan: string) => {
-                      const res = await fetch('/api/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ planType: plan })
-                      });
-                      const { url } = await res.json();
-                      if (url) window.location.href = url;
-                    };
-                    handleUpgrade('premium');
-                  }}
-                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-bold shadow-lg text-lg border border-white/20 group"
+                  onClick={() => handleUpgrade('premium')}
+                  disabled={upgrading}
+                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-bold shadow-lg text-lg border border-white/20 group disabled:opacity-50"
                 >
                   <Zap className="w-5 h-5 text-yellow-300" />
-                  Premiumへ (¥9,800)
+                  {upgrading ? '処理中...' : 'Premiumへ (¥9,800)'}
                 </button>
               )}
               {isPremium && (

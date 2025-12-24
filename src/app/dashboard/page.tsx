@@ -12,7 +12,7 @@ import { Upload, Zap } from 'lucide-react';
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { isPro, loading: planLoading } = useUserPlan();
+  const { isPro, isPremium, loading: planLoading } = useUserPlan();
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -117,29 +117,89 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Pro Upgrade CTA - Show only for Free users, prevent flicker */}
-      {!planLoading && !isPro && (
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg p-8 mb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-6 h-6 text-white" />
-                <h2 className="text-2xl font-bold text-white">Proプランでもっと便利に</h2>
+      {/* Upgrade CTA */}
+      {!planLoading && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 rounded-2xl shadow-xl p-8 mb-8 border border-white/10 relative overflow-hidden">
+          {/* Decorative Background */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl -mr-32 -mt-32 rounded-full" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-3xl -ml-32 -mb-32 rounded-full" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold mb-4">
+                <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                UPGRADE YOUR PLAN
               </div>
-              <p className="text-white/90 mb-2">無制限の生成、優先サポート、高度な機能をご利用いただけます</p>
-              <ul className="text-sm text-white/80 space-y-1">
-                <li>✓ 無制限の手紙生成</li>
-                <li>✓ CSV一括生成</li>
-                <li>✓ 優先サポート</li>
-              </ul>
+              <h2 className="text-3xl font-bold text-white mb-2">プランをアップグレードして制限を解除</h2>
+              <p className="text-indigo-100/80 mb-6 text-lg">大量生成、優先サポート、高度な機能を今すぐ始めましょう</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto lg:mx-0">
+                <div className="flex items-start gap-2 text-indigo-100/70 text-sm">
+                  <div className="mt-1 bg-white/10 rounded-full p-0.5">
+                    <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span>1回のリクエストで最大50件生成</span>
+                </div>
+                <div className="flex items-start gap-2 text-indigo-100/70 text-sm">
+                  <div className="mt-1 bg-white/10 rounded-full p-0.5">
+                    <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span>Word形式ダウンロード対応</span>
+                </div>
+              </div>
             </div>
-            <Link
-              href="/checkout"
-              className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-md hover:bg-orange-50 transition-colors font-bold shadow-md whitespace-nowrap"
-            >
-              <Zap className="w-5 h-5" />
-              <span>Proへアップグレード</span>
-            </Link>
+
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              {!isPro && !isPremium && (
+                <button
+                  onClick={() => {
+                    const handleUpgrade = async (plan: string) => {
+                      const res = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ planType: plan })
+                      });
+                      const { url } = await res.json();
+                      if (url) window.location.href = url;
+                    };
+                    handleUpgrade('pro');
+                  }}
+                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group"
+                >
+                  <Zap className="w-5 h-5 text-indigo-600" />
+                  Proへ (¥980)
+                </button>
+              )}
+              {!isPremium && (
+                <button
+                  onClick={() => {
+                    const handleUpgrade = async (plan: string) => {
+                      const res = await fetch('/api/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ planType: plan })
+                      });
+                      const { url } = await res.json();
+                      if (url) window.location.href = url;
+                    };
+                    handleUpgrade('premium');
+                  }}
+                  className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-bold shadow-lg text-lg border border-white/20 group"
+                >
+                  <Zap className="w-5 h-5 text-yellow-300" />
+                  Premiumへ (¥9,800)
+                </button>
+              )}
+              {isPremium && (
+                <div className="px-8 py-4 bg-white/10 text-white rounded-xl font-bold border border-white/20">
+                  Premiumプランをご利用中
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -180,15 +240,14 @@ export default function DashboardPage() {
                   <p className="text-sm text-slate-600">{history.targetName}様</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    history.status === 'meeting_set' ? 'bg-green-100 text-green-700' :
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${history.status === 'meeting_set' ? 'bg-green-100 text-green-700' :
                     history.status === 'replied' ? 'bg-orange-100 text-orange-700' :
-                    history.status === 'sent' ? 'bg-indigo-100 text-indigo-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
+                      history.status === 'sent' ? 'bg-indigo-100 text-indigo-700' :
+                        'bg-blue-100 text-blue-700'
+                    }`}>
                     {history.status === 'meeting_set' ? 'アポ獲得' :
-                     history.status === 'replied' ? '返信あり' :
-                     history.status === 'sent' ? '送付済' : '作成済'}
+                      history.status === 'replied' ? '返信あり' :
+                        history.status === 'sent' ? '送付済' : '作成済'}
                   </span>
                   <span className="text-xs text-slate-500">
                     {new Date(history.createdAt).toLocaleDateString('ja-JP')}

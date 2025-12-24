@@ -15,13 +15,13 @@ export function Header() {
   const { isPro, loading: planLoading } = useUserPlan();
   const [upgrading, setUpgrading] = useState(false);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (planType: string = 'pro') => {
     try {
       setUpgrading(true);
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
+        body: JSON.stringify({ userId: user?.id, planType })
       });
 
       const data = await response.json();
@@ -141,7 +141,7 @@ export function Header() {
                             </span>
                           ) : (
                             <button
-                              onClick={handleUpgrade}
+                              onClick={() => handleUpgrade('pro')}
                               disabled={upgrading}
                               className="mr-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-full font-bold text-sm hover:from-amber-700 hover:to-amber-800 transition-all shadow-sm flex items-center gap-1"
                             >

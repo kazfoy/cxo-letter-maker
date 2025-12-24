@@ -50,7 +50,7 @@ export async function POST(request: Request) {
                         quantity: 1,
                     },
                 ],
-                success_url: `${baseUrl}/checkout/success`,
+                success_url: `${baseUrl}/checkout/success?plan=${planType}`,
                 cancel_url: `${baseUrl}/dashboard/settings?canceled=true`,
                 // ユーザーIDをメタデータに含める（Webhookで紐付けに使用）
                 metadata: {

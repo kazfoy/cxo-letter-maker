@@ -1,9 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, Zap, List } from 'lucide-react';
 
 export default function CheckoutSuccessPage() {
+    const searchParams = useSearchParams();
+    const plan = searchParams.get('plan') || 'pro';
+    const isPremium = plan === 'premium';
+
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -17,7 +22,7 @@ export default function CheckoutSuccessPage() {
                             アップグレード完了！
                         </h1>
                         <p className="text-indigo-100">
-                            Proプランへの登録が完了しました。
+                            {isPremium ? 'Premium' : 'Pro'}プランへの登録が完了しました。
                         </p>
                     </div>
 
@@ -38,7 +43,7 @@ export default function CheckoutSuccessPage() {
                     </div>
 
                     <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
-                        Pro Plan Features
+                        {isPremium ? 'Premium' : 'Pro'} Plan Features
                     </h2>
 
                     <div className="grid gap-4 mb-8">
@@ -49,7 +54,7 @@ export default function CheckoutSuccessPage() {
                             <div>
                                 <h3 className="font-bold text-slate-900">CSV一括生成</h3>
                                 <p className="text-sm text-slate-600 mt-1">
-                                    顧客リスト(CSV)をアップロードして、個別にカスタマイズされた手紙をまとめて生成できます。
+                                    {isPremium ? '1日1,000件' : '1日100件'}までのCSV一括生成が可能です。
                                 </p>
                             </div>
                         </div>

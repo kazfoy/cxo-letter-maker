@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
 import { cleanAIResponse, cleanJSONResponse } from '@/lib/text-cleaner';
 import { getErrorMessage } from '@/lib/errorUtils';
-import { MAX_BATCH_SIZE_PER_REQUEST } from '@/config/subscriptionPlans';
+import { MAX_BATCH_SIZE_PER_REQUEST, getPlan } from '@/config/subscriptionPlans';
 import { validateDailyBatchLimit } from '@/lib/dailyLimitChecker';
 
 // Define schema for a single item in the batch
@@ -81,7 +81,10 @@ export async function POST(request: Request) {
             (async () => {
                 try {
                     const google = getGoogleProvider();
-                    const model = google('gemini-2.0-flash-exp'); // Use fast model for batch
+                    const userPlan = limitCheck.usage?.userPlan || 'free';
+                    const planConfig = getPlan(userPlan);
+                    const modelId = planConfig.modelId || 'gemini-1.5-flash';
+                    const model = google(modelId); // Use model from config
 
                     let successCount = 0;
                     let failureCount = 0;

@@ -20,6 +20,8 @@ export interface PlanConfig {
   description: string;
   /** 機能一覧 */
   features: string[];
+  /** 使用AIモデルID */
+  modelId: string;
 }
 
 /**
@@ -30,6 +32,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     label: 'Free',
     dailyBatchLimit: 0, // CSV一括生成不可
     price: 0,
+    modelId: 'gemini-1.5-flash',
     description: '個人利用向けの無料プラン',
     features: [
       '手紙の個別生成（無制限）',
@@ -40,15 +43,16 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   pro: {
     label: 'Pro',
     dailyBatchLimit: 100, // 100件/日
-    price: 2980,
+    price: 980,
     stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
-    description: 'ビジネス利用向けプラン',
+    modelId: 'gemini-1.5-flash',
+    description: '本格的な営業活動に最適なプラン',
     features: [
       '手紙の個別生成（無制限）',
       'CSV一括生成（100件/日）',
-      '高度なAI生成機能',
-      '履歴の無制限保存',
-      '優先サポート',
+      '全履歴の無制限保存',
+      'Word形式ダウンロード',
+      '優先メールサポート',
     ],
   },
   premium: {
@@ -56,14 +60,14 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     dailyBatchLimit: 1000, // 1000件/日
     price: 9800,
     stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PREMIUM,
-    description: '大規模営業活動向けプラン',
+    modelId: 'gemini-1.5-flash',
+    description: '大規模な営業活動を行う法人向けプラン',
     features: [
       '手紙の個別生成（無制限）',
-      'CSV一括生成（1000件/日）',
-      '高度なAI生成機能',
-      '履歴の無制限保存',
-      '優先サポート',
-      '専任担当者によるサポート',
+      'CSV一括生成（1,000件/日）',
+      '全履歴の無制限保存',
+      'Word形式ダウンロード',
+      '優先メールサポート（最優先対応）',
     ],
   },
 } as const;

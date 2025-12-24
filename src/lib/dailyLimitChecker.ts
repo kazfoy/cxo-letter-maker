@@ -1,8 +1,3 @@
-/**
- * 日次制限チェッカー
- * CSV一括生成の日次制限を管理
- */
-
 import { createClient } from '@/utils/supabase/server';
 import { getDailyBatchLimit, type PlanType } from '@/config/subscriptionPlans';
 
@@ -135,24 +130,25 @@ export async function validateDailyBatchLimit(
 
   // 既に上限に達している
   if (usage.isLimitReached) {
-    const upgradeMessage =
-      usage.userPlan === 'pro'
-        ? ' Premiumプランなら1000件/日まで生成可能です。'
-        : '';
+    let upgradeMessage = '';
+    if (usage.userPlan === 'pro') {
+      upgradeMessage = ' Premiumプランなら1,000件/日まで生成可能です。';
+    }
 
+    const planName = usage.userPlan === 'pro' ? 'Proプラン' : '本日';
     return {
       allowed: false,
-      errorMessage: `本日の上限（${usage.dailyLimit}件）に達しました。明日再度お試しください。${upgradeMessage}`,
+      errorMessage: `${planName}の上限（${usage.dailyLimit}件）に達しました。${upgradeMessage}`,
       usage,
     };
   }
 
   // リクエスト件数が残り枠を超える
   if (requestedCount > usage.remaining) {
-    const upgradeMessage =
-      usage.userPlan === 'pro'
-        ? ` Premiumプランなら1000件/日まで生成可能です。`
-        : '';
+    let upgradeMessage = '';
+    if (usage.userPlan === 'pro') {
+      upgradeMessage = ' Premiumプランなら1,000件/日まで生成可能です。';
+    }
 
     return {
       allowed: false,

@@ -4,6 +4,7 @@ import { getErrorMessage } from '@/lib/errorUtils';
 import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
+import { PLANS, PlanType } from '@/config/subscriptionPlans';
 
 export async function POST(request: Request) {
     return await authGuard(async (user) => {
@@ -12,10 +13,14 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'User email is required' }, { status: 400 });
             }
 
-            const priceId = process.env.STRIPE_PRICE_ID_PRO_MONTHLY;
-            if (!priceId) {
-                return NextResponse.json({ error: 'Stripe configuration is missing' }, { status: 500 });
+            const { planType = 'pro' } = await request.json();
+            const plan = PLANS[planType as PlanType];
+
+            if (!plan || !plan.stripePriceId) {
+                return NextResponse.json({ error: 'Invalid plan selected or Stripe configuration is missing' }, { status: 400 });
             }
+
+            const priceId = plan.stripePriceId;
 
             // 既存のCustomerIDを取得するか確認
             // (ここでは簡単のため、毎回Checkoutで顧客を作成するのではなく、

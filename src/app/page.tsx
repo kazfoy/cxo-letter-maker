@@ -568,7 +568,7 @@ export default function LandingPage() {
                   <span className="text-stone-600 font-medium">円 / 月 (税込)</span>
                 </div>
                 <p className="text-stone-600 mt-4 text-sm mb-6">
-                  本格的に営業成果を上げたい方に
+                  毎日のリスト消化を自動化し、商談数を最大化したい方に
                 </p>
                 <button
                   onClick={() => handleUpgrade('pro')}
@@ -613,8 +613,8 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <span className="text-amber-800 font-bold">CSV一括生成機能</span>
-                      <p className="text-xs text-stone-600 mt-0.5">1日100件まで生成可能</p>
+                      <span className="text-amber-800 font-bold">毎日100件のアプローチを自動化</span>
+                      <p className="text-xs text-stone-600 mt-0.5">月最大3,000件のリストを一括処理</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-stone-900 font-medium">
@@ -641,7 +641,7 @@ export default function LandingPage() {
                   <span className="text-slate-300 font-medium">円 / 月 (税込)</span>
                 </div>
                 <p className="text-slate-300 mt-4 text-sm mb-6">
-                  大量生成が必要なプロ・法人向け
+                  展示会やイベント後の大量リードを、即座に商談へ繋げたい方に
                 </p>
                 <button
                   onClick={() => handleUpgrade('premium')}
@@ -662,8 +662,8 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <span className="text-blue-400 font-bold text-lg">CSV一括生成 1,000件/日</span>
-                      <p className="text-xs text-slate-300 mt-0.5">月間最大30,000件のレター生成が可能</p>
+                      <span className="text-blue-400 font-bold text-lg">展示会名刺も即日対応。1日1,000件</span>
+                      <p className="text-xs text-slate-300 mt-0.5">月間最大30,000件のレター生成で機会損失ゼロへ</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">
@@ -684,8 +684,8 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <span>ビジネススピード加速</span>
-                      <p className="text-xs text-slate-400 mt-0.5">展示会やイベントの大量フォローを即座に実行</p>
+                      <span>"鉄は熱いうちに打て"を実現</span>
+                      <p className="text-xs text-slate-400 mt-0.5">スピードフォローで競合に差をつける</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">

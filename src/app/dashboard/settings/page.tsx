@@ -10,6 +10,8 @@ import { updatePassword } from './actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { EXTERNAL_LINKS } from '@/lib/constants';
+import { PlanSelectionModal } from '@/components/PlanSelectionModal';
+import { useCheckout } from '@/hooks/useCheckout';
 
 function SecuritySettings() {
   const [newPassword, setNewPassword] = useState('');
@@ -112,6 +114,7 @@ function SecuritySettings() {
 export default function SettingsPage() {
   const { user } = useAuth();
   const { isPro, loading: planLoading } = useUserPlan();
+  const { handleUpgrade, loading: upgrading } = useCheckout();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,7 +122,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -150,30 +153,6 @@ export default function SettingsPage() {
       console.error('Failed to load profile:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpgrade = async () => {
-    try {
-      setUpgrading(true);
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id })
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert('決済ページの作成に失敗しました');
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('決済処理中にエラーが発生しました');
-    } finally {
-      setUpgrading(false);
     }
   };
 
@@ -338,12 +317,12 @@ export default function SettingsPage() {
 
             {!isPro ? (
               <button
-                onClick={handleUpgrade}
+                onClick={() => setIsUpgradeModalOpen(true)}
                 disabled={upgrading}
                 className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2.5 px-5 rounded-lg shadow transition-all transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Rocket className="w-4 h-4" />
-                {upgrading ? '準備中...' : 'Proにアップグレード'}
+                {upgrading ? '準備中...' : 'プランを変更'}
               </button>
             ) : (
               <button
@@ -356,7 +335,7 @@ export default function SettingsPage() {
           </div>
           {!isPro && (
             <p className="text-xs text-slate-500 mt-3">
-              Proプランでは、無制限の生成、Wordダウンロード、高度な履歴管理が利用可能です。
+              ProプランまたはPremiumプランにアップグレードして、より多くの機能を利用できます。
             </p>
           )}
         </div>
@@ -535,6 +514,12 @@ export default function SettingsPage() {
           </a>
         </div>
       </div>
+
+      {/* Plan Selection Modal */}
+      <PlanSelectionModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </div>
   );
 }

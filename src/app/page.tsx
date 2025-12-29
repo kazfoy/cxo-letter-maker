@@ -948,6 +948,11 @@ export default function LandingPage() {
                     プライバシーポリシー
                   </Link>
                 </li>
+                <li>
+                  <Link href="/tokusho" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                    特定商取引法に基づく表記
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

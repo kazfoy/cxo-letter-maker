@@ -29,6 +29,7 @@ const BatchGenerateSchema = z.object({
     myName: z.string().optional(),
     myServiceDescription: z.string().optional(),
     output_format: z.enum(['letter', 'email']).default('letter'),
+    mode: z.enum(['sales', 'event']).default('sales'),
 });
 
 // Helper to get Google Provider
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
         request,
         BatchGenerateSchema,
         async (data, user) => {
-            const { items, myCompanyName, myName, myServiceDescription, output_format } = data;
+            const { items, myCompanyName, myName, myServiceDescription, output_format, mode: clientMode } = data;
 
             // 日次制限チェック
             if (!user) {
@@ -97,32 +98,35 @@ export async function POST(request: Request) {
                     for (let i = 0; i < total; i++) {
                         const item = itemsToProcess[i];
 
-                        // Determine Prompt Mode
+                        // Determine Prompt Mode based on client-specified mode
                         let role = "あなたは企業のCxOに向けた丁寧な手紙を書く秘書です。礼節を重んじ、相手の心に響く手紙を作成してください。";
-                        let specificInstruction = "- 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。";
+                        let specificInstruction = `- 相手企業(${item.companyName})の課題を推測し、自社サービスがいかに役立つかを提案してください。`;
 
                         // Email vs Letter adjustments
                         if (output_format === 'email') {
                             role = "あなたは企業の決裁者に向けた効果的な営業メールを作成するプロです。件名は開封率を高め、本文は簡潔かつアクションにつながる内容にしてください。";
                         }
 
-                        if (item.eventName) {
+                        // Use client-specified mode for prompt generation
+                        if (clientMode === 'event') {
                             // Case A: Event Invitation
+                            const eventName = item.eventName || '（イベント名未設定）';
                             if (output_format === 'email') {
-                                role = `あなたはプロのイベントコーディネーターです。「${item.eventName}」への参加を促す、魅力的な招待メールを作成してください。`;
+                                role = `あなたはプロのイベントコーディネーターです。「${eventName}」への参加を促す、魅力的な招待メールを作成してください。`;
                             } else {
-                                role = `あなたはプロのイベントコーディネーターです。「${item.eventName}」への参加を促す、魅力的な招待状を作成してください。`;
+                                role = `あなたはプロのイベントコーディネーターです。「${eventName}」への参加を促す、魅力的な招待状を作成してください。`;
                             }
                             specificInstruction = `
 - イベントの内容や魅力を伝え、参加メリットを強調してください。
 - 添付されている日時や場所などの詳細情報（備考欄）を必ず盛り込んでください。
 `;
-                        } else if (item.proposal) {
-                            // Case B: Sales Proposal
+                        } else {
+                            // Case B: Sales (default)
+                            const proposal = item.proposal || '自社サービスのご提案';
                             if (output_format === 'email') {
-                                role = `あなたは優秀な法人営業担当です。「${item.proposal}」に関する課題解決型の提案メールを作成してください。`;
+                                role = `あなたは優秀な法人営業担当です。「${proposal}」に関する課題解決型の提案メールを作成してください。`;
                             } else {
-                                role = `あなたは優秀な法人営業担当です。「${item.proposal}」に関する課題解決型の提案レターを作成してください。`;
+                                role = `あなたは優秀な法人営業担当です。「${proposal}」に関する課題解決型の提案レターを作成してください。`;
                             }
                             specificInstruction = `
 - 相手の役職（${item.position || '担当者'}）を考慮し、メリットを訴求してください。
@@ -206,7 +210,7 @@ ${specificInstruction}
                                         target_name: item.name, // Fixed: add required target_name field
                                         batch_id: batchId,
                                         status: 'generated',
-                                        mode: item.eventName ? 'event' : 'sales', // Simple inference
+                                        mode: clientMode, // Use client-specified mode
                                         model_name: 'gemini-2.0-flash-exp',
                                         inputs: item // Store original inputs for reference
                                     });
@@ -261,7 +265,7 @@ ${specificInstruction}
                                             target_name: item.name,
                                             batch_id: batchId,
                                             status: 'failed',
-                                            mode: item.eventName ? 'event' : 'sales',
+                                            mode: clientMode, // Use client-specified mode
                                             model_name: 'gemini-2.0-flash-exp',
                                             inputs: item,
                                             error_message: genError.message || 'Generation failed'

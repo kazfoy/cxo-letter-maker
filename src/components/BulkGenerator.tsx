@@ -87,6 +87,10 @@ export function BulkGenerator() {
         myServiceDescription: ''
     });
 
+    // 生成オプション設定
+    const [mediaType, setMediaType] = useState<'letter' | 'mail'>('letter');
+    const [generationMode, setGenerationMode] = useState<'sales' | 'event'>('sales');
+
     const [mapping, setMapping] = useState<MappingConfig>({
         companyName: '',
         name: '',
@@ -229,7 +233,9 @@ export function BulkGenerator() {
                     items,
                     myCompanyName: senderInfo.myCompanyName,
                     myName: senderInfo.myName,
-                    myServiceDescription: senderInfo.myServiceDescription
+                    myServiceDescription: senderInfo.myServiceDescription,
+                    output_format: mediaType === 'mail' ? 'email' : 'letter',
+                    mode: generationMode
                 })
             });
 
@@ -326,6 +332,90 @@ export function BulkGenerator() {
     if (step === 'upload') {
         return (
             <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                {/* 生成設定オプション */}
+                <div className="mb-8 pb-6 border-b border-slate-200">
+                    <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span className="bg-amber-100 text-amber-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">⚙️</span>
+                        生成設定
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 媒体タイプ */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-3">媒体タイプ</label>
+                            <div className="flex gap-3">
+                                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${mediaType === 'letter'
+                                    ? 'border-amber-500 bg-amber-50 text-amber-800'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}>
+                                    <input
+                                        type="radio"
+                                        name="mediaType"
+                                        value="letter"
+                                        checked={mediaType === 'letter'}
+                                        onChange={() => setMediaType('letter')}
+                                        className="sr-only"
+                                    />
+                                    <span className="text-lg">✉️</span>
+                                    <span className="font-medium">手紙</span>
+                                </label>
+                                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${mediaType === 'mail'
+                                    ? 'border-blue-500 bg-blue-50 text-blue-800'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}>
+                                    <input
+                                        type="radio"
+                                        name="mediaType"
+                                        value="mail"
+                                        checked={mediaType === 'mail'}
+                                        onChange={() => setMediaType('mail')}
+                                        className="sr-only"
+                                    />
+                                    <span className="text-lg">📧</span>
+                                    <span className="font-medium">メール</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* 生成モード */}
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-3">生成モード</label>
+                            <div className="flex gap-3">
+                                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${generationMode === 'sales'
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}>
+                                    <input
+                                        type="radio"
+                                        name="generationMode"
+                                        value="sales"
+                                        checked={generationMode === 'sales'}
+                                        onChange={() => setGenerationMode('sales')}
+                                        className="sr-only"
+                                    />
+                                    <span className="text-lg">💼</span>
+                                    <span className="font-medium">セールス</span>
+                                </label>
+                                <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${generationMode === 'event'
+                                    ? 'border-purple-500 bg-purple-50 text-purple-800'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}>
+                                    <input
+                                        type="radio"
+                                        name="generationMode"
+                                        value="event"
+                                        checked={generationMode === 'event'}
+                                        onChange={() => setGenerationMode('event')}
+                                        className="sr-only"
+                                    />
+                                    <span className="text-lg">🎉</span>
+                                    <span className="font-medium">イベント招待</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
                     CSV / Excelファイルのアップロード

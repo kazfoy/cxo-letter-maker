@@ -34,9 +34,131 @@ export default function LandingPage() {
   const { handleUpgrade, loading: upgrading } = useCheckout();
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
 
+  // JSON-LD構造化データ for AI検索エンジン対策
+  const softwareApplicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CxO Letter Maker",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web Application",
+    "offers": [
+      {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY",
+        "name": "Free Plan"
+      },
+      {
+        "@type": "Offer",
+        "price": "980",
+        "priceCurrency": "JPY",
+        "name": "Pro Plan"
+      },
+      {
+        "@type": "Offer",
+        "price": "9800",
+        "priceCurrency": "JPY",
+        "name": "Premium Plan"
+      }
+    ],
+    "description": "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率を劇的に向上させます。",
+    "featureList": [
+      "企業URLからAIが自動で事業内容・課題を分析",
+      "BtoB営業専門家監修メソッドに基づいた文面生成",
+      "30秒で決裁者に刺さる手紙を作成",
+      "Word形式でダウンロード可能",
+      "CSV一括生成機能で大量のレター作成に対応"
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "95"
+    }
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "本当に無料で使えますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい、無料プランをご用意しております。ただし、1日10回までの生成、履歴の閲覧は最新10件まで、Word形式でのダウンロードは不可（テキストコピーは可能）、CSV一括生成機能は利用不可といった制限がございます。より高度な機能が必要な場合は、Proプラン（月額980円）またはPremiumプラン（月額9,800円）をご検討ください。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "どのように使うのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "送りたい企業のホームページURLを入力し、必要な情報（自社名、サービス内容など）を入力するだけです。AIが企業情報を自動解析し、個別最適化されたレターを30秒で生成します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "アカウント登録は必要ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "登録なしでもご利用いただけます。ただし、過去に作成したレターの履歴を保存したい場合は、無料アカウント登録をおすすめします。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "生成されたレターはどのような形式でダウンロードできますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Word（.docx）形式でダウンロード可能です。そのまま印刷して投函できる形式になっています。現在、PDF形式でのダウンロードには対応しておりません。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "入力した情報はAIの学習に使われますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "いいえ、一切使用されません。入力データおよび生成されたコンテンツは、AIモデルの学習には使用しない契約を結んでいます。あなたのビジネス情報は厳重に保護されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "生成されたレターは編集できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい、生成されたレターはプレビュー画面で直接編集できます。また、Word形式でダウンロード後に自由に編集することも可能です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AIの分析精度はどのくらいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "最新のAI技術を使用し、企業のWebサイトから事業内容、課題、ニーズを高精度で分析します。BtoB営業の専門家が監修したメソッドに基づいているため、実務で即使えるレベルの品質を実現しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "何通まで生成できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "プランごとに生成可能な件数が異なります。無料プランは1日10通まで（個別生成のみ）、Proプラン（月額980円）は個別生成無制限 + CSV一括生成100件/日、Premiumプラン（月額9,800円）は個別生成無制限 + CSV一括生成1,000件/日となっています。"
+        }
+      }
+    ]
+  };
 
   return (
     <div className="min-h-screen bg-stone-50">
+      {/* JSON-LD構造化データ */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-amber-50/30 to-transparent"></div>

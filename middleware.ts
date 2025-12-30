@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   devLog.log('Has user:', !!user);
 
   // パブリックルート（未認証でもアクセス可能）
-  const publicRoutes = new Set(['/login', '/auth/callback', '/', '/new', '/terms', '/privacy']);
+  const publicRoutes = new Set(['/login', '/auth/callback', '/', '/new', '/terms', '/privacy', '/tokusho']);
 
   // 正確な一致のみ許可（"/"で全ルートがマッチするのを防ぐ）
   if (publicRoutes.has(pathname)) {

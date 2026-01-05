@@ -208,7 +208,7 @@ export async function getBatchJobStatus(batchId: string): Promise<{
 
     const { data, error } = await supabase
       .from('batch_jobs')
-      .select('status, total_count, processed_count, failure_count')
+      .select('status, total_count, completed_count, failed_count')
       .eq('id', batchId)
       .eq('user_id', user.id)
       .single();
@@ -223,8 +223,8 @@ export async function getBatchJobStatus(batchId: string): Promise<{
     return {
       status: data.status,
       totalCount: data.total_count,
-      processedCount: data.processed_count,
-      failureCount: data.failure_count
+      processedCount: data.completed_count,
+      failureCount: data.failed_count
     };
   } catch (error) {
     console.error('Batch job status fetch error (catch):', error);
@@ -248,9 +248,9 @@ export async function getActiveBatchJobs(): Promise<Array<{
 
     const { data, error } = await supabase
       .from('batch_jobs')
-      .select('id, total_count, processed_count, failure_count, created_at, status, error_message') // fetch error_message if exists
+      .select('id, total_count, completed_count, failed_count, created_at, status, error_message') // fetch error_message if exists
       .eq('user_id', user.id)
-      .in('status', ['processing', 'error']) // Fetch error jobs too (User schema uses 'error' not 'failed')
+      .in('status', ['running', 'error']) // Fetch error jobs too (User schema uses 'error' not 'failed')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -261,8 +261,8 @@ export async function getActiveBatchJobs(): Promise<Array<{
     return data.map(job => ({
       id: job.id,
       totalCount: job.total_count,
-      processedCount: job.processed_count,
-      failureCount: job.failure_count,
+      processedCount: job.completed_count,
+      failureCount: job.failed_count,
       createdAt: job.created_at,
       status: job.status,
       errorMessage: job.error_message

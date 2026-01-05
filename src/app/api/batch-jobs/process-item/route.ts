@@ -64,11 +64,11 @@ export async function POST(request: Request) {
             // 1. Validation
             if (!item.companyName || !item.name) {
                 // Increment failed count without RPC
-                const { data: job } = await supabase.from('batch_jobs').select('processed_count, failure_count').eq('id', batchId).single();
+                const { data: job } = await supabase.from('batch_jobs').select('completed_count, failed_count').eq('id', batchId).single();
                 if (job) {
                     await supabase.from('batch_jobs').update({
-                        processed_count: (job.processed_count || 0) + 1,
-                        failure_count: (job.failure_count || 0) + 1,
+                        completed_count: (job.completed_count || 0) + 1,
+                        failed_count: (job.failed_count || 0) + 1,
                         updated_at: new Date().toISOString()
                     }).eq('id', batchId);
                 }
@@ -222,13 +222,11 @@ ${specificInstruction}
 
                 if (dbError) throw dbError;
 
-                // 6. Update Batch Counter
                 // 6. Update Batch Counter (No RPC)
-                const { data: job } = await supabase.from('batch_jobs').select('processed_count, success_count').eq('id', batchId).single();
+                const { data: job } = await supabase.from('batch_jobs').select('completed_count').eq('id', batchId).single();
                 if (job) {
                     await supabase.from('batch_jobs').update({
-                        processed_count: (job.processed_count || 0) + 1,
-                        success_count: (job.success_count || 0) + 1,
+                        completed_count: (job.completed_count || 0) + 1,
                         updated_at: new Date().toISOString()
                     }).eq('id', batchId);
                 }
@@ -238,11 +236,11 @@ ${specificInstruction}
             } catch (error) {
                 console.error('Generation Error:', error);
                 // Increment failed count without RPC
-                const { data: job } = await supabase.from('batch_jobs').select('processed_count, failure_count').eq('id', batchId).single();
+                const { data: job } = await supabase.from('batch_jobs').select('completed_count, failed_count').eq('id', batchId).single();
                 if (job) {
                     await supabase.from('batch_jobs').update({
-                        processed_count: (job.processed_count || 0) + 1,
-                        failure_count: (job.failure_count || 0) + 1,
+                        completed_count: (job.completed_count || 0) + 1,
+                        failed_count: (job.failed_count || 0) + 1,
                         updated_at: new Date().toISOString()
                     }).eq('id', batchId);
                 }

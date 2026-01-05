@@ -64,7 +64,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
 
     // Polling while running
     useEffect(() => {
-        if (!batchId || (jobStatus && jobStatus.status !== 'processing')) return;
+        if (!batchId || (jobStatus && jobStatus.status !== 'running')) return;
 
         const interval = setInterval(() => {
             loadBatch(batchId, true);
@@ -195,7 +195,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {jobStatus?.status === 'processing' && (
+                    {jobStatus?.status === 'running' && (
                         <button
                             onClick={handleCancel}
                             disabled={isCancelling}
@@ -218,7 +218,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             </div>
 
             {/* Progress Bar for running jobs */}
-            {jobStatus && jobStatus.status === 'processing' && (
+            {jobStatus && jobStatus.status === 'running' && (
                 <div className="mb-8 bg-blue-50 border border-blue-100 p-6 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 text-blue-800 font-bold">

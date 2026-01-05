@@ -24,10 +24,10 @@ export async function POST(request: Request) {
             const { error } = await supabase.from('batch_jobs').insert({
                 id: batchId,
                 user_id: user.id,
-                status: 'processing',
+                status: 'running',
                 total_count: totalCount,
-                processed_count: 0,
-                failure_count: 0
+                completed_count: 0,
+                failed_count: 0
             });
 
             if (error) {

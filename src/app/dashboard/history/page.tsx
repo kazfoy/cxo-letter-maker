@@ -1,16 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getHistories, deleteHistory, getBatches } from '@/lib/supabaseHistoryUtils';
+import { useEffect, useState, useRef } from 'react';
+import { getHistories, deleteHistory, getBatches, getActiveBatchJobs } from '@/lib/supabaseHistoryUtils';
 import { useRouter } from 'next/navigation';
 import type { LetterHistory, LetterStatus } from '@/types/letter';
 import Link from 'next/link';
 import { StatusDropdown } from '@/components/StatusDropdown';
+import { Loader2, XCircle } from 'lucide-react'; // Added icons
 
 interface BatchSummary {
   batchId: string;
   createdAt: string;
   count: number;
+}
+
+interface ActiveJob {
+  id: string;
+  totalCount: number;
+  completedCount: number;
+  failedCount: number;
+  createdAt: string;
+  status: string;
 }
 
 type OutputFormat = 'all' | 'letter' | 'mail';
@@ -19,14 +29,32 @@ export default function HistoryPage() {
   const router = useRouter();
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [batches, setBatches] = useState<BatchSummary[]>([]);
+  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>('all');
   const [formatFilter, setFormatFilter] = useState<OutputFormat>('all');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const prevActiveCountRef = useRef(0);
 
   useEffect(() => {
     loadData();
+
+    // Poll for active jobs every 3 seconds
+    const interval = setInterval(() => {
+      refreshActiveJobs();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // Track active jobs count to auto-reload when jobs finish
+  useEffect(() => {
+    if (activeJobs.length < prevActiveCountRef.current) {
+      // Jobs decreased (finished/cancelled), reload lists
+      loadData();
+    }
+    prevActiveCountRef.current = activeJobs.length;
+  }, [activeJobs]);
 
   const loadData = async () => {
     try {
@@ -37,10 +65,34 @@ export default function HistoryPage() {
       ]);
       setHistories(histData);
       setBatches(batchData);
+
+      const activeData = await getActiveBatchJobs();
+      setActiveJobs(activeData);
     } catch (error) {
       console.error('Failed to load histories:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshActiveJobs = async () => {
+    // Silent update
+    const activeData = await getActiveBatchJobs();
+    setActiveJobs(activeData);
+  };
+
+  const handleCancelJob = async (batchId: string) => {
+    if (!confirm('この生成ジョブを中断してもよろしいですか？')) return;
+    try {
+      const response = await fetch(`/api/batch-jobs/${batchId}/cancel`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        // Wait a bit and reload
+        setTimeout(loadData, 1000);
+      }
+    } catch (err) {
+      console.error('Failed to cancel job:', err);
     }
   };
 
@@ -99,31 +151,28 @@ export default function HistoryPage() {
               <div className="flex gap-1 bg-slate-100 rounded-md p-1">
                 <button
                   onClick={() => setFormatFilter('all')}
-                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
-                    formatFilter === 'all'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${formatFilter === 'all'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   すべて
                 </button>
                 <button
                   onClick={() => setFormatFilter('letter')}
-                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
-                    formatFilter === 'letter'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${formatFilter === 'letter'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   手紙
                 </button>
                 <button
                   onClick={() => setFormatFilter('mail')}
-                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
-                    formatFilter === 'mail'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${formatFilter === 'mail'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   メール
                 </button>
@@ -205,6 +254,59 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="space-y-8">
+
+          {/* Active Jobs Section - Progress Bar */}
+          {activeJobs.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+                実行中の生成タスク
+              </h2>
+              <div className="grid gap-4">
+                {activeJobs.map((job) => {
+                  const progress = Math.round(((job.completedCount + job.failedCount) / job.totalCount) * 100) || 0;
+                  return (
+                    <div key={job.id} className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden">
+                      {/* Background highlight */}
+                      <div className="absolute top-0 left-0 h-1 bg-indigo-600 transition-all duration-500" style={{ width: `${progress}%` }} />
+
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-slate-900">一括生成を実行中...</h3>
+                            <span className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">ID: {job.id.slice(0, 8)}</span>
+                          </div>
+                          <p className="text-sm text-slate-500">
+                            {job.completedCount} / {job.totalCount} 件完了 ({job.failedCount}件失敗)
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleCancelJob(job.id)}
+                          className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          中断
+                        </button>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1">
+                        <div
+                          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>{progress}% 完了</span>
+                        <span>開始: {new Date(job.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Batches Section */}
           {batches.length > 0 && (
             <div className="space-y-4">
@@ -279,11 +381,10 @@ export default function HistoryPage() {
                             }}
                           />
                           {/* Format Badge */}
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            history.emailContent
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : 'bg-green-100 text-green-800 border border-green-200'
-                          }`}>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${history.emailContent
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : 'bg-green-100 text-green-800 border border-green-200'
+                            }`}>
                             {history.emailContent ? 'メール' : '手紙'}
                           </span>
                           {history.mode === 'event' && (

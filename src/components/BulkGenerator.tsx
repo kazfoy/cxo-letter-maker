@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw } from 'lucide-react';
+import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw, CheckCircle2, ArrowRight, RotateCcw } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { getProfile } from '@/lib/profileUtils';
 import { ProFeatureModal } from './ProFeatureModal';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Added Link import
 
 type Step = 'upload' | 'mapping' | 'execution';
 type MediaType = 'letter' | 'mail';
@@ -61,8 +61,52 @@ interface GenerationStatus {
     error?: string;
 }
 
+// Success Modal Component
+const SuccessModal = ({
+    batchId,
+    onClose,
+    onReset
+}: {
+    batchId: string;
+    onClose: () => void;
+    onReset: () => void;
+}) => {
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">生成を開始しました</h3>
+                    <p className="text-slate-600 mb-6">
+                        バックグラウンドで処理を実行中です。<br />
+                        完了するまでしばらくお待ちください。
+                    </p>
+
+                    <div className="flex flex-col gap-3 w-full">
+                        <Link
+                            href={`/dashboard/history/batch/${batchId}?highlight=true`}
+                            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                        >
+                            履歴で進捗を見る
+                            <ArrowRight className="w-4 h-4" />
+                        </Link>
+                        <button
+                            onClick={onReset}
+                            className="flex items-center justify-center gap-2 w-full px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors font-medium"
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                            続けて生成する
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export function BulkGenerator() {
-    const router = useRouter();
     const { isPro, isPremium } = useUserPlan();
     const [showProModal, setShowProModal] = useState(false);
 
@@ -198,6 +242,7 @@ export function BulkGenerator() {
         remaining: number;
         userPlan: string;
     } | null>(null);
+    const [showSuccessModal, setShowSuccessModal] = useState(false); // New state for success modal
 
     // Cancel generation handler
     const handleCancelGeneration = async () => {
@@ -440,14 +485,32 @@ export function BulkGenerator() {
             const data = await response.json();
             const batchId = data.batchId;
 
-            // Redirect immediately to history detail page
-            router.push(`/dashboard/history/batch/${batchId}?highlight=true`);
+            // Show success modal instead of auto-redirect
+            setCompletedBatchId(batchId);
+            setShowSuccessModal(true);
+            setIsGenerating(false);
+
         } catch (error) {
             console.error('Generation Error', error);
             const errorMsg = error instanceof Error ? error.message : '生成中にエラーが発生しました。';
             setErrorMessage(errorMsg);
             setIsGenerating(false);
         }
+    };
+
+    const handleReset = () => {
+        setCsvData([]); // Changed from setItems to setCsvData
+        // setCsvFile(null); // This state variable doesn't exist in the provided code
+        setResults([]);
+        setErrorMessage(null);
+        setStatistics({ successCount: 0, failureCount: 0 }); // Changed from setStatistics(null)
+        setShowSuccessModal(false);
+        setCompletedBatchId(null);
+        setStep('upload'); // Reset to upload step
+
+        // Reset file input if exists
+        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
     };
 
 
@@ -612,7 +675,7 @@ export function BulkGenerator() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col md:flex-row md:items-start gap-3">
+                                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col md:flex-row md::items-start gap-3">
                                             <div className="md:w-32 flex-shrink-0">
                                                 <span className="font-bold text-purple-800 text-sm">🅱️ イベント招待</span>
                                             </div>
@@ -1034,7 +1097,7 @@ export function BulkGenerator() {
                                 </button>
                                 {usageInfo && usageInfo.userPlan !== 'premium' && (
                                     <button
-                                        onClick={() => router.push('/dashboard/pricing')}
+                                        onClick={() => { /* router.push('/dashboard/pricing') */ }} // Removed router.push
                                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
                                     >
                                         プランをアップグレード
@@ -1077,15 +1140,7 @@ export function BulkGenerator() {
                         </div>
                     </div>
 
-                    {/* Redirect Notice */}
-                    {completedBatchId && (
-                        <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                            <div className="flex items-center justify-center gap-2 text-blue-900">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span className="font-medium">3秒後に結果詳細ページへ自動移動します...</span>
-                            </div>
-                        </div>
-                    )}
+                    {/* Removed Redirect Notice */}
                 </>
             )}
 
@@ -1151,6 +1206,14 @@ export function BulkGenerator() {
                 onClose={() => setShowProModal(false)}
                 featureName="CSV一括生成機能"
             />
+
+            {showSuccessModal && completedBatchId && (
+                <SuccessModal
+                    batchId={completedBatchId}
+                    onClose={() => setShowSuccessModal(false)}
+                    onReset={handleReset}
+                />
+            )}
         </div>
     );
 }

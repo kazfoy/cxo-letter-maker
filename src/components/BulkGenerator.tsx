@@ -70,10 +70,7 @@ const BatchProgressModal = ({
     progress,
     total,
     currentCompany,
-    isPaused,
-    onPause,
-    onResume,
-    onCancel,
+    batchId,
     onFinish,
     statistics
 }: {
@@ -81,10 +78,7 @@ const BatchProgressModal = ({
     progress: number;
     total: number;
     currentCompany: string;
-    isPaused: boolean;
-    onPause: () => void;
-    onResume: () => void;
-    onCancel: () => void;
+    batchId: string;
     onFinish: (action: 'history' | 'stay') => void;
     statistics: { success: number; failure: number };
 }) => {
@@ -106,8 +100,8 @@ const BatchProgressModal = ({
                             </>
                         ) : (
                             <>
-                                <Loader2 className={`w-5 h-5 text-blue-600 ${!isPaused ? 'animate-spin' : ''}`} />
-                                {isPaused ? '一時停止中' : '一括生成を実行中...'}
+                                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                                一括生成を実行中...
                             </>
                         )}
                     </h3>
@@ -128,7 +122,7 @@ const BatchProgressModal = ({
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
                             <div
-                                className={`h-full transition-all duration-300 ease-out ${isPaused ? 'bg-amber-400' : 'bg-blue-600'}`}
+                                className="h-full transition-all duration-300 ease-out bg-blue-600"
                                 style={{ width: `${percentage}%` }}
                             />
                         </div>
@@ -176,23 +170,18 @@ const BatchProgressModal = ({
                                 </button>
                             </>
                         ) : (
-                            <>
-                                {isPaused ? (
-                                    <button
-                                        onClick={onResume}
-                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2"
-                                    >
-                                        <Play className="w-4 h-4 fill-current" /> 再開
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={onCancel}
-                                        className="flex-1 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 font-medium"
-                                    >
-                                        中断する
-                                    </button>
-                                )}
-                            </>
+                            <button
+                                onClick={() => {
+                                    // 新しいタブで履歴ページを開く（生成は継続）
+                                    if (batchId) {
+                                        window.open(`/dashboard/history/batch/${batchId}`, '_blank');
+                                    }
+                                }}
+                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center justify-center gap-2"
+                            >
+                                履歴を見る（新しいタブ）
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
                         )}
                     </div>
                 </div>
@@ -1320,10 +1309,7 @@ export function BulkGenerator() {
                 progress={progress.current}
                 total={progress.total}
                 currentCompany={currentCompany}
-                isPaused={isPaused}
-                onPause={handleTogglePause}
-                onResume={handleTogglePause}
-                onCancel={handleCancelProcess}
+                batchId={currentBatchId || ''}
                 onFinish={handleBatchFinish}
                 statistics={{ success: statistics.successCount, failure: statistics.failureCount }}
             />

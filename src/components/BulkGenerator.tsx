@@ -283,41 +283,48 @@ export function BulkGenerator() {
     };
 
     // Validation Logic with Debugging
-    const getValidationErrors = () => {
+    const getValidationErrors = React.useCallback(() => {
         const errors: string[] = [];
 
-        // 1. Recipient Validation
+        // 1. CSV must be uploaded
+        if (csvData.length === 0) {
+            errors.push('CSVデータ');
+            return errors; // Exit early
+        }
+
+        // 2. Recipient Validation (Company + Name are required)
         if (!mapping.companyName) errors.push('宛先会社名');
 
         if (nameMode === 'full') {
             if (!mapping.name) errors.push('宛先氏名');
         } else {
-            if (!mapping.lastName || !mapping.firstName) errors.push('宛先氏名（姓・名）');
+            // For separate mode, lastName is required, firstName is optional
+            if (!mapping.lastName) errors.push('宛先姓');
         }
 
-        // 2. Sender Validation based on Rule
+        // 3. Sender Validation based on Rule
         if (senderRule === 'direct') {
             if (!senderInfo.myCompanyName) errors.push('差出人会社名');
             if (!senderInfo.myName) errors.push('差出人氏名');
-            // Service Description is now optional as per request
         } else if (senderRule === 'csv_priority') {
+            // At least company column is required; name is nice-to-have but not blocking
             if (!mapping.senderCompany) errors.push('差出人会社名カラム');
-            if (!mapping.senderName) errors.push('差出人氏名カラム');
         }
-        // 'default' mode does not enforce validation on client side (as per "Pattern A empty OK")
-        // logic assumes profile data or backend handling
+        // 'default' mode: no validation needed (uses profile)
 
         return errors;
-    };
+    }, [csvData.length, mapping, nameMode, senderRule, senderInfo]);
 
-    const isMappingValid = () => {
+    // isMappingValid is kept for backward compatibility but internally uses getValidationErrors
+    const isMappingValid = React.useCallback(() => {
         const errors = getValidationErrors();
         if (errors.length > 0) {
-            console.log('Validation Failed. Missing:', errors);
+            console.log('[Validation Debug] Failed. Missing:', errors);
             return false;
         }
+        console.log('[Validation Debug] Passed!');
         return true;
-    };
+    }, [getValidationErrors]);
 
     // ---- Step 3: Execution ----
     const startGeneration = async () => {
@@ -356,16 +363,16 @@ export function BulkGenerator() {
                 proposal: mapping.proposal ? row[mapping.proposal] : '',
             };
 
-            // Sender Logic
-            if (senderRule === 'overwrite') {
+            // Sender Logic: 'direct' mode uses form input, 'csv_priority' uses CSV columns, 'default' uses profile (handled by backend)
+            if (senderRule === 'direct') {
                 return {
                     ...baseItem,
                     senderName: senderInfo.myName,
                     senderCompany: senderInfo.myCompanyName,
-                    senderDepartment: senderInfo.myDepartment,
-                    senderPosition: senderInfo.myPosition
+                    senderDepartment: senderInfo.myDepartment || '',
+                    senderPosition: senderInfo.myPosition || ''
                 };
-            } else {
+            } else if (senderRule === 'csv_priority') {
                 return {
                     ...baseItem,
                     senderName: mapping.senderName ? row[mapping.senderName] : '',
@@ -373,6 +380,9 @@ export function BulkGenerator() {
                     senderDepartment: mapping.senderDepartment ? row[mapping.senderDepartment] : '',
                     senderPosition: mapping.senderPosition ? row[mapping.senderPosition] : ''
                 };
+            } else {
+                // 'default' mode: backend will use profile data
+                return baseItem;
             }
         });
 
@@ -388,9 +398,11 @@ export function BulkGenerator() {
                     myCompanyName: senderInfo.myCompanyName,
                     myDepartment: senderInfo.myDepartment,
                     myName: senderInfo.myName,
+                    myPosition: senderInfo.myPosition,
                     myServiceDescription: senderInfo.myServiceDescription,
                     output_format: mediaType === 'mail' ? 'email' : 'letter',
-                    mode: generationMode
+                    mode: generationMode,
+                    senderMode: senderRule  // Map frontend 'senderRule' to backend 'senderMode'
                 })
             });
 

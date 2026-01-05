@@ -34,8 +34,10 @@ const BatchGenerateSchema = z.object({
     myDepartment: z.string().optional(),
     myName: z.string().optional(),
     myServiceDescription: z.string().optional(),
+    myPosition: z.string().optional(), // Added
     output_format: z.enum(['letter', 'email']).default('letter'),
     mode: z.enum(['sales', 'event']).default('sales'),
+    senderMode: z.enum(['default', 'direct', 'csv_priority']).default('default'), // Added
 });
 
 // Helper to get Google Provider
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
         request,
         BatchGenerateSchema,
         async (data, user) => {
-            const { items, myCompanyName, myDepartment, myName, myServiceDescription, output_format, mode: clientMode } = data;
+            const { items, myCompanyName, myDepartment, myName, myServiceDescription, myPosition, output_format, mode: clientMode, senderMode } = data;
 
 
             // 日次制限チェック
@@ -113,12 +115,33 @@ export async function POST(request: Request) {
                         const item = itemsToProcess[i];
 
 
-                        // Resolve Sender Info
-                        const resolvedSenderCompany = item.senderCompany || myCompanyName || profile?.company_name || '（未設定）';
-                        const resolvedSenderDepartment = item.senderDepartment || myDepartment || ''; // Profile doesn't have department yet
-                        const resolvedSenderName = item.senderName || myName || profile?.user_name || '（未設定）';
-                        const resolvedSenderService = myServiceDescription || profile?.service_description || '（未設定）'; // item.senderInfo logic could be valid but not requested yet, keeping simple
-                        const resolvedSenderPosition = item.senderPosition || ''; // No profile field for position currently
+                        // Resolve Sender Info based on senderMode
+                        let resolvedSenderCompany = '';
+                        let resolvedSenderDepartment = '';
+                        let resolvedSenderName = '';
+                        let resolvedSenderService = '';
+                        let resolvedSenderPosition = '';
+
+                        if (senderMode === 'direct') {
+                            resolvedSenderCompany = myCompanyName || '';
+                            resolvedSenderDepartment = myDepartment || '';
+                            resolvedSenderName = myName || '';
+                            resolvedSenderService = myServiceDescription || '';
+                            resolvedSenderPosition = myPosition || '';
+                        } else if (senderMode === 'csv_priority') {
+                            resolvedSenderCompany = item.senderCompany || (profile?.company_name) || '';
+                            resolvedSenderDepartment = item.senderDepartment || (profile as any)?.department || '';
+                            resolvedSenderName = item.senderName || (profile?.user_name) || '';
+                            resolvedSenderService = myServiceDescription || (profile?.service_description) || ''; // Service description usually comes from profile or input, rarely CSV
+                            resolvedSenderPosition = item.senderPosition || (profile as any)?.position || '';
+                        } else {
+                            // Default mode (Profile)
+                            resolvedSenderCompany = (profile?.company_name) || '（未設定）';
+                            resolvedSenderDepartment = (profile as any)?.department || '';
+                            resolvedSenderName = (profile?.user_name) || '（未設定）';
+                            resolvedSenderService = (profile?.service_description) || '（未設定）';
+                            resolvedSenderPosition = (profile as any)?.position || '';
+                        }
 
                         // Determine Prompt Mode based on client-specified mode
                         let role = "あなたは企業のCxOに向けた丁寧な手紙を書く秘書です。礼節を重んじ、相手の心に響く手紙を作成してください。";

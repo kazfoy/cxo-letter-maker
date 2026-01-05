@@ -89,9 +89,11 @@ function getGoogleProvider() {
 // ... (GenerateSchema definition - unchanged)
 const GenerateSchema = z.object({
   myCompanyName: z.string().max(200, '会社名は200文字以内で入力してください').optional(),
+  myDepartment: z.string().max(200, '部署名は200文字以内で入力してください').optional(),
   myName: z.string().max(100, '氏名は100文字以内で入力してください').optional(),
   myServiceDescription: z.string().max(2000, 'サービス概要は2000文字以内で入力してください').optional(),
   companyName: z.string().max(200, '企業名は200文字以内で入力してください').optional(),
+  department: z.string().max(200, '部署情報は200文字以内で入力してください').optional(),
   position: z.string().max(100, '役職は100文字以内で入力してください').optional(),
   name: z.string().max(100, '氏名は100文字以内で入力してください').optional(),
   background: z.string().max(2000, '背景は2000文字以内で入力してください').optional(),
@@ -237,9 +239,11 @@ export async function POST(request: Request) {
           // For this replace block, I will assume sanitized values are available in scope or re-sanitized.
           // To be safe, let's keep the existing logic and just inject the variable.
           myCompanyName: sanitizeForPrompt(data.myCompanyName || '', 200),
+          myDepartment: sanitizeForPrompt(data.myDepartment || '', 200),
           myName: sanitizeForPrompt(data.myName || '', 100),
           myServiceDescription: sanitizeForPrompt(data.myServiceDescription || '', 2000),
           companyName: sanitizeForPrompt(data.companyName || '', 200),
+          department: sanitizeForPrompt(data.department || '', 200),
           position: sanitizeForPrompt(data.position || '', 100),
           name: sanitizeForPrompt(data.name || '', 100),
           background: sanitizeForPrompt(data.background || '', 2000),
@@ -298,11 +302,13 @@ export async function POST(request: Request) {
 
 【送信先（ターゲット）】
 * 企業名: ${safe.companyName}
+* 部署名: ${safe.department || '（なし）'}
 * 役職: ${safe.position}
 * 氏名: ${safe.name}
 
 【差出人（あなた）】
 * 企業名: ${safe.myCompanyName}
+* 部署名: ${safe.myDepartment || '（なし）'}
 * 氏名: ${safe.myName}
 * 自社サービス: ${safe.myServiceDescription}
 
@@ -323,6 +329,10 @@ ${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResul
   * メール特有の簡潔さを重視する。
   * 冒頭で「突然のご連絡失礼いたします」等の定型句は最小限にし、本題への導入をスムーズにする。
   * スマートフォンでも読みやすい改行・段落構成にする。
+* **宛名の記載ルール**:
+  * 部署名がある場合: 「[会社名][部署名][役職][氏名] 様」
+  * 部署名がない場合: 「[会社名][役職][氏名] 様」
+  * 部署名には勝手に「部」などをつけず、入力値をそのまま使用すること。
 * **JSON出力（厳守）**:
   * 指定されたJSON形式のみを出力すること。
 
@@ -337,6 +347,9 @@ ${emailJsonInstruction}
 
 【提供された情報】
 ターゲット企業名: ${safe.companyName}
+ターゲット部署名: ${safe.department || '（なし）'}
+ターゲット役職: ${safe.position || ''}
+ターゲット氏名: ${safe.name || ''}
 自社サービス概要: ${safe.myServiceDescription}
 ${safe.simpleRequirement ? `伝えたい要件: ${safe.simpleRequirement}` : ''}
 ${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResults}\n※直近のニュース記事を参照し、タイムリーな話題を背景に盛り込んでください。` : ''}
@@ -372,10 +385,14 @@ ${safe.eventName ? `イベント名: ${safe.eventName}` : ''}
 ${safe.eventDateTime ? `開催日時・場所: ${safe.eventDateTime}` : ''}
 ${safe.eventSpeakers ? `主要登壇者/ゲスト: ${safe.eventSpeakers}` : ''}
 ターゲット企業名: ${safe.companyName}
+ターゲット部署名: ${safe.department || '（なし）'}
+ターゲット役職: ${safe.position || ''}
+ターゲット氏名: ${safe.name || ''}
 ${safe.invitationReason ? `誘いたい理由・メモ: ${safe.invitationReason}` : ''}
 
 【差出人（自社）情報】
 会社名: ${safe.myCompanyName || '（記載なし）'}
+部署名: ${safe.myDepartment || '（なし）'}
 氏名: ${safe.myName || '（記載なし）'}
 
 【3つのパターン定義】
@@ -408,6 +425,7 @@ ${jsonInstruction}
 
 【招待先情報】
 企業名: ${safe.companyName}
+部署名: ${safe.department || '（なし）'}
 役職: ${safe.position || ''}
 氏名: ${safe.name}
 
@@ -432,6 +450,10 @@ ${safe.invitationReason}
 - **重要**: Markdown記法を一切使用しないこと
 - URLはリンク記法 [Title](URL) を使わず、そのまま記述すること
 - 手紙として自然で読みやすいプレーンテキスト形式にすること
+- **宛名の記載ルール**:
+  * 部署名がある場合: 「[部署名] [役職] [氏名] 様」
+  * 部署名がない場合: 「[役職] [氏名] 様」
+  * 部署名には勝手に「部」などをつけず、入力値をそのまま使用すること。
 - 指定されたJSON形式のみを出力すること。
 
 ${jsonInstruction}
@@ -445,11 +467,13 @@ ${jsonInstruction}
 
 【差出人（自社）情報】
 会社名: ${safe.myCompanyName}
+部署名: ${safe.myDepartment || '（なし）'}
 氏名: ${safe.myName}
 サービス概要: ${safe.myServiceDescription}
 
 【ターゲット情報】
 企業名: ${safe.companyName}
+部署名: ${safe.department || '（なし）'}
 役職: ${safe.position || '経営者'}
 氏名: ${safe.name}
 
@@ -470,6 +494,11 @@ ${safe.freeformInput}
     * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
     * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
     * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
+* **宛名の記載ルール**:
+  * 部署名がある場合: 「[部署名] [役職] [氏名] 様」
+  * 部署名がない場合: 「[役職] [氏名] 様」
+  * 部署名には勝手に「部」などをつけず、入力値をそのまま使用すること。
+
 * **出力形式**: 指定されたJSON形式のみを出力すること。
 
 ${jsonInstruction}
@@ -483,11 +512,13 @@ ${jsonInstruction}
 
 【差出人（自社）情報】
 会社名: ${safe.myCompanyName}
+部署名: ${safe.myDepartment || '（なし）'}
 氏名: ${safe.myName}
 サービス概要: ${safe.myServiceDescription}
 
 【ターゲット情報】
 企業名: ${safe.companyName}
+部署名: ${safe.department || '（なし）'}
 役職: ${safe.position || '経営者'}
 氏名: ${safe.name}
 
@@ -514,6 +545,11 @@ ${safe.searchResults ? `【最新ニュース・Web情報】\n${safe.searchResul
     * 「～させて頂きます」「～存じます」などの過剰な二重敬語や、まどろっこしい表現。
     * 抽象的な「DXの推進」といった言葉だけで終わらせること（具体的なメリットを提示する）。
     * **Markdown記法（**太字**や#見出し）の使用は絶対禁止**。
+* **宛名の記載ルール**:
+  * 部署名がある場合: 「[部署名] [役職] [氏名] 様」
+  * 部署名がない場合: 「[役職] [氏名] 様」
+  * 部署名には勝手に「部」などをつけず、入力値をそのまま使用すること。
+
 * **出力形式**: 指定されたJSON形式のみを出力すること。
 
 ${jsonInstruction}
@@ -528,7 +564,7 @@ ${jsonInstruction}
         // JSONパース処理
         let responseData: any = {};
 
-        try{
+        try {
           // 1. Markdownコードブロックを除去 regex to capture content between ```json and ```
           // シンプルな除去: ```json ... ```, ``` ... ```, または単に { ... } を抽出
           let cleanedText = generatedText;

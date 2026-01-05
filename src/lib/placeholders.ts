@@ -7,11 +7,13 @@
 export const SALES_PLACEHOLDERS = {
   // 自社情報
   myCompanyName: '例: 株式会社○○ソリューションズ',
+  myDepartment: '例: 営業本部',
   myName: '例: 営業部 山田太郎',
   myServiceDescription: '例: 中小企業向けクラウド会計システム「SmartAccount」を提供。経理業務を80%削減し、リアルタイム経営判断を実現。',
 
   // ターゲット情報
   companyName: '例: 株式会社サンプル商事',
+  department: '例: 経営企画室',
   position: '例: 代表取締役 / 経営企画室長',
   name: '例: 田中健一',
 
@@ -51,11 +53,13 @@ export const SALES_PLACEHOLDERS = {
 export const EVENT_PLACEHOLDERS = {
   // 自社情報
   myCompanyName: '例: 一般社団法人 日本DX推進協会',
+  myDepartment: '例: 事務局',
   myName: '例: イベント企画部 鈴木花子',
   myServiceDescription: '例: 企業のデジタルトランスフォーメーション推進を支援する業界団体。年4回の大規模カンファレンス、月次勉強会を主催。',
 
   // ターゲット情報
   companyName: '例: 株式会社グローバルテック',
+  department: '例: 開発本部',
   position: '例: 取締役CTO',
   name: '例: 佐藤一郎',
 

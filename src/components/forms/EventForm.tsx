@@ -56,6 +56,20 @@ export const EventForm = React.memo(function EventForm({
             />
           </div>
           <div>
+            <label htmlFor="myDepartment" className="block text-sm font-medium text-slate-700 mb-2">
+              {FIELD_LABELS.myDepartment}
+            </label>
+            <input
+              type="text"
+              id="myDepartment"
+              name="myDepartment"
+              value={formData.myDepartment || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              placeholder={EVENT_PLACEHOLDERS.myDepartment}
+            />
+          </div>
+          <div>
             <label htmlFor="myName" className="block text-sm font-medium text-slate-700 mb-2">
               {FIELD_LABELS.myName} <span className="text-red-500">{REQUIRED_MARK}</span>
             </label>
@@ -116,6 +130,20 @@ export const EventForm = React.memo(function EventForm({
               required
               className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
               placeholder={EVENT_PLACEHOLDERS.companyName}
+            />
+          </div>
+          <div>
+            <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
+              {FIELD_LABELS.department}
+            </label>
+            <input
+              type="text"
+              id="department"
+              name="department"
+              value={formData.department || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              placeholder={EVENT_PLACEHOLDERS.department}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

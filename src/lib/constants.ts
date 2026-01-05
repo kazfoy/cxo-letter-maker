@@ -27,9 +27,11 @@ export const FORM_LABELS = {
 // フィールドラベル
 export const FIELD_LABELS = {
   myCompanyName: '会社名',
+  myDepartment: '部署名',
   myName: '氏名',
   myServiceDescription: '自社サービスの概要',
   companyName: '企業名',
+  department: '部署名',
   position: '役職',
   name: '氏名',
   background: '1. 背景・フック',

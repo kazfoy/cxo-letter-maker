@@ -10,6 +10,9 @@ import { ProFeatureModal } from './ProFeatureModal';
 import { useRouter } from 'next/navigation';
 
 type Step = 'upload' | 'mapping' | 'execution';
+type MediaType = 'letter' | 'mail';
+type GenerationMode = 'sales' | 'event';
+type SenderRule = 'default' | 'direct' | 'csv_priority' | 'overwrite';
 
 interface AnalyzedRow {
     [key: string]: string;
@@ -96,14 +99,54 @@ export function BulkGenerator() {
         document.body.removeChild(link);
     };
 
-    const [senderInfo, setSenderInfo] = useState({
+    const [senderInfo, setSenderInfo] = useState<{
+        myCompanyName: string;
+        myDepartment?: string;
+        myName: string;
+        myPosition: string;
+        myServiceDescription: string;
+    }>({
         myCompanyName: '',
-        myName: '',
         myDepartment: '',
-        myServiceDescription: '',
-        myPosition: ''
+        myName: '',
+        myPosition: '',
+        myServiceDescription: ''
     });
 
+    // New State for Modes
+    const [mediaType, setMediaType] = useState<MediaType>('letter');
+    const [generationMode, setGenerationMode] = useState<GenerationMode>('sales');
+    const [senderRule, setSenderRule] = useState<SenderRule>('default');
+    const [nameMode, setNameMode] = useState<'full' | 'separate'>('full');
+    const [aiUrl, setAiUrl] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // AI URL Analysis Handler
+    const handleUrlAnalysis = async () => {
+        if (!aiUrl) return;
+        setIsAnalyzing(true);
+        try {
+            const response = await fetch('/api/analyze-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: aiUrl }),
+            });
+
+            if (!response.ok) throw new Error('Analysis failed');
+
+            const data = await response.json();
+            setSenderInfo(prev => ({
+                ...prev,
+                myCompanyName: data.companyName || prev.myCompanyName,
+                myServiceDescription: data.description || prev.myServiceDescription,
+            }));
+        } catch (error) {
+            console.error('URL analysis error:', error);
+            alert('URLの分析に失敗しました。');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
     // Auto-fill profile on mount
     React.useEffect(() => {
         getProfile().then(profile => {
@@ -112,48 +155,16 @@ export function BulkGenerator() {
                     ...prev,
                     myCompanyName: profile.company_name || '',
                     myName: profile.user_name || '',
-                    myServiceDescription: profile.service_description || ''
+                    myServiceDescription: profile.service_description || '',
+                    myDepartment: (profile as any).department || '', // Temporary cast or fix type later
+                    myPosition: (profile as any).position || ''
                 }));
             }
         });
     }, []);
 
-    const [senderRule, setSenderRule] = useState<'csv_priority' | 'overwrite'>('csv_priority');
-    const [nameMode, setNameMode] = useState<'full' | 'separate'>('full');
-    const [aiUrl, setAiUrl] = useState('');
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-    const handleUrlAnalysis = async () => {
-        if (!aiUrl) return;
-        setIsAnalyzing(true);
-        try {
-            const res = await fetch('/api/analyze-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: aiUrl })
-            });
-            const data = await res.json();
-            if (data.success && data.data) {
-                setSenderInfo(prev => ({
-                    ...prev,
-                    myCompanyName: data.data.companyName || prev.myCompanyName,
-                    myName: data.data.personName || prev.myName,
-                    myServiceDescription: data.data.summary || prev.myServiceDescription
-                }));
-            } else {
-                alert('情報の取得に失敗しました: ' + (data.error || '不明なエラー'));
-            }
-        } catch (e) {
-            console.error(e);
-            alert('通信エラーが発生しました');
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
     // 生成オプション設定
-    const [mediaType, setMediaType] = useState<'letter' | 'mail'>('letter');
-    const [generationMode, setGenerationMode] = useState<'sales' | 'event'>('sales');
+
 
     const [mapping, setMapping] = useState<MappingConfig>({
         companyName: '',
@@ -647,252 +658,286 @@ export function BulkGenerator() {
     }
 
     if (step === 'mapping') {
+        const handleDirectSenderChange = (key: string, value: string) => {
+            setSenderInfo(prev => ({ ...prev, [key]: value }));
+        };
+
         return (
-            <div className="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+            <div className="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
                     データのマッピング
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <label className="block text-sm font-bold text-slate-700">会社名 <span className="text-red-500">*</span></label>
-                            <select
-                                value={mapping.companyName}
-                                onChange={(e) => handleMappingChange('companyName', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            >
-                                <option value="">選択してください</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-bold text-slate-700">氏名 <span className="text-red-500">*</span></label>
-                                <button
-                                    onClick={() => setNameMode(m => m === 'full' ? 'separate' : 'full')}
-                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                    <RefreshCw className="w-3 h-3" />
-                                    {nameMode === 'full' ? '姓・名に分ける' : 'フルネームに戻す'}
-                                </button>
-                            </div>
-
-                            {nameMode === 'full' ? (
-                                <select
-                                    value={mapping.name}
-                                    onChange={(e) => handleMappingChange('name', e.target.value)}
-                                    className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="">選択してください</option>
-                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                </select>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <span className="text-xs text-slate-500 block mb-1">姓 (Last)</span>
-                                        <select
-                                            value={mapping.lastName}
-                                            onChange={(e) => handleMappingChange('lastName', e.target.value)}
-                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                        >
-                                            <option value="">選択</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <span className="text-xs text-slate-500 block mb-1">名 (First)</span>
-                                        <select
-                                            value={mapping.firstName}
-                                            onChange={(e) => handleMappingChange('firstName', e.target.value)}
-                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                        >
-                                            <option value="">選択</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">部署名</label>
-                            <select
-                                value={mapping.recipientDepartment}
-                                onChange={(e) => handleMappingChange('recipientDepartment', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                            >
-                                <option value="">（使用しない）</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">役職</label>
-                            <select
-                                value={mapping.position}
-                                onChange={(e) => handleMappingChange('position', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                            >
-                                <option value="">（使用しない）</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">背景・目的</label>
-                            <select
-                                value={mapping.background}
-                                onChange={(e) => handleMappingChange('background', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                            >
-                                <option value="">（使用しない）</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">備考</label>
-                            <select
-                                value={mapping.note}
-                                onChange={(e) => handleMappingChange('note', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                            >
-                                <option value="">（使用しない）</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">URL（AI分析用）</label>
-                            <select
-                                value={mapping.url}
-                                onChange={(e) => handleMappingChange('url', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                            >
-                                <option value="">（使用しない）</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                        </div>
-
-                        {/* Sender Fields Mapping (Optional) */}
-                        <div className="pt-4 mt-4 border-t border-slate-200">
-                            <p className="text-xs text-slate-500 font-bold mb-2">▼ 差出人情報の個別指定 (必要な場合のみ)</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    {/* Top Left: Main Mapping Info (66%) */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="text-xl">🏢</span> 宛先情報 (必須)
+                            </h3>
                             <div className="space-y-4">
                                 <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-slate-700">差出人名</label>
+                                    <label className="block text-sm font-bold text-slate-700">会社名 <span className="text-red-500">*</span></label>
                                     <select
-                                        value={mapping.senderName}
-                                        onChange={(e) => handleMappingChange('senderName', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                        value={mapping.companyName}
+                                        onChange={(e) => handleMappingChange('companyName', e.target.value)}
+                                        className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                     >
-                                        <option value="">（デフォルトを使用）</option>
+                                        <option value="">選択してください</option>
                                         {headers.map(h => <option key={h} value={h}>{h}</option>)}
                                     </select>
                                 </div>
+
                                 <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-slate-700">差出人会社名</label>
-                                    <select
-                                        value={mapping.senderCompany}
-                                        onChange={(e) => handleMappingChange('senderCompany', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                                    >
-                                        <option value="">（デフォルトを使用）</option>
-                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="block text-sm font-bold text-slate-700">氏名 <span className="text-red-500">*</span></label>
+                                        <button
+                                            onClick={() => setNameMode(m => m === 'full' ? 'separate' : 'full')}
+                                            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                            {nameMode === 'full' ? '姓・名に分ける' : 'フルネームに戻す'}
+                                        </button>
+                                    </div>
+                                    {nameMode === 'full' ? (
+                                        <select
+                                            value={mapping.name}
+                                            onChange={(e) => handleMappingChange('name', e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="">選択してください</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <select
+                                                value={mapping.lastName}
+                                                onChange={(e) => handleMappingChange('lastName', e.target.value)}
+                                                className="w-full border border-slate-300 rounded-md p-2 text-sm"
+                                            >
+                                                <option value="">姓 (Last)</option>
+                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            </select>
+                                            <select
+                                                value={mapping.firstName}
+                                                onChange={(e) => handleMappingChange('firstName', e.target.value)}
+                                                className="w-full border border-slate-300 rounded-md p-2 text-sm"
+                                            >
+                                                <option value="">名 (First)</option>
+                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-slate-700">差出人部署</label>
-                                    <select
-                                        value={mapping.senderDepartment}
-                                        onChange={(e) => handleMappingChange('senderDepartment', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                                    >
-                                        <option value="">（デフォルトを使用）</option>
-                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                    </select>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-slate-700">部署名</label>
+                                        <select
+                                            value={mapping.recipientDepartment}
+                                            onChange={(e) => handleMappingChange('recipientDepartment', e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                        >
+                                            <option value="">（なし）</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-slate-700">役職</label>
+                                        <select
+                                            value={mapping.position}
+                                            onChange={(e) => handleMappingChange('position', e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                        >
+                                            <option value="">（なし）</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-slate-700">差出人役職</label>
-                                <select
-                                    value={mapping.senderPosition}
-                                    onChange={(e) => handleMappingChange('senderPosition', e.target.value)}
-                                    className="w-full border border-slate-300 rounded-md p-2 outline-none"
-                                >
-                                    <option value="">（使用しない）</option>
-                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                </select>
+                        </div>
+
+                        {/* Top Left: Optional Fields */}
+                        <div className="bg-white p-6 rounded-xl border border-slate-200">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="text-xl">📝</span> 生成コンテンツ用情報
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">背景・目的</label>
+                                    <select value={mapping.background} onChange={(e) => handleMappingChange('background', e.target.value)} className="w-full border border-slate-300 rounded-md p-2 outline-none"><option value="">（なし）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">備考</label>
+                                    <select value={mapping.note} onChange={(e) => handleMappingChange('note', e.target.value)} className="w-full border border-slate-300 rounded-md p-2 outline-none"><option value="">（なし）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">提案内容 (件名)</label>
+                                    <select value={mapping.proposal} onChange={(e) => handleMappingChange('proposal', e.target.value)} className="w-full border border-slate-300 rounded-md p-2 outline-none"><option value="">（なし）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">URL (AI自動調査)</label>
+                                    <select value={mapping.url} onChange={(e) => handleMappingChange('url', e.target.value)} className="w-full border border-slate-300 rounded-md p-2 outline-none"><option value="">（なし）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">イベント名</label>
+                                    <select value={mapping.eventName} onChange={(e) => handleMappingChange('eventName', e.target.value)} className="w-full border border-slate-300 rounded-md p-2 outline-none"><option value="">（なし）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-4 mt-4 border-t border-slate-200">
-                        <p className="text-xs text-slate-500 font-bold mb-2">▼ モード自動切替用（いずれか選択）</p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-blue-800">提案内容 (Sales)</label>
-                                <select
-                                    value={mapping.proposal}
-                                    onChange={(e) => handleMappingChange('proposal', e.target.value)}
-                                    className="w-full border border-blue-200 bg-blue-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-500"
-                                >
-                                    <option value="">（使用しない）</option>
-                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-purple-800">イベント名 (Invite)</label>
-                                <select
-                                    value={mapping.eventName}
-                                    onChange={(e) => handleMappingChange('eventName', e.target.value)}
-                                    className="w-full border border-purple-200 bg-purple-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-purple-500"
-                                >
-                                    <option value="">（使用しない）</option>
-                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                </select>
-                            </div>
+                    {/* Top Right: Options (33%) */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 h-full">
+                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <span className="text-xl">⚙️</span> 生成オプション
+                            </h3>
 
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">媒体タイプ</label>
+                                    <div className="flex flex-col gap-2">
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${mediaType === 'letter' ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="mediaTypeOption" value="letter" checked={mediaType === 'letter'} onChange={() => setMediaType('letter')} className="w-4 h-4 text-amber-600" />
+                                            <span className="text-sm font-medium">✉️ 手紙 (Letter)</span>
+                                        </label>
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${mediaType === 'mail' ? 'border-blue-500 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="mediaTypeOption" value="mail" checked={mediaType === 'mail'} onChange={() => setMediaType('mail')} className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium">📧 メール (Email)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">生成モード</label>
+                                    <div className="flex flex-col gap-2">
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${generationMode === 'sales' ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="genModeOption" value="sales" checked={generationMode === 'sales'} onChange={() => setGenerationMode('sales')} className="w-4 h-4 text-emerald-600" />
+                                            <span className="text-sm font-medium">💼 セールス (Sales)</span>
+                                        </label>
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${generationMode === 'event' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="genModeOption" value="event" checked={generationMode === 'event'} onChange={() => setGenerationMode('event')} className="w-4 h-4 text-purple-600" />
+                                            <span className="text-sm font-medium">🎉 イベント招待 (Event)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-lg mb-8">
-                    <h3 className="text-sm font-bold text-slate-700 mb-2">プレビュー（最初の1件）</h3>
-                    {csvData.length > 0 && (
-                        <div className="text-sm text-slate-600 grid grid-cols-2 gap-2">
-                            <div><span className="font-semibold">会社名:</span> {csvData[0][mapping.companyName] || '-'}</div>
-                            <div>
-                                <span className="font-semibold">氏名:</span> {
-                                    nameMode === 'full'
-                                        ? (csvData[0][mapping.name] || '-')
-                                        : `${csvData[0][mapping.lastName] || ''} ${csvData[0][mapping.firstName] || ''}`
-                                }
-                            </div>
+                {/* Bottom: Sender Info Section */}
+                <div className="border-t border-slate-200 pt-8 mt-8">
+                    <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                        差出人情報の設定
+                    </h2>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                        <div className="flex flex-wrap gap-4 mb-6">
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'default' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                                <input type="radio" name="senderRule" value="default" checked={senderRule === 'default'} onChange={() => setSenderRule('default')} className="sr-only" />
+                                <span className="font-bold">登録情報を使用 (Default)</span>
+                            </label>
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'direct' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                                <input type="radio" name="senderRule" value="direct" checked={senderRule === 'direct'} onChange={() => setSenderRule('direct')} className="sr-only" />
+                                <span className="font-bold">直接入力 (Custom)</span>
+                            </label>
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'csv_priority' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                                <input type="radio" name="senderRule" value="csv_priority" checked={senderRule === 'csv_priority'} onChange={() => setSenderRule('csv_priority')} className="sr-only" />
+                                <span className="font-bold">CSVから引用 (From CSV)</span>
+                            </label>
                         </div>
-                    )}
+
+                        {/* Mode A: Default */}
+                        {senderRule === 'default' && (
+                            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                                <div className="flex items-start justify-between">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 w-full">
+                                        <div><span className="text-xs text-slate-500 block">会社名</span><p className="font-bold text-slate-800">{senderInfo.myCompanyName || '（未設定）'}</p></div>
+                                        <div><span className="text-xs text-slate-500 block">部署名</span><p className="font-bold text-slate-800">{senderInfo.myDepartment || '（未設定）'}</p></div>
+                                        <div><span className="text-xs text-slate-500 block">氏名</span><p className="font-bold text-slate-800">{senderInfo.myName || '（未設定）'}</p></div>
+                                        <div><span className="text-xs text-slate-500 block">サービス概要</span><p className="text-sm text-slate-600 line-clamp-2">{senderInfo.myServiceDescription || '（未設定）'}</p></div>
+                                    </div>
+                                    <a href="/settings" target="_blank" className="text-sm text-blue-600 hover:underline flex-shrink-0 ml-4">設定を変更 ↗</a>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mode B: Direct Input */}
+                        {senderRule === 'direct' && (
+                            <div className="bg-white p-6 rounded-lg border border-slate-200 space-y-4">
+                                <div className="flex gap-2 mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="会社URLを入力して自動入力 (例: https://example.com)"
+                                        className="flex-1 border border-slate-300 rounded-md px-3 py-2 text-sm"
+                                        value={aiUrl}
+                                        onChange={(e) => setAiUrl(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={handleUrlAnalysis}
+                                        disabled={isAnalyzing || !aiUrl}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-blue-700"
+                                    >
+                                        {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                        AI自動入力
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="block text-xs font-bold text-slate-700 mb-1">会社名</label><input type="text" value={senderInfo.myCompanyName} onChange={(e) => handleDirectSenderChange('myCompanyName', e.target.value)} className="w-full border border-slate-300 rounded-md p-2" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-700 mb-1">部署名</label><input type="text" value={senderInfo.myDepartment} onChange={(e) => handleDirectSenderChange('myDepartment', e.target.value)} className="w-full border border-slate-300 rounded-md p-2" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-700 mb-1">氏名</label><input type="text" value={senderInfo.myName} onChange={(e) => handleDirectSenderChange('myName', e.target.value)} className="w-full border border-slate-300 rounded-md p-2" /></div>
+                                    <div><label className="block text-xs font-bold text-slate-700 mb-1">役職</label><input type="text" value={senderInfo.myPosition} onChange={(e) => handleDirectSenderChange('myPosition', e.target.value)} className="w-full border border-slate-300 rounded-md p-2" /></div>
+                                </div>
+                                <div><label className="block text-xs font-bold text-slate-700 mb-1">サービス概要</label><textarea rows={2} value={senderInfo.myServiceDescription} onChange={(e) => handleDirectSenderChange('myServiceDescription', e.target.value)} className="w-full border border-slate-300 rounded-md p-2" /></div>
+                            </div>
+                        )}
+
+                        {/* Mode C: CSV Mapping */}
+                        {senderRule === 'csv_priority' && (
+                            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                                <p className="text-sm text-slate-600 mb-4 flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                                    CSVファイル内のカラムを選択してください。行ごとに異なる差出人を設定できます。
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="block text-xs font-medium text-slate-700 mb-1">差出人会社名カラム</label><select value={mapping.senderCompany} onChange={(e) => handleMappingChange('senderCompany', e.target.value)} className="w-full border border-slate-300 rounded-md p-2"><option value="">（選択してください）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+                                    <div><label className="block text-xs font-medium text-slate-700 mb-1">差出人部署名カラム</label><select value={mapping.senderDepartment} onChange={(e) => handleMappingChange('senderDepartment', e.target.value)} className="w-full border border-slate-300 rounded-md p-2"><option value="">（選択してください）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+                                    <div><label className="block text-xs font-medium text-slate-700 mb-1">差出人氏名カラム</label><select value={mapping.senderName} onChange={(e) => handleMappingChange('senderName', e.target.value)} className="w-full border border-slate-300 rounded-md p-2"><option value="">（選択してください）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+                                    <div><label className="block text-xs font-medium text-slate-700 mb-1">差出人役職カラム</label><select value={mapping.senderPosition} onChange={(e) => handleMappingChange('senderPosition', e.target.value)} className="w-full border border-slate-300 rounded-md p-2"><option value="">（選択してください）</option>{headers.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Sender Info Section was moved to Step 1 */}
-                <div className="flex justify-end gap-3">
-                    <button
-                        onClick={() => setStep('upload')}
-                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
-                    >
-                        戻る
-                    </button>
+                {/* Footer Action */}
+                <div className="mt-8 flex justify-center pt-6 border-t border-slate-200">
                     <button
                         onClick={startGeneration}
-                        disabled={!isMappingValid()}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        disabled={!isMappingValid() || isGenerating}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                     >
-                        <Play size={18} />
-                        生成を開始する ({csvData.filter(r => {
-                            const hasCompany = !!r[mapping.companyName];
-                            const hasName = nameMode === 'full' ? !!r[mapping.name] : (!!r[mapping.lastName] && !!r[mapping.firstName]);
-                            return hasCompany && hasName;
-                        }).length}件)
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                                生成準備中...
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-6 h-6 fill-current" />
+                                一括生成を開始する
+                            </>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setStep('upload')}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium absolute right-8"
+                    >
+                        戻る
                     </button>
                 </div>
             </div >

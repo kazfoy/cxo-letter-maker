@@ -15,11 +15,13 @@ export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting
 export interface LetterFormData {
   // 自社情報
   myCompanyName: string;
+  myDepartment?: string;
   myName: string;
   myServiceDescription: string;
 
   // ターゲット情報
   companyName: string;
+  department?: string;
   position: string;
   name: string;
 

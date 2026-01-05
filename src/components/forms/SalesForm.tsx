@@ -202,6 +202,20 @@ export const SalesForm = React.memo(function SalesForm({
                 />
               </div>
               <div>
+                <label htmlFor="myDepartment" className="block text-sm font-medium text-slate-700 mb-2">
+                  {FIELD_LABELS.myDepartment}
+                </label>
+                <input
+                  type="text"
+                  id="myDepartment"
+                  name="myDepartment"
+                  value={formData.myDepartment || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  placeholder={SALES_PLACEHOLDERS.myDepartment}
+                />
+              </div>
+              <div>
                 <label htmlFor="myName" className="block text-sm font-medium text-slate-700 mb-2">
                   {FIELD_LABELS.myName} <span className="text-red-500">{REQUIRED_MARK}</span>
                 </label>
@@ -273,6 +287,20 @@ export const SalesForm = React.memo(function SalesForm({
                     {isSearching ? '検索中...' : '🔍 最新ニュースを検索'}
                   </button>
                 </div>
+              </div>
+              <div>
+                <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
+                  {FIELD_LABELS.department}
+                </label>
+                <input
+                  type="text"
+                  id="department"
+                  name="department"
+                  value={formData.department || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  placeholder={SALES_PLACEHOLDERS.department}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

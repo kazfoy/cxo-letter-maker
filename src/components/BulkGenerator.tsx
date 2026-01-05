@@ -306,18 +306,25 @@ export function BulkGenerator() {
                 body: JSON.stringify({ url: aiUrl }),
             });
 
-            if (!response.ok) throw new Error('Analysis failed');
-
             const data = await response.json();
+
+            if (!response.ok) {
+                // APIからのエラーメッセージを表示
+                const errorMsg = data.error || 'URLの分析に失敗しました。';
+                console.error('URL analysis error:', errorMsg, data);
+                alert(errorMsg);
+                return;
+            }
+
             setSenderInfo(prev => ({
                 ...prev,
                 myCompanyName: data.companyName || prev.myCompanyName,
                 myServiceDescription: data.description || data.summary || prev.myServiceDescription,
-                myName: data.personName || prev.myName, // Added personName mapping
+                myName: data.personName || prev.myName,
             }));
         } catch (error) {
             console.error('URL analysis error:', error);
-            alert('URLの分析に失敗しました。');
+            alert('URLの分析に失敗しました。ネットワーク接続を確認してください。');
         } finally {
             setIsAnalyzing(false);
         }

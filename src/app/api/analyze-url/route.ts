@@ -38,6 +38,16 @@ export async function POST(request: Request) {
       try {
         const { url } = data;
 
+        // API Key事前チェック
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+        if (!apiKey) {
+          devLog.error('API Key missing for analyze-url');
+          return NextResponse.json(
+            { error: 'AIサービスの設定が不足しています。管理者にお問い合わせください。' },
+            { status: 503 }
+          );
+        }
+
         // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
         let response: Response;
         try {
@@ -149,10 +159,10 @@ ${mainText}
         try {
           extractedData = JSON.parse(cleanedText);
         } catch (e) {
-          console.error('JSON Parse Error:', e);
-          // 失敗した場合、テキストから無理やり抽出するか、エラーにする
+          devLog.error('JSON Parse Error:', e instanceof Error ? e.message : String(e));
+          devLog.error('Raw AI Response:', cleanedText.substring(0, 500));
           return NextResponse.json(
-            { error: '情報の解析に失敗しました' },
+            { error: 'AIからの応答を解析できませんでした。もう一度お試しください。' },
             { status: 500 }
           );
         }
@@ -166,9 +176,19 @@ ${mainText}
         });
 
       } catch (error) {
-        devLog.error('URL解析エラー:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        devLog.error('URL解析エラー:', errorMessage);
+
+        // エラーの種類に応じた具体的なメッセージを返す
+        if (errorMessage.includes('API Key') || errorMessage.includes('GOOGLE')) {
+          return NextResponse.json(
+            { error: 'AIサービスの設定に問題があります。管理者にお問い合わせください。' },
+            { status: 503 }
+          );
+        }
+
         return NextResponse.json(
-          { error: 'URL解析に失敗しました' },
+          { error: `URL解析に失敗しました: ${errorMessage}` },
           { status: 500 }
         );
       }

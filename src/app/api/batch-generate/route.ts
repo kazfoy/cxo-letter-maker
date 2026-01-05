@@ -85,9 +85,12 @@ export async function POST(request: Request) {
             });
 
             // 2. Start background generation
+            // Instantiate provider here to fail fast if API key is missing
+            const google = getGoogleProvider();
+
             after(async () => {
                 try {
-                    const google = getGoogleProvider();
+                    // const google = getGoogleProvider(); // Removed duplicate
                     const userPlan = limitCheck.usage?.userPlan || 'free';
                     const planConfig = getPlan(userPlan);
                     const modelId = planConfig.modelId || 'gemini-1.5-flash';

@@ -239,6 +239,7 @@ export async function getActiveBatchJobs(): Promise<Array<{
   failedCount: number;
   createdAt: string;
   status: string;
+  errorMessage?: string;
 }>> {
   try {
     const supabase = createClient();
@@ -247,13 +248,13 @@ export async function getActiveBatchJobs(): Promise<Array<{
 
     const { data, error } = await supabase
       .from('batch_jobs')
-      .select('id, total_count, completed_count, failed_count, created_at, status')
+      .select('id, total_count, completed_count, failed_count, created_at, status, error_message') // fetch error_message if exists
       .eq('user_id', user.id)
-      .eq('status', 'running')
+      .in('status', ['running', 'failed']) // Fetch failed jobs too
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Active batch jobs fetch error:', error);
+      console.error('Active/Failed batch jobs fetch error:', error);
       return [];
     }
 
@@ -263,10 +264,11 @@ export async function getActiveBatchJobs(): Promise<Array<{
       completedCount: job.completed_count,
       failedCount: job.failed_count,
       createdAt: job.created_at,
-      status: job.status
+      status: job.status,
+      errorMessage: job.error_message
     }));
   } catch (error) {
-    console.error('Active batch jobs fetch error (catch):', error);
+    console.error('Active/Failed batch jobs fetch error (catch):', error);
     return [];
   }
 }

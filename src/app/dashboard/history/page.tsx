@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { LetterHistory, LetterStatus } from '@/types/letter';
 import Link from 'next/link';
 import { StatusDropdown } from '@/components/StatusDropdown';
-import { Loader2, XCircle } from 'lucide-react'; // Added icons
+import { Loader2, XCircle, AlertCircle } from 'lucide-react'; // Added icons
 
 interface BatchSummary {
   batchId: string;
@@ -21,6 +21,7 @@ interface ActiveJob {
   failedCount: number;
   createdAt: string;
   status: string;
+  errorMessage?: string;
 }
 
 type OutputFormat = 'all' | 'letter' | 'mail';
@@ -265,34 +266,54 @@ export default function HistoryPage() {
               <div className="grid gap-4">
                 {activeJobs.map((job) => {
                   const progress = Math.round(((job.completedCount + job.failedCount) / job.totalCount) * 100) || 0;
+                  const isFailed = job.status === 'failed';
+
                   return (
-                    <div key={job.id} className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden">
+                    <div key={job.id} className={`rounded-xl shadow-sm border p-6 relative overflow-hidden ${isFailed ? 'bg-red-50 border-red-200' : 'bg-white border-indigo-100'
+                      }`}>
                       {/* Background highlight */}
-                      <div className="absolute top-0 left-0 h-1 bg-indigo-600 transition-all duration-500" style={{ width: `${progress}%` }} />
+                      <div
+                        className={`absolute top-0 left-0 h-1 transition-all duration-500 ${isFailed ? 'bg-red-500' : 'bg-indigo-600'}`}
+                        style={{ width: `${progress}%` }}
+                      />
 
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-slate-900">一括生成を実行中...</h3>
+                            {isFailed ? (
+                              <>
+                                <AlertCircle className="w-4 h-4 text-red-600" />
+                                <h3 className="font-bold text-red-700">生成に失敗しました</h3>
+                              </>
+                            ) : (
+                              <h3 className="font-bold text-slate-900">一括生成を実行中...</h3>
+                            )}
                             <span className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">ID: {job.id.slice(0, 8)}</span>
                           </div>
                           <p className="text-sm text-slate-500">
                             {job.completedCount} / {job.totalCount} 件完了 ({job.failedCount}件失敗)
                           </p>
+                          {isFailed && job.errorMessage && (
+                            <p className="text-sm text-red-600 mt-1 font-medium bg-red-100 px-2 py-1 rounded">
+                              エラー: {job.errorMessage}
+                            </p>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleCancelJob(job.id)}
-                          className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          中断
-                        </button>
+                        {!isFailed && (
+                          <button
+                            onClick={() => handleCancelJob(job.id)}
+                            className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            中断
+                          </button>
+                        )}
                       </div>
 
                       {/* Progress Bar */}
                       <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1">
                         <div
-                          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                          className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isFailed ? 'bg-red-500' : 'bg-indigo-600'}`}
                           style={{ width: `${progress}%` }}
                         />
                       </div>

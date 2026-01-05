@@ -118,6 +118,30 @@ export async function POST(request: Request) {
 
                         const item = itemsToProcess[i];
 
+                        // Validation: Skip if essential data is missing to prevent DB errors
+                        if (!item.companyName || !item.name) {
+                            console.error(`Skipping item ${i}: Missing companyName or name`, item);
+                            failureCount++;
+                            await supabase.rpc('increment_batch_job_count', { job_id: batchId, column_name: 'failed_count' });
+
+                            // Save error record if possible (even without target info)
+                            try {
+                                await supabase.from('letters').insert({
+                                    user_id: user.id,
+                                    content: '',
+                                    target_company: item.companyName || '（不明）',
+                                    target_name: item.name || '（不明）',
+                                    batch_id: batchId,
+                                    status: 'failed',
+                                    mode: clientMode,
+                                    model_name: modelId,
+                                    inputs: item,
+                                    error_message: '必須項目（会社名または氏名）が不足しています'
+                                });
+                            } catch (e) { /* ignore */ }
+                            continue;
+                        }
+
                         // Resolve Sender Info
                         let resolvedSenderCompany = '';
                         let resolvedSenderDepartment = '';
@@ -220,6 +244,9 @@ ${specificInstruction}
                                 email_content: emailData,
                                 target_company: item.companyName,
                                 target_name: item.name,
+                                // Add department columns
+                                recipient_department: item.department || null,
+                                sender_department: resolvedSenderDepartment || null,
                                 batch_id: batchId,
                                 status: 'generated',
                                 mode: clientMode,

@@ -182,7 +182,8 @@ export function BulkGenerator() {
             setSenderInfo(prev => ({
                 ...prev,
                 myCompanyName: data.companyName || prev.myCompanyName,
-                myServiceDescription: data.description || prev.myServiceDescription,
+                myServiceDescription: data.description || data.summary || prev.myServiceDescription,
+                myName: data.personName || prev.myName, // Added personName mapping
             }));
         } catch (error) {
             console.error('URL analysis error:', error);

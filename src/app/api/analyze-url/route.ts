@@ -108,9 +108,8 @@ export async function POST(request: Request) {
         }
 
         // Gemini APIで情報を抽出
-        // Gemini APIで情報を抽出
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash-exp');
+        const model = google('gemini-1.5-flash');
 
         const extractPrompt = `以下のWebページのテキストから、企業情報を抽出してJSON形式で返してください。
 
@@ -118,53 +117,54 @@ export async function POST(request: Request) {
 ${mainText}
 
 【抽出する情報】
-- companyName: 会社名（見つからない場合は空文字）
-- personName: 氏名（見つからない場合は空文字）
-- summary: 事業概要や記事の要約（100-200文字程度）
-- context: 手紙のフックになりそうな話題（ニュース、課題感、新規事業など、50-100文字程度）
+- companyName: 会社名（ページから特定できる正式名称）
+- personName: 代表者名や担当者名（見つからない場合は空文字）
+- summary: 事業概要（100文字程度で簡潔に）
+- description: サービスや強みの説明（200文字程度で具体的に）
 
-【出力形式】
-JSON形式で返してください：
+【制約事項】
+- 必ず有効なJSON形式のみを出力してください
+- Markdownのコードブロック（\`\`\`jsonなど）を含めないでください
+- 確信が持てない項目は空文字にしてください
+
+【出力JSON例】
 {
-  "companyName": "会社名",
-  "personName": "氏名",
-  "summary": "要約",
-  "context": "フックになる話題"
-}
-
-※ JSONのみを返してください。説明文は不要です。`;
+  "companyName": "株式会社サンプル",
+  "personName": "代表 太郎",
+  "summary": "クラウドサービスの開発・運営",
+  "description": "中小企業向けの業務効率化SaaSを提供しています。..."
+}`;
 
         const result = await generateText({
           model: model,
           prompt: extractPrompt,
         });
-        const responseText = result.text;
 
-        // JSONを抽出
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          return NextResponse.json(
-            { error: 'JSONの抽出に失敗しました' },
-            { status: 500 }
-          );
-        }
+        const responseText = result.text.trim();
 
-        // JSON.parseを安全に実行
+        // コードブロック除去などのクリーニング
+        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+
         let extractedData;
         try {
-          extractedData = JSON.parse(jsonMatch[0]);
-        } catch (parseError) {
-          devLog.error('JSON parse error:', parseError);
+          extractedData = JSON.parse(cleanedText);
+        } catch (e) {
+          console.error('JSON Parse Error:', e);
+          // 失敗した場合、テキストから無理やり抽出するか、エラーにする
           return NextResponse.json(
-            { error: 'レスポンスの解析に失敗しました' },
+            { error: '情報の解析に失敗しました' },
             { status: 500 }
           );
         }
 
         return NextResponse.json({
           success: true,
-          data: extractedData,
+          companyName: extractedData.companyName || '',
+          personName: extractedData.personName || '',
+          summary: extractedData.summary || '',
+          description: extractedData.description || extractedData.summary || ''
         });
+
       } catch (error) {
         devLog.error('URL解析エラー:', error);
         return NextResponse.json(
@@ -175,8 +175,8 @@ JSON形式で返してください：
     },
     {
       rateLimit: {
-        windowMs: 60000, // 1分
-        maxRequests: 10, // 外部アクセス系は厳しく制限
+        windowMs: 60000,
+        maxRequests: 10,
       },
     }
   );

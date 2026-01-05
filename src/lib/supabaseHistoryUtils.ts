@@ -193,6 +193,46 @@ export async function getBatchLetters(batchId: string): Promise<LetterHistory[]>
 }
 
 /**
+ * Get status and progress of a batch job
+ */
+export async function getBatchJobStatus(batchId: string): Promise<{
+  status: string;
+  totalCount: number;
+  completedCount: number;
+  failedCount: number;
+} | null> {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('batch_jobs')
+      .select('status, total_count, completed_count, failed_count')
+      .eq('id', batchId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') { // Ignore "not found"
+        console.error('Batch job status fetch error:', error);
+      }
+      return null;
+    }
+
+    return {
+      status: data.status,
+      totalCount: data.total_count,
+      completedCount: data.completed_count,
+      failedCount: data.failed_count
+    };
+  } catch (error) {
+    console.error('Batch job status fetch error (catch):', error);
+    return null;
+  }
+}
+
+/**
  * Save a new letter to history
  */
 export async function saveToHistory(

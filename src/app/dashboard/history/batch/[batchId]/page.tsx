@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
-import { getBatchLetters } from '@/lib/supabaseHistoryUtils';
+import { useEffect, useState, use, useCallback } from 'react';
+import { getBatchLetters, getBatchJobStatus } from '@/lib/supabaseHistoryUtils';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { LetterHistory } from '@/types/letter';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
 import { StatusDropdown } from '@/components/StatusDropdown';
+import { Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function BatchDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
     const searchParams = useSearchParams();
@@ -17,6 +18,13 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
     const [loading, setLoading] = useState(true);
     const [batchId, setBatchId] = useState<string>('');
     const [showHighlight, setShowHighlight] = useState(shouldHighlight);
+    const [jobStatus, setJobStatus] = useState<{
+        status: string;
+        totalCount: number;
+        completedCount: number;
+        failedCount: number;
+    } | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     // Unwrap params using React.use()
     const resolvedParams = use(params);
@@ -38,15 +46,52 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
         }
     }, [shouldHighlight]);
 
-    const loadBatch = async (id: string) => {
+    const loadBatch = useCallback(async (id: string, silent = false) => {
         try {
-            setLoading(true);
-            const data = await getBatchLetters(id);
-            setLetters(data);
+            if (!silent) setLoading(true);
+            const [batchLetters, status] = await Promise.all([
+                getBatchLetters(id),
+                getBatchJobStatus(id)
+            ]);
+            setLetters(batchLetters);
+            setJobStatus(status);
         } catch (error) {
             console.error('Failed to load batch:', error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
+        }
+    }, []);
+
+    // Polling while running
+    useEffect(() => {
+        if (!batchId || (jobStatus && jobStatus.status !== 'running')) return;
+
+        const interval = setInterval(() => {
+            loadBatch(batchId, true);
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [batchId, jobStatus?.status, loadBatch]);
+
+    const handleCancel = async () => {
+        if (!batchId || isCancelling) return;
+        if (!confirm('一括生成を中断しますか？')) return;
+
+        setIsCancelling(true);
+        try {
+            const response = await fetch(`/api/batch-jobs/${batchId}/cancel`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                await loadBatch(batchId, true);
+            } else {
+                alert('キャンセルに失敗しました');
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+            alert('エラーが発生しました');
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -134,25 +179,72 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 mb-2">一括生成結果詳細</h1>
-                    <p className="text-slate-600">
-                        生成日時: {letters.length > 0 ? new Date(letters[0].createdAt).toLocaleString('ja-JP') : '-'}
-                        <span className="mx-2">|</span>
-                        成功: {letters.filter(l => l.status !== 'failed').length}件
-                        <span className="mx-2">|</span>
-                        失敗: {letters.filter(l => l.status === 'failed').length}件
-                    </p>
+                    <div className="flex items-center gap-3 text-slate-600">
+                        <span>生成日時: {letters.length > 0 ? new Date(letters[0].createdAt).toLocaleString('ja-JP') : '-'}</span>
+                        <span className="w-px h-3 bg-slate-300" />
+                        <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            成功: {letters.filter(l => l.status !== 'failed').length}件
+                        </span>
+                        <span className="w-px h-3 bg-slate-300" />
+                        <span className="flex items-center gap-1.5">
+                            <XCircle className="w-4 h-4 text-red-500" />
+                            失敗: {letters.filter(l => l.status === 'failed').length}件
+                        </span>
+                    </div>
                 </div>
 
-                <button
-                    onClick={handleDownloadCSV}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm font-medium"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    一括ダウンロード (CSV)
-                </button>
+                <div className="flex items-center gap-2">
+                    {jobStatus?.status === 'running' && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 transition-colors font-medium disabled:opacity-50"
+                        >
+                            {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
+                            生成を中断
+                        </button>
+                    )}
+                    <button
+                        onClick={handleDownloadCSV}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shadow-sm font-medium"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        一括ダウンロード (CSV)
+                    </button>
+                </div>
             </div>
+
+            {/* Progress Bar for running jobs */}
+            {jobStatus && jobStatus.status === 'running' && (
+                <div className="mb-8 bg-blue-50 border border-blue-100 p-6 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 text-blue-800 font-bold">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            AIレターを生成中...
+                        </div>
+                        <div className="text-sm font-medium text-blue-700">
+                            {jobStatus.completedCount + jobStatus.failedCount} / {jobStatus.totalCount} 件処理済み
+                        </div>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+                        <div
+                            className="bg-blue-600 h-full transition-all duration-500 ease-out"
+                            style={{ width: `${((jobStatus.completedCount + jobStatus.failedCount) / jobStatus.totalCount) * 100}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Cancelled state UI */}
+            {jobStatus?.status === 'cancelled' && (
+                <div className="mb-8 bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                    <span className="font-medium text-sm">この一括生成はユーザーによって中断されました。中断までに生成された内容は以下から確認できます。</span>
+                </div>
+            )}
 
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
@@ -168,13 +260,12 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                         <tbody className="divide-y divide-slate-200">
                             {letters.map((letter) => {
                                 const isFailed = letter.status === 'failed';
-                                const rowClasses = `transition-all duration-500 ${
-                                    isFailed
+                                const rowClasses = `transition-all duration-500 ${isFailed
                                         ? 'bg-red-50 hover:bg-red-100'
                                         : showHighlight
                                             ? 'bg-yellow-50 hover:bg-yellow-100'
                                             : 'hover:bg-slate-50'
-                                }`;
+                                    }`;
 
                                 return (
                                     <tr key={letter.id} className={rowClasses}>

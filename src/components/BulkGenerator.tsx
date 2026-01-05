@@ -185,6 +185,8 @@ export function BulkGenerator() {
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<GenerationStatus[]>([]);
     const [statistics, setStatistics] = useState({ successCount: 0, failureCount: 0 });
@@ -196,6 +198,24 @@ export function BulkGenerator() {
         remaining: number;
         userPlan: string;
     } | null>(null);
+
+    // Cancel generation handler
+    const handleCancelGeneration = async () => {
+        if (!currentBatchId || isCancelling) return;
+        setIsCancelling(true);
+        try {
+            const response = await fetch(`/api/batch-jobs/${currentBatchId}/cancel`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                setErrorMessage('生成を中断しました');
+            }
+        } catch (error) {
+            console.error('Cancel error:', error);
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     // ---- Step 1: Upload & Parse ----
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,74 +437,11 @@ export function BulkGenerator() {
                 return; // Stop execution
             }
 
-            if (!response.body) throw new Error('No response body');
+            const data = await response.json();
+            const batchId = data.batchId;
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                // Keep the last partial line in the buffer
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const msg = JSON.parse(line);
-
-                        if (msg.type === 'progress') {
-                            setResults(prev => {
-                                const newResults = [...prev];
-                                // Update the specific item status
-                                if (newResults[msg.index]) {
-                                    newResults[msg.index] = {
-                                        index: msg.index,
-                                        status: 'completed',
-                                        content: msg.generatedContent
-                                    };
-                                }
-                                return newResults;
-                            });
-                            // Update progress count
-                            setProgress(p => ({ ...p, current: Math.min(p.current + 1, p.total) }));
-
-                        } else if (msg.type === 'error') {
-                            setResults(prev => {
-                                const newResults = [...prev];
-                                if (newResults[msg.index]) {
-                                    newResults[msg.index] = {
-                                        index: msg.index,
-                                        status: 'error',
-                                        error: msg.message
-                                    };
-                                }
-                                return newResults;
-                            });
-                            // Update progress count for errors as well
-                            setProgress(p => ({ ...p, current: Math.min(p.current + 1, p.total) }));
-                        } else if (msg.type === 'done') {
-                            // Store final statistics and batch ID
-                            setStatistics({
-                                successCount: msg.successCount || 0,
-                                failureCount: msg.failureCount || 0
-                            });
-                            setCompletedBatchId(msg.batchId);
-
-                            // Auto-redirect to batch detail page after 3 seconds
-                            setTimeout(() => {
-                                router.push(`/dashboard/history/batch/${msg.batchId}?highlight=true`);
-                            }, 3000);
-                        }
-                    } catch (e) {
-                        console.error('JSON Parse error', e);
-                    }
-                }
-            }
+            // Redirect immediately to history detail page
+            router.push(`/dashboard/history/batch/${batchId}?highlight=true`);
         } catch (error) {
             console.error('Generation Error', error);
             const errorMsg = error instanceof Error ? error.message : '生成中にエラーが発生しました。';
@@ -1003,8 +960,29 @@ export function BulkGenerator() {
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
                     生成進捗
                 </h2>
-                <div className="text-sm font-medium text-slate-600">
-                    {progress.current} / {progress.total} 件完了
+                <div className="flex items-center gap-4">
+                    <div className="text-sm font-medium text-slate-600">
+                        {progress.current} / {progress.total} 件完了
+                    </div>
+                    {isGenerating && (
+                        <button
+                            onClick={handleCancelGeneration}
+                            disabled={isCancelling}
+                            className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {isCancelling ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    中断中...
+                                </>
+                            ) : (
+                                <>
+                                    <AlertCircle className="w-4 h-4" />
+                                    中断する
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 

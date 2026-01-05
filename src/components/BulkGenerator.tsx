@@ -23,6 +23,9 @@ interface MappingConfig {
     url: string;
     eventName: string;
     proposal: string;
+    senderName: string;
+    senderCompany: string;
+    senderPosition: string;
 }
 
 const ALIASES = {
@@ -33,7 +36,10 @@ const ALIASES = {
     note: ['備考', 'Note', 'Memo', 'note'],
     url: ['URL', 'Webサイト', 'ホームページ', 'Website', 'url'],
     eventName: ['イベント名', 'Event Name', 'Event', 'event_name'],
-    proposal: ['提案内容', 'Proposal', 'Topic', 'proposal', '件名']
+    proposal: ['提案内容', 'Proposal', 'Topic', 'proposal', '件名'],
+    senderName: ['差出人名', 'Sender Name', 'sender_name', 'From Name'],
+    senderCompany: ['差出人会社名', 'Sender Company', 'sender_company', 'From Company'],
+    senderPosition: ['差出人役職', 'Sender Position', 'sender_position', 'From Position']
 };
 
 interface GenerationStatus {
@@ -99,7 +105,10 @@ export function BulkGenerator() {
         note: '',
         url: '',
         eventName: '',
-        proposal: ''
+        proposal: '',
+        senderName: '',
+        senderCompany: '',
+        senderPosition: ''
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -184,6 +193,9 @@ export function BulkGenerator() {
         newMapping.url = findMatch('url') || '';
         newMapping.eventName = findMatch('eventName') || '';
         newMapping.proposal = findMatch('proposal') || '';
+        newMapping.senderName = findMatch('senderName') || '';
+        newMapping.senderCompany = findMatch('senderCompany') || '';
+        newMapping.senderPosition = findMatch('senderPosition') || '';
 
         setMapping(newMapping);
     };
@@ -219,7 +231,10 @@ export function BulkGenerator() {
             note: mapping.note ? row[mapping.note] : '',
             url: mapping.url ? row[mapping.url] : '',
             eventName: mapping.eventName ? row[mapping.eventName] : '',
-            proposal: mapping.proposal ? row[mapping.proposal] : ''
+            proposal: mapping.proposal ? row[mapping.proposal] : '',
+            senderName: mapping.senderName ? row[mapping.senderName] : '',
+            senderCompany: mapping.senderCompany ? row[mapping.senderCompany] : '',
+            senderPosition: mapping.senderPosition ? row[mapping.senderPosition] : ''
         }));
 
         setProgress({ current: 0, total: items.length });
@@ -601,6 +616,7 @@ export function BulkGenerator() {
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
+
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-slate-700">URL（AI分析用）</label>
                             <select
@@ -611,6 +627,46 @@ export function BulkGenerator() {
                                 <option value="">（使用しない）</option>
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
+                        </div>
+
+                        {/* Sender Fields Mapping (Optional) */}
+                        <div className="pt-4 mt-4 border-t border-slate-200">
+                            <p className="text-xs text-slate-500 font-bold mb-2">▼ 差出人情報の個別指定 (必要な場合のみ)</p>
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">差出人名</label>
+                                    <select
+                                        value={mapping.senderName}
+                                        onChange={(e) => handleMappingChange('senderName', e.target.value)}
+                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                    >
+                                        <option value="">（デフォルトを使用）</option>
+                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">差出人会社名</label>
+                                    <select
+                                        value={mapping.senderCompany}
+                                        onChange={(e) => handleMappingChange('senderCompany', e.target.value)}
+                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                    >
+                                        <option value="">（デフォルトを使用）</option>
+                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-slate-700">差出人役職</label>
+                                    <select
+                                        value={mapping.senderPosition}
+                                        onChange={(e) => handleMappingChange('senderPosition', e.target.value)}
+                                        className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                    >
+                                        <option value="">（使用しない）</option>
+                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="pt-4 mt-4 border-t border-slate-200">
@@ -641,7 +697,7 @@ export function BulkGenerator() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div >
 
                 <div className="bg-slate-50 p-4 rounded-lg mb-8">
                     <h3 className="text-sm font-bold text-slate-700 mb-2">プレビュー（最初の1件）</h3>
@@ -706,7 +762,7 @@ export function BulkGenerator() {
                         生成を開始する ({csvData.filter(r => r[mapping.companyName] && r[mapping.name]).length}件)
                     </button>
                 </div>
-            </div>
+            </div >
         );
     }
 

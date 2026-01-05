@@ -19,6 +19,9 @@ const BatchItemSchema = z.object({
     url: z.string().optional(), // WebサイトURL
     eventName: z.string().optional(), // イベント招待用
     proposal: z.string().optional(), // セールス提案用
+    senderName: z.string().optional(),
+    senderCompany: z.string().optional(),
+    senderPosition: z.string().optional(),
 });
 
 // Define schema for the request body (no max limit - we handle slicing server-side)
@@ -95,8 +98,22 @@ export async function POST(request: Request) {
                     let successCount = 0;
                     let failureCount = 0;
 
+                    // Fetch profile once before the loop (Optimized)
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
                     for (let i = 0; i < total; i++) {
                         const item = itemsToProcess[i];
+
+
+                        // Resolve Sender Info
+                        const resolvedSenderCompany = item.senderCompany || myCompanyName || profile?.company_name || '（未設定）';
+                        const resolvedSenderName = item.senderName || myName || profile?.user_name || '（未設定）';
+                        const resolvedSenderService = myServiceDescription || profile?.service_description || '（未設定）'; // item.senderInfo logic could be valid but not requested yet, keeping simple
+                        const resolvedSenderPosition = item.senderPosition || ''; // No profile field for position currently
 
                         // Determine Prompt Mode based on client-specified mode
                         let role = "あなたは企業のCxOに向けた丁寧な手紙を書く秘書です。礼節を重んじ、相手の心に響く手紙を作成してください。";
@@ -141,9 +158,10 @@ ${role}
 以下の情報を基に、ターゲット企業への質の高い${output_format === 'email' ? 'メール' : '手紙'}を作成してください。
 
 【差出人】
-会社名: ${myCompanyName || '（未設定）'}
-氏名: ${myName || '（未設定）'}
-サービス概要: ${myServiceDescription || '（未設定）'}
+会社名: ${resolvedSenderCompany}
+氏名: ${resolvedSenderName}
+役職: ${resolvedSenderPosition || '（なし）'}
+サービス概要: ${resolvedSenderService}
 
 【宛先】
 企業名: ${item.companyName}

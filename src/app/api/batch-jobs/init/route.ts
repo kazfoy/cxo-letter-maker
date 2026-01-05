@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import { apiGuard } from '@/lib/api-guard';
 
 const InitBatchSchema = z.object({
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
             }
 
             const { totalCount } = data;
-            const batchId = crypto.randomUUID();
+            const batchId = uuidv4();
             const supabase = await createClient();
 
             const { error } = await supabase.from('batch_jobs').insert({
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
             if (error) {
                 console.error('Batch Init Error:', error);
-                return NextResponse.json({ error: 'バッチジョブの作成に失敗しました' }, { status: 500 });
+                return NextResponse.json({ error: `バッチジョブの作成に失敗しました: ${error.message}` }, { status: 500 });
             }
 
             return NextResponse.json({ batchId });

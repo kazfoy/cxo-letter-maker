@@ -9,6 +9,8 @@ import { getProfile } from '@/lib/profileUtils';
 import { ProFeatureModal } from './ProFeatureModal';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 type Step = 'upload' | 'mapping' | 'execution';
 type MediaType = 'letter' | 'mail';
@@ -402,7 +404,7 @@ export function BulkGenerator() {
     };
     const cancelRef = React.useRef(false);
 
-    // Start Sequential Batch Process
+    // Start Sequential Batch Process - Using /api/generate directly (same as /new page)
     const startBatchProcess = async () => {
         if (!checkProAccess()) return;
 
@@ -434,25 +436,25 @@ export function BulkGenerator() {
         setResults(validItems.map((_, i) => ({ index: i, status: 'pending' })));
         setStatistics({ successCount: 0, failureCount: 0 });
 
+        // Generate a batch ID for grouping (client-side)
+        const batchId = uuidv4();
+        setCurrentBatchId(batchId);
+
+        // Get Supabase client
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            setErrorMessage('ログインが必要です');
+            setIsGenerating(false);
+            return;
+        }
+
+        let successCount = 0;
+        let failureCount = 0;
+
         try {
-            // 2. Initialize Batch Job on Backend
-            const initRes = await fetch('/api/batch-jobs/init', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ totalCount: validItems.length })
-            });
-
-            const initData = await initRes.json();
-            if (!initRes.ok) {
-                throw new Error(initData.error || 'バッチジョブの初期化に失敗しました');
-            }
-            const { batchId } = initData;
-            setCurrentBatchId(batchId);
-
-            // 3. Sequential Loop
-            let successCount = 0;
-            let failureCount = 0;
-
+            // Sequential Loop - Call /api/generate for each item
             for (let i = 0; i < validItems.length; i++) {
                 // Check Cancellation
                 if (cancelRef.current) break;
@@ -473,67 +475,153 @@ export function BulkGenerator() {
                 });
                 setCurrentCompany(row[mapping.companyName] || '');
 
-                // Prepare Item Payload
+                // Prepare Name
                 const fullName = nameMode === 'full'
                     ? (row[mapping.name] || '')
                     : `${row[mapping.lastName] || ''} ${row[mapping.firstName] || ''}`.trim();
 
-                const itemPayload = {
+                // Resolve sender info based on senderRule
+                let resolvedSenderCompany = senderInfo.myCompanyName;
+                let resolvedSenderDepartment = senderInfo.myDepartment;
+                let resolvedSenderName = senderInfo.myName;
+                let resolvedSenderPosition = senderInfo.myPosition;
+                let resolvedSenderService = senderInfo.myServiceDescription;
+
+                if (senderRule === 'csv_priority') {
+                    // CSV優先: CSVにあればそれを使用、なければデフォルト
+                    if (mapping.senderCompany && row[mapping.senderCompany]) {
+                        resolvedSenderCompany = row[mapping.senderCompany];
+                    }
+                    if (mapping.senderDepartment && row[mapping.senderDepartment]) {
+                        resolvedSenderDepartment = row[mapping.senderDepartment];
+                    }
+                    if (mapping.senderName && row[mapping.senderName]) {
+                        resolvedSenderName = row[mapping.senderName];
+                    }
+                    if (mapping.senderPosition && row[mapping.senderPosition]) {
+                        resolvedSenderPosition = row[mapping.senderPosition];
+                    }
+                }
+
+                // Build request payload for /api/generate (same format as /new page)
+                const generatePayload: Record<string, any> = {
+                    // Sender info
+                    myCompanyName: resolvedSenderCompany,
+                    myDepartment: resolvedSenderDepartment,
+                    myName: resolvedSenderName,
+                    myServiceDescription: resolvedSenderService,
+
+                    // Target info
                     companyName: row[mapping.companyName] || '',
                     name: fullName,
                     position: mapping.position ? row[mapping.position] : '',
                     department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
+
+                    // Content
                     background: mapping.background ? row[mapping.background] : '',
-                    note: mapping.note ? row[mapping.note] : '',
-                    url: mapping.url ? row[mapping.url] : '',
-                    eventName: mapping.eventName ? row[mapping.eventName] : '',
-                    proposal: mapping.proposal ? row[mapping.proposal] : '',
-                    // Sender info from CSV logic
-                    senderName: senderRule === 'csv_priority' && mapping.senderName ? row[mapping.senderName] : undefined,
-                    senderCompany: senderRule === 'csv_priority' && mapping.senderCompany ? row[mapping.senderCompany] : undefined,
-                    senderDepartment: senderRule === 'csv_priority' && mapping.senderDepartment ? row[mapping.senderDepartment] : undefined,
-                    senderPosition: senderRule === 'csv_priority' && mapping.senderPosition ? row[mapping.senderPosition] : undefined,
+                    freeformInput: mapping.note ? row[mapping.note] : '',
+
+                    // Mode settings
+                    mode: generationMode,
+                    output_format: mediaType === 'mail' ? 'email' : 'letter',
+                    inputComplexity: 'simple',
+                    model: 'flash',
                 };
 
-                const configPayload = {
-                    output_format: mediaType === 'mail' ? 'email' : 'letter',
-                    mode: generationMode,
-                    senderMode: senderRule,
-                    myCompanyName: senderInfo.myCompanyName,
-                    myDepartment: senderInfo.myDepartment,
-                    myName: senderInfo.myName,
-                    myPosition: senderInfo.myPosition,
-                    myServiceDescription: senderInfo.myServiceDescription,
-                };
+                // Event mode specific fields
+                if (generationMode === 'event') {
+                    generatePayload.eventName = mapping.eventName ? row[mapping.eventName] : '';
+                    generatePayload.invitationReason = mapping.note ? row[mapping.note] : '';
+                }
+
+                // Sales mode specific fields
+                if (generationMode === 'sales') {
+                    generatePayload.simpleRequirement = mapping.proposal ? row[mapping.proposal] : '';
+                }
 
                 try {
-                    // Call Process Item API
-                    const procRes = await fetch('/api/batch-jobs/process-item', {
+                    // Call /api/generate (same as /new page uses)
+                    const genRes = await fetch('/api/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            batchId,
-                            item: itemPayload,
-                            config: configPayload
-                        })
+                        body: JSON.stringify(generatePayload)
                     });
 
-                    if (!procRes.ok) throw new Error('生成エラー');
-                    const procData = await procRes.json();
+                    const genData = await genRes.json();
 
-                    if (procData.success) {
-                        successCount++;
-                        setResults(prev => {
-                            const next = [...prev];
-                            next[i] = { ...next[i], status: 'completed', content: '生成完了' }; // Content fetching omitted for perf, just status
-                            return next;
-                        });
-                    } else {
-                        throw new Error(procData.error || 'Unknown Error');
+                    if (!genRes.ok) {
+                        throw new Error(genData.error || genData.details || '生成に失敗しました');
                     }
+
+                    // Extract content based on output format
+                    let contentToSave = '';
+                    let emailContent = null;
+
+                    if (mediaType === 'mail' && genData.email) {
+                        // Email mode
+                        emailContent = genData.email;
+                        contentToSave = `件名: ${genData.email.subject}\n\n${genData.email.body}`;
+                    } else if (genData.variations) {
+                        // Letter mode - use standard variation
+                        contentToSave = genData.variations.standard || genData.letter || '';
+                    } else if (genData.letter) {
+                        contentToSave = genData.letter;
+                    }
+
+                    // Save to Supabase letters table
+                    const { error: dbError } = await supabase.from('letters').insert({
+                        user_id: user.id,
+                        content: contentToSave,
+                        email_content: emailContent,
+                        target_company: row[mapping.companyName] || '',
+                        target_name: fullName,
+                        recipient_department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : null,
+                        sender_department: resolvedSenderDepartment || null,
+                        batch_id: batchId,
+                        status: 'generated',
+                        mode: generationMode,
+                        model_name: 'gemini-2.0-flash-exp',
+                        inputs: {
+                            companyName: row[mapping.companyName] || '',
+                            name: fullName,
+                            position: mapping.position ? row[mapping.position] : '',
+                            department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
+                            background: mapping.background ? row[mapping.background] : '',
+                        }
+                    });
+
+                    if (dbError) {
+                        console.error('DB Save Error:', dbError);
+                        throw new Error('データベース保存に失敗しました');
+                    }
+
+                    successCount++;
+                    setResults(prev => {
+                        const next = [...prev];
+                        next[i] = { ...next[i], status: 'completed', content: contentToSave.substring(0, 100) + '...' };
+                        return next;
+                    });
+
                 } catch (err) {
-                    console.error('Item Error:', err);
+                    console.error('Generation Error:', err);
                     failureCount++;
+
+                    // Save failed record to DB
+                    await supabase.from('letters').insert({
+                        user_id: user.id,
+                        content: '',
+                        target_company: row[mapping.companyName] || '（不明）',
+                        target_name: fullName || '（不明）',
+                        batch_id: batchId,
+                        status: 'failed',
+                        mode: generationMode,
+                        error_message: err instanceof Error ? err.message : '生成中にエラーが発生しました',
+                        inputs: {
+                            companyName: row[mapping.companyName] || '',
+                            name: fullName,
+                        }
+                    });
+
                     setResults(prev => {
                         const next = [...prev];
                         next[i] = { ...next[i], status: 'error', error: err instanceof Error ? err.message : 'Error' };
@@ -546,25 +634,17 @@ export function BulkGenerator() {
                 setStatistics({ successCount, failureCount });
             }
 
-            // 4. Finalize
-            if (!cancelRef.current) {
-                await fetch('/api/batch-jobs/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ batchId })
-                });
-            } else {
-                await fetch(`/api/batch-jobs/${batchId}/cancel`, {
-                    method: 'POST'
-                });
+            // Finalize
+            if (cancelRef.current) {
                 setErrorMessage('生成を中断しました。');
-                setIsGenerating(false);
             }
 
         } catch (error) {
             console.error('Batch Process Error:', error);
             setErrorMessage(error instanceof Error ? error.message : '一括生成中にエラーが発生しました');
-            setIsGenerating(false);
+        } finally {
+            // Generation is complete (either finished or cancelled)
+            // Keep isGenerating true until user clicks finish button
         }
     };
 

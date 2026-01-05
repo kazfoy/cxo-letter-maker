@@ -17,8 +17,8 @@ interface BatchSummary {
 interface ActiveJob {
   id: string;
   totalCount: number;
-  completedCount: number;
-  failedCount: number;
+  processedCount: number;
+  failureCount: number;
   createdAt: string;
   status: string;
   errorMessage?: string;
@@ -265,8 +265,8 @@ export default function HistoryPage() {
               </h2>
               <div className="grid gap-4">
                 {activeJobs.map((job) => {
-                  const progress = Math.round(((job.completedCount + job.failedCount) / job.totalCount) * 100) || 0;
-                  const isFailed = job.status === 'failed';
+                  const progress = Math.round(((job.processedCount + job.failureCount) / job.totalCount) * 100) || 0;
+                  const isFailed = job.status === 'error'; // User schema uses 'error' for failure status
 
                   return (
                     <div key={job.id} className={`rounded-xl shadow-sm border p-6 relative overflow-hidden ${isFailed ? 'bg-red-50 border-red-200' : 'bg-white border-indigo-100'
@@ -291,7 +291,7 @@ export default function HistoryPage() {
                             <span className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">ID: {job.id.slice(0, 8)}</span>
                           </div>
                           <p className="text-sm text-slate-500">
-                            {job.completedCount} / {job.totalCount} 件完了 ({job.failedCount}件失敗)
+                            {job.processedCount} / {job.totalCount} 件完了 ({job.failureCount}件失敗)
                           </p>
                           {isFailed && job.errorMessage && (
                             <p className="text-sm text-red-600 mt-1 font-medium bg-red-100 px-2 py-1 rounded">

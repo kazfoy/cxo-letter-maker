@@ -21,7 +21,7 @@ export async function POST(
             .update({ status: 'cancelled', updated_at: new Date().toISOString() })
             .eq('id', batchId)
             .eq('user_id', user.id)
-            .eq('status', 'running'); // Only cancel if currently running
+            .eq('status', 'processing'); // Only cancel if currently processing
 
         if (updateError) {
             console.error('Cancel Error:', updateError);

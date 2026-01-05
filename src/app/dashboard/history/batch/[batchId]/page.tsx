@@ -21,8 +21,8 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
     const [jobStatus, setJobStatus] = useState<{
         status: string;
         totalCount: number;
-        completedCount: number;
-        failedCount: number;
+        processedCount: number;
+        failureCount: number;
     } | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
 
@@ -64,7 +64,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
 
     // Polling while running
     useEffect(() => {
-        if (!batchId || (jobStatus && jobStatus.status !== 'running')) return;
+        if (!batchId || (jobStatus && jobStatus.status !== 'processing')) return;
 
         const interval = setInterval(() => {
             loadBatch(batchId, true);
@@ -195,7 +195,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {jobStatus?.status === 'running' && (
+                    {jobStatus?.status === 'processing' && (
                         <button
                             onClick={handleCancel}
                             disabled={isCancelling}
@@ -218,7 +218,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             </div>
 
             {/* Progress Bar for running jobs */}
-            {jobStatus && jobStatus.status === 'running' && (
+            {jobStatus && jobStatus.status === 'processing' && (
                 <div className="mb-8 bg-blue-50 border border-blue-100 p-6 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 text-blue-800 font-bold">
@@ -226,13 +226,13 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                             AIレターを生成中...
                         </div>
                         <div className="text-sm font-medium text-blue-700">
-                            {jobStatus.completedCount + jobStatus.failedCount} / {jobStatus.totalCount} 件処理済み
+                            {jobStatus.processedCount + jobStatus.failureCount} / {jobStatus.totalCount} 件処理済み
                         </div>
                     </div>
                     <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
                         <div
                             className="bg-blue-600 h-full transition-all duration-500 ease-out"
-                            style={{ width: `${((jobStatus.completedCount + jobStatus.failedCount) / jobStatus.totalCount) * 100}%` }}
+                            style={{ width: `${((jobStatus.processedCount + jobStatus.failureCount) / jobStatus.totalCount) * 100}%` }}
                         />
                     </div>
                 </div>
@@ -261,10 +261,10 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                             {letters.map((letter) => {
                                 const isFailed = letter.status === 'failed';
                                 const rowClasses = `transition-all duration-500 ${isFailed
-                                        ? 'bg-red-50 hover:bg-red-100'
-                                        : showHighlight
-                                            ? 'bg-yellow-50 hover:bg-yellow-100'
-                                            : 'hover:bg-slate-50'
+                                    ? 'bg-red-50 hover:bg-red-100'
+                                    : showHighlight
+                                        ? 'bg-yellow-50 hover:bg-yellow-100'
+                                        : 'hover:bg-slate-50'
                                     }`;
 
                                 return (

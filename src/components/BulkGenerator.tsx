@@ -442,8 +442,11 @@ export function BulkGenerator() {
                 body: JSON.stringify({ totalCount: validItems.length })
             });
 
-            if (!initRes.ok) throw new Error('バッチジョブの初期化に失敗しました');
-            const { batchId } = await initRes.json();
+            const initData = await initRes.json();
+            if (!initRes.ok) {
+                throw new Error(initData.error || 'バッチジョブの初期化に失敗しました');
+            }
+            const { batchId } = initData;
             setCurrentBatchId(batchId);
 
             // 3. Sequential Loop

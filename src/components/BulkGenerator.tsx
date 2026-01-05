@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle } from 'lucide-react';
+import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
+import { getProfile } from '@/lib/profileUtils';
 import { ProFeatureModal } from './ProFeatureModal';
 import { useRouter } from 'next/navigation';
 
@@ -25,7 +26,11 @@ interface MappingConfig {
     proposal: string;
     senderName: string;
     senderCompany: string;
+    senderDepartment: string;
     senderPosition: string;
+    recipientDepartment: string;
+    lastName: string;
+    firstName: string;
 }
 
 const ALIASES = {
@@ -39,7 +44,11 @@ const ALIASES = {
     proposal: ['提案内容', 'Proposal', 'Topic', 'proposal', '件名'],
     senderName: ['差出人名', 'Sender Name', 'sender_name', 'From Name'],
     senderCompany: ['差出人会社名', 'Sender Company', 'sender_company', 'From Company'],
-    senderPosition: ['差出人役職', 'Sender Position', 'sender_position', 'From Position']
+    senderPosition: ['差出人役職', 'Sender Position', 'sender_position', 'From Position'],
+    senderDepartment: ['差出人部署', 'Sender Dept', 'sender_dept', 'From Dept'],
+    recipientDepartment: ['部署', '部署名', 'Department', 'Dept'],
+    lastName: ['姓', 'Last Name', 'Surname'],
+    firstName: ['名', 'First Name', 'Given Name']
 };
 
 interface GenerationStatus {
@@ -90,8 +99,57 @@ export function BulkGenerator() {
     const [senderInfo, setSenderInfo] = useState({
         myCompanyName: '',
         myName: '',
-        myServiceDescription: ''
+        myDepartment: '',
+        myServiceDescription: '',
+        myPosition: ''
     });
+
+    // Auto-fill profile on mount
+    React.useEffect(() => {
+        getProfile().then(profile => {
+            if (profile) {
+                setSenderInfo(prev => ({
+                    ...prev,
+                    myCompanyName: profile.company_name || '',
+                    myName: profile.user_name || '',
+                    myServiceDescription: profile.service_description || ''
+                }));
+            }
+        });
+    }, []);
+
+    const [senderRule, setSenderRule] = useState<'csv_priority' | 'overwrite'>('csv_priority');
+    const [nameMode, setNameMode] = useState<'full' | 'separate'>('full');
+    const [aiUrl, setAiUrl] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const handleUrlAnalysis = async () => {
+        if (!aiUrl) return;
+        setIsAnalyzing(true);
+        try {
+            const res = await fetch('/api/analyze-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: aiUrl })
+            });
+            const data = await res.json();
+            if (data.success && data.data) {
+                setSenderInfo(prev => ({
+                    ...prev,
+                    myCompanyName: data.data.companyName || prev.myCompanyName,
+                    myName: data.data.personName || prev.myName,
+                    myServiceDescription: data.data.summary || prev.myServiceDescription
+                }));
+            } else {
+                alert('情報の取得に失敗しました: ' + (data.error || '不明なエラー'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('通信エラーが発生しました');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     // 生成オプション設定
     const [mediaType, setMediaType] = useState<'letter' | 'mail'>('letter');
@@ -108,7 +166,11 @@ export function BulkGenerator() {
         proposal: '',
         senderName: '',
         senderCompany: '',
-        senderPosition: ''
+        senderPosition: '',
+        senderDepartment: '',
+        recipientDepartment: '',
+        lastName: '',
+        firstName: ''
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -196,6 +258,10 @@ export function BulkGenerator() {
         newMapping.senderName = findMatch('senderName') || '';
         newMapping.senderCompany = findMatch('senderCompany') || '';
         newMapping.senderPosition = findMatch('senderPosition') || '';
+        newMapping.senderDepartment = findMatch('senderDepartment') || '';
+        newMapping.recipientDepartment = findMatch('recipientDepartment') || '';
+        newMapping.lastName = findMatch('lastName') || '';
+        newMapping.firstName = findMatch('firstName') || '';
 
         setMapping(newMapping);
     };
@@ -206,7 +272,8 @@ export function BulkGenerator() {
     };
 
     const isMappingValid = () => {
-        return mapping.companyName && mapping.name &&
+        const nameValid = nameMode === 'full' ? mapping.name : (mapping.lastName && mapping.firstName);
+        return mapping.companyName && nameValid &&
             senderInfo.myCompanyName && senderInfo.myName && senderInfo.myServiceDescription;
     };
 
@@ -220,22 +287,52 @@ export function BulkGenerator() {
         setUsageInfo(null);
 
         // Validate inputs
-        const validItems = csvData.filter(row => row[mapping.companyName] && row[mapping.name]);
+        const validItems = csvData.filter(row => {
+            const hasCompany = !!row[mapping.companyName];
+            const hasName = nameMode === 'full'
+                ? !!row[mapping.name]
+                : (!!row[mapping.lastName] && !!row[mapping.firstName]);
+            return hasCompany && hasName;
+        });
 
         // Prepare items for API
-        const items = validItems.map(row => ({
-            companyName: row[mapping.companyName] || '',
-            name: row[mapping.name] || '',
-            position: mapping.position ? row[mapping.position] : '',
-            background: mapping.background ? row[mapping.background] : '',
-            note: mapping.note ? row[mapping.note] : '',
-            url: mapping.url ? row[mapping.url] : '',
-            eventName: mapping.eventName ? row[mapping.eventName] : '',
-            proposal: mapping.proposal ? row[mapping.proposal] : '',
-            senderName: mapping.senderName ? row[mapping.senderName] : '',
-            senderCompany: mapping.senderCompany ? row[mapping.senderCompany] : '',
-            senderPosition: mapping.senderPosition ? row[mapping.senderPosition] : ''
-        }));
+        const items = validItems.map(row => {
+            // Name Construction
+            const fullName = nameMode === 'full'
+                ? (row[mapping.name] || '')
+                : `${row[mapping.lastName] || ''} ${row[mapping.firstName] || ''}`.trim();
+
+            const baseItem = {
+                companyName: row[mapping.companyName] || '',
+                name: fullName,
+                position: mapping.position ? row[mapping.position] : '',
+                department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
+                background: mapping.background ? row[mapping.background] : '',
+                note: mapping.note ? row[mapping.note] : '',
+                url: mapping.url ? row[mapping.url] : '',
+                eventName: mapping.eventName ? row[mapping.eventName] : '',
+                proposal: mapping.proposal ? row[mapping.proposal] : '',
+            };
+
+            // Sender Logic
+            if (senderRule === 'overwrite') {
+                return {
+                    ...baseItem,
+                    senderName: senderInfo.myName,
+                    senderCompany: senderInfo.myCompanyName,
+                    senderDepartment: senderInfo.myDepartment,
+                    senderPosition: senderInfo.myPosition
+                };
+            } else {
+                return {
+                    ...baseItem,
+                    senderName: mapping.senderName ? row[mapping.senderName] : '',
+                    senderCompany: mapping.senderCompany ? row[mapping.senderCompany] : '',
+                    senderDepartment: mapping.senderDepartment ? row[mapping.senderDepartment] : '',
+                    senderPosition: mapping.senderPosition ? row[mapping.senderPosition] : ''
+                };
+            }
+        });
 
         setProgress({ current: 0, total: items.length });
         setResults(items.map((_, i) => ({ index: i, status: 'pending' })));
@@ -247,6 +344,7 @@ export function BulkGenerator() {
                 body: JSON.stringify({
                     items,
                     myCompanyName: senderInfo.myCompanyName,
+                    myDepartment: senderInfo.myDepartment,
                     myName: senderInfo.myName,
                     myServiceDescription: senderInfo.myServiceDescription,
                     output_format: mediaType === 'mail' ? 'email' : 'letter',
@@ -569,20 +667,69 @@ export function BulkGenerator() {
                                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                         </div>
-                        <div className="space-y-1">
-                            <label className="block text-sm font-bold text-slate-700">氏名 <span className="text-red-500">*</span></label>
-                            <select
-                                value={mapping.name}
-                                onChange={(e) => handleMappingChange('name', e.target.value)}
-                                className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            >
-                                <option value="">選択してください</option>
-                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                            </select>
+
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-bold text-slate-700">氏名 <span className="text-red-500">*</span></label>
+                                <button
+                                    onClick={() => setNameMode(m => m === 'full' ? 'separate' : 'full')}
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                    {nameMode === 'full' ? '姓・名に分ける' : 'フルネームに戻す'}
+                                </button>
+                            </div>
+
+                            {nameMode === 'full' ? (
+                                <select
+                                    value={mapping.name}
+                                    onChange={(e) => handleMappingChange('name', e.target.value)}
+                                    className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">選択してください</option>
+                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                </select>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <span className="text-xs text-slate-500 block mb-1">姓 (Last)</span>
+                                        <select
+                                            value={mapping.lastName}
+                                            onChange={(e) => handleMappingChange('lastName', e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        >
+                                            <option value="">選択</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-slate-500 block mb-1">名 (First)</span>
+                                        <select
+                                            value={mapping.firstName}
+                                            onChange={(e) => handleMappingChange('firstName', e.target.value)}
+                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        >
+                                            <option value="">選択</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">部署名</label>
+                            <select
+                                value={mapping.recipientDepartment}
+                                onChange={(e) => handleMappingChange('recipientDepartment', e.target.value)}
+                                className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                            >
+                                <option value="">（使用しない）</option>
+                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                            </select>
+                        </div>
                         <div className="space-y-1">
                             <label className="block text-sm font-medium text-slate-700">役職</label>
                             <select
@@ -656,96 +803,78 @@ export function BulkGenerator() {
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-slate-700">差出人役職</label>
+                                    <label className="block text-sm font-medium text-slate-700">差出人部署</label>
                                     <select
-                                        value={mapping.senderPosition}
-                                        onChange={(e) => handleMappingChange('senderPosition', e.target.value)}
+                                        value={mapping.senderDepartment}
+                                        onChange={(e) => handleMappingChange('senderDepartment', e.target.value)}
                                         className="w-full border border-slate-300 rounded-md p-2 outline-none"
                                     >
-                                        <option value="">（使用しない）</option>
+                                        <option value="">（デフォルトを使用）</option>
                                         {headers.map(h => <option key={h} value={h}>{h}</option>)}
                                     </select>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="pt-4 mt-4 border-t border-slate-200">
-                            <p className="text-xs text-slate-500 font-bold mb-2">▼ モード自動切替用（いずれか選択）</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-blue-800">提案内容 (Sales)</label>
-                                    <select
-                                        value={mapping.proposal}
-                                        onChange={(e) => handleMappingChange('proposal', e.target.value)}
-                                        className="w-full border border-blue-200 bg-blue-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-500"
-                                    >
-                                        <option value="">（使用しない）</option>
-                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-purple-800">イベント名 (Invite)</label>
-                                    <select
-                                        value={mapping.eventName}
-                                        onChange={(e) => handleMappingChange('eventName', e.target.value)}
-                                        className="w-full border border-purple-200 bg-purple-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-purple-500"
-                                    >
-                                        <option value="">（使用しない）</option>
-                                        {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                    </select>
-                                </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-slate-700">差出人役職</label>
+                                <select
+                                    value={mapping.senderPosition}
+                                    onChange={(e) => handleMappingChange('senderPosition', e.target.value)}
+                                    className="w-full border border-slate-300 rounded-md p-2 outline-none"
+                                >
+                                    <option value="">（使用しない）</option>
+                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>
-                </div >
+
+                    <div className="pt-4 mt-4 border-t border-slate-200">
+                        <p className="text-xs text-slate-500 font-bold mb-2">▼ モード自動切替用（いずれか選択）</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-blue-800">提案内容 (Sales)</label>
+                                <select
+                                    value={mapping.proposal}
+                                    onChange={(e) => handleMappingChange('proposal', e.target.value)}
+                                    className="w-full border border-blue-200 bg-blue-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                    <option value="">（使用しない）</option>
+                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-purple-800">イベント名 (Invite)</label>
+                                <select
+                                    value={mapping.eventName}
+                                    onChange={(e) => handleMappingChange('eventName', e.target.value)}
+                                    className="w-full border border-purple-200 bg-purple-50 rounded-md p-2 outline-none focus:ring-1 focus:ring-purple-500"
+                                >
+                                    <option value="">（使用しない）</option>
+                                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                </select>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
 
                 <div className="bg-slate-50 p-4 rounded-lg mb-8">
                     <h3 className="text-sm font-bold text-slate-700 mb-2">プレビュー（最初の1件）</h3>
                     {csvData.length > 0 && (
                         <div className="text-sm text-slate-600 grid grid-cols-2 gap-2">
                             <div><span className="font-semibold">会社名:</span> {csvData[0][mapping.companyName] || '-'}</div>
-                            <div><span className="font-semibold">氏名:</span> {csvData[0][mapping.name] || '-'}</div>
+                            <div>
+                                <span className="font-semibold">氏名:</span> {
+                                    nameMode === 'full'
+                                        ? (csvData[0][mapping.name] || '-')
+                                        : `${csvData[0][mapping.lastName] || ''} ${csvData[0][mapping.firstName] || ''}`
+                                }
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Sender Info Section */}
-                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 mb-8">
-                    <h3 className="text-md font-bold text-blue-800 mb-4">差出人情報（必須）</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">自社名</label>
-                            <input
-                                type="text"
-                                value={senderInfo.myCompanyName}
-                                onChange={(e) => setSenderInfo(p => ({ ...p, myCompanyName: e.target.value }))}
-                                className="w-full border border-slate-300 rounded-md p-2"
-                                placeholder="例: 株式会社Antigravity"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">差出人名</label>
-                            <input
-                                type="text"
-                                value={senderInfo.myName}
-                                onChange={(e) => setSenderInfo(p => ({ ...p, myName: e.target.value }))}
-                                className="w-full border border-slate-300 rounded-md p-2"
-                                placeholder="例: 佐藤 健太"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">自社サービス概要</label>
-                        <textarea
-                            value={senderInfo.myServiceDescription}
-                            onChange={(e) => setSenderInfo(p => ({ ...p, myServiceDescription: e.target.value }))}
-                            className="w-full border border-slate-300 rounded-md p-2"
-                            rows={2}
-                            placeholder="例: AIを活用した次世代の営業支援ツールを提供しています。"
-                        />
-                    </div>
-                </div>
-
+                {/* Sender Info Section was moved to Step 1 */}
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={() => setStep('upload')}
@@ -759,7 +888,11 @@ export function BulkGenerator() {
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         <Play size={18} />
-                        生成を開始する ({csvData.filter(r => r[mapping.companyName] && r[mapping.name]).length}件)
+                        生成を開始する ({csvData.filter(r => {
+                            const hasCompany = !!r[mapping.companyName];
+                            const hasName = nameMode === 'full' ? !!r[mapping.name] : (!!r[mapping.lastName] && !!r[mapping.firstName]);
+                            return hasCompany && hasName;
+                        }).length}件)
                     </button>
                 </div>
             </div >

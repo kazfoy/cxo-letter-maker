@@ -14,6 +14,7 @@ const BatchItemSchema = z.object({
     companyName: z.string(),
     name: z.string(), // 担当者名
     position: z.string().optional(),
+    department: z.string().optional(), // 部署名
     background: z.string().optional(), // 目的・背景
     note: z.string().optional(), // 備考
     url: z.string().optional(), // WebサイトURL
@@ -21,6 +22,7 @@ const BatchItemSchema = z.object({
     proposal: z.string().optional(), // セールス提案用
     senderName: z.string().optional(),
     senderCompany: z.string().optional(),
+    senderDepartment: z.string().optional(),
     senderPosition: z.string().optional(),
 });
 
@@ -29,6 +31,7 @@ const BatchGenerateSchema = z.object({
     items: z.array(BatchItemSchema),
 
     myCompanyName: z.string().optional(),
+    myDepartment: z.string().optional(),
     myName: z.string().optional(),
     myServiceDescription: z.string().optional(),
     output_format: z.enum(['letter', 'email']).default('letter'),
@@ -49,7 +52,8 @@ export async function POST(request: Request) {
         request,
         BatchGenerateSchema,
         async (data, user) => {
-            const { items, myCompanyName, myName, myServiceDescription, output_format, mode: clientMode } = data;
+            const { items, myCompanyName, myDepartment, myName, myServiceDescription, output_format, mode: clientMode } = data;
+
 
             // 日次制限チェック
             if (!user) {
@@ -111,6 +115,7 @@ export async function POST(request: Request) {
 
                         // Resolve Sender Info
                         const resolvedSenderCompany = item.senderCompany || myCompanyName || profile?.company_name || '（未設定）';
+                        const resolvedSenderDepartment = item.senderDepartment || myDepartment || ''; // Profile doesn't have department yet
                         const resolvedSenderName = item.senderName || myName || profile?.user_name || '（未設定）';
                         const resolvedSenderService = myServiceDescription || profile?.service_description || '（未設定）'; // item.senderInfo logic could be valid but not requested yet, keeping simple
                         const resolvedSenderPosition = item.senderPosition || ''; // No profile field for position currently
@@ -159,14 +164,15 @@ ${role}
 
 【差出人】
 会社名: ${resolvedSenderCompany}
+部署名: ${resolvedSenderDepartment || '（なし）'}
 氏名: ${resolvedSenderName}
 役職: ${resolvedSenderPosition || '（なし）'}
 サービス概要: ${resolvedSenderService}
 
 【宛先】
 企業名: ${item.companyName}
+役職: ${item.department ? item.department + ' ' : ''}${item.position || '担当者'}
 氏名: ${item.name}
-役職: ${item.position || '担当者'}
 URL: ${item.url || '（なし）'}
 
 【背景・コンテキスト】

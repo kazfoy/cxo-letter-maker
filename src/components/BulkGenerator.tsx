@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw, CheckCircle2, ArrowRight, RotateCcw } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { getProfile } from '@/lib/profileUtils';
 import { ProFeatureModal } from './ProFeatureModal';
-import Link from 'next/link'; // Added Link import
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type Step = 'upload' | 'mapping' | 'execution';
 type MediaType = 'letter' | 'mail';
@@ -61,7 +62,144 @@ interface GenerationStatus {
     error?: string;
 }
 
-// Success Modal Component
+// Batch Progress Modal Component
+const BatchProgressModal = ({
+    isOpen,
+    progress,
+    total,
+    currentCompany,
+    isPaused,
+    onPause,
+    onResume,
+    onCancel,
+    onFinish,
+    statistics
+}: {
+    isOpen: boolean;
+    progress: number;
+    total: number;
+    currentCompany: string;
+    isPaused: boolean;
+    onPause: () => void;
+    onResume: () => void;
+    onCancel: () => void;
+    onFinish: (action: 'history' | 'stay') => void;
+    statistics: { success: number; failure: number };
+}) => {
+    if (!isOpen) return null;
+
+    const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
+    const isCompleted = total > 0 && progress === total;
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        {isCompleted ? (
+                            <>
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                生成完了
+                            </>
+                        ) : (
+                            <>
+                                <Loader2 className={`w-5 h-5 text-blue-600 ${!isPaused ? 'animate-spin' : ''}`} />
+                                {isPaused ? '一時停止中' : '一括生成を実行中...'}
+                            </>
+                        )}
+                    </h3>
+                    {!isCompleted && (
+                        <span className="text-xs font-mono bg-white border border-slate-200 px-2 py-1 rounded text-slate-500">
+                            {progress} / {total}
+                        </span>
+                    )}
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                    {/* Progress Bar */}
+                    <div className="mb-6">
+                        <div className="flex justify-between text-sm mb-2">
+                            <span className="font-semibold text-slate-700">{percentage}% 完了</span>
+                            <span className="text-slate-500">{isCompleted ? 'すべて完了しました' : '画面を閉じないでください'}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <div
+                                className={`h-full transition-all duration-300 ease-out ${isPaused ? 'bg-amber-400' : 'bg-blue-600'}`}
+                                style={{ width: `${percentage}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Current Action Display */}
+                    {!isCompleted && (
+                        <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
+                            <p className="text-xs text-slate-500 mb-1 uppercase tracking-wider font-semibold">Current Processing</p>
+                            <div className="font-bold text-slate-800 text-lg sm:text-xl truncate">
+                                {currentCompany || '準備中...'}
+                            </div>
+                            <p className="text-sm text-slate-500 mt-1">様向けのレターを作成しています</p>
+                        </div>
+                    )}
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-green-50 border border-green-100 p-3 rounded-lg text-center">
+                            <div className="text-xs text-green-700 font-bold uppercase mb-1">Success</div>
+                            <div className="text-2xl font-bold text-green-700">{statistics.success}</div>
+                        </div>
+                        <div className="bg-red-50 border border-red-100 p-3 rounded-lg text-center">
+                            <div className="text-xs text-red-700 font-bold uppercase mb-1">Failed</div>
+                            <div className="text-2xl font-bold text-red-700">{statistics.failure}</div>
+                        </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="flex gap-3 mt-2">
+                        {isCompleted ? (
+                            <>
+                                <button
+                                    onClick={() => onFinish('stay')}
+                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors"
+                                >
+                                    閉じる
+                                </button>
+                                <button
+                                    onClick={() => onFinish('history')}
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-sm transition-colors flex items-center justify-center gap-2"
+                                >
+                                    履歴を確認する
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                {isPaused ? (
+                                    <button
+                                        onClick={onResume}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2"
+                                    >
+                                        <Play className="w-4 h-4 fill-current" /> 再開
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={onCancel}
+                                        className="flex-1 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 font-medium"
+                                    >
+                                        中断する
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Success Modal Component (Legacy - kept if needed but BatchProgressModal generally replaces it)
 const SuccessModal = ({
     batchId,
     onClose,
@@ -107,6 +245,7 @@ const SuccessModal = ({
 };
 
 export function BulkGenerator() {
+    const router = useRouter();
     const { isPro, isPremium } = useUserPlan();
     const [showProModal, setShowProModal] = useState(false);
 
@@ -231,11 +370,14 @@ export function BulkGenerator() {
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const [currentCompany, setCurrentCompany] = useState('');
+    const pausedRef = React.useRef(false); // Ref for immediate pause control in loop
+
     const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<GenerationStatus[]>([]);
     const [statistics, setStatistics] = useState({ successCount: 0, failureCount: 0 });
-    const [completedBatchId, setCompletedBatchId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [usageInfo, setUsageInfo] = useState<{
         usedToday: number;
@@ -243,23 +385,183 @@ export function BulkGenerator() {
         remaining: number;
         userPlan: string;
     } | null>(null);
-    const [showSuccessModal, setShowSuccessModal] = useState(false); // New state for success modal
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Cancel generation handler
-    const handleCancelGeneration = async () => {
-        if (!currentBatchId || isCancelling) return;
+    // Toggle Pause
+    const handleTogglePause = () => {
+        const nextState = !isPaused;
+        setIsPaused(nextState);
+        pausedRef.current = nextState;
+    };
+
+    // Cancel Process (Stops loop)
+    const handleCancelProcess = async () => {
         setIsCancelling(true);
+        // Note: The loop checks isCancelling state (or we can use a ref if needed, but state update usually triggers re-render 
+        cancelRef.current = true; // Set ref to true for immediate exit
+    };
+    const cancelRef = React.useRef(false);
+
+    // Start Sequential Batch Process
+    const startBatchProcess = async () => {
+        if (!checkProAccess()) return;
+
+        // 1. Validation & Setup
+        const validItems = csvData.filter(row => {
+            const hasCompany = !!row[mapping.companyName];
+            const hasName = nameMode === 'full'
+                ? !!row[mapping.name]
+                : (!!row[mapping.lastName] && !!row[mapping.firstName]);
+            return hasCompany && hasName;
+        });
+
+        if (validItems.length === 0) {
+            alert('有効なデータがありません');
+            return;
+        }
+
+        setIsGenerating(true);
+        setIsCancelling(false);
+        setIsPaused(false);
+        setStep('execution');
+        setErrorMessage(null);
+        setUsageInfo(null);
+        cancelRef.current = false;
+        pausedRef.current = false;
+
+        // Reset counters
+        setProgress({ current: 0, total: validItems.length });
+        setResults(validItems.map((_, i) => ({ index: i, status: 'pending' })));
+        setStatistics({ successCount: 0, failureCount: 0 });
+
         try {
-            const response = await fetch(`/api/batch-jobs/${currentBatchId}/cancel`, {
-                method: 'POST'
+            // 2. Initialize Batch Job on Backend
+            const initRes = await fetch('/api/batch-jobs/init', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ totalCount: validItems.length })
             });
-            if (response.ok) {
-                setErrorMessage('生成を中断しました');
+
+            if (!initRes.ok) throw new Error('バッチジョブの初期化に失敗しました');
+            const { batchId } = await initRes.json();
+            setCurrentBatchId(batchId);
+
+            // 3. Sequential Loop
+            let successCount = 0;
+            let failureCount = 0;
+
+            for (let i = 0; i < validItems.length; i++) {
+                // Check Cancellation
+                if (cancelRef.current) break;
+
+                // Check Pause (Busy-wait with delay)
+                while (pausedRef.current) {
+                    if (cancelRef.current) break;
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                const row = validItems[i];
+
+                // Update Status: Generating
+                setResults(prev => {
+                    const next = [...prev];
+                    next[i] = { ...next[i], status: 'generating' };
+                    return next;
+                });
+                setCurrentCompany(row[mapping.companyName] || '');
+
+                // Prepare Item Payload
+                const fullName = nameMode === 'full'
+                    ? (row[mapping.name] || '')
+                    : `${row[mapping.lastName] || ''} ${row[mapping.firstName] || ''}`.trim();
+
+                const itemPayload = {
+                    companyName: row[mapping.companyName] || '',
+                    name: fullName,
+                    position: mapping.position ? row[mapping.position] : '',
+                    department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
+                    background: mapping.background ? row[mapping.background] : '',
+                    note: mapping.note ? row[mapping.note] : '',
+                    url: mapping.url ? row[mapping.url] : '',
+                    eventName: mapping.eventName ? row[mapping.eventName] : '',
+                    proposal: mapping.proposal ? row[mapping.proposal] : '',
+                    // Sender info from CSV logic
+                    senderName: senderRule === 'csv_priority' && mapping.senderName ? row[mapping.senderName] : undefined,
+                    senderCompany: senderRule === 'csv_priority' && mapping.senderCompany ? row[mapping.senderCompany] : undefined,
+                    senderDepartment: senderRule === 'csv_priority' && mapping.senderDepartment ? row[mapping.senderDepartment] : undefined,
+                    senderPosition: senderRule === 'csv_priority' && mapping.senderPosition ? row[mapping.senderPosition] : undefined,
+                };
+
+                const configPayload = {
+                    output_format: mediaType === 'mail' ? 'email' : 'letter',
+                    mode: generationMode,
+                    senderMode: senderRule,
+                    myCompanyName: senderInfo.myCompanyName,
+                    myDepartment: senderInfo.myDepartment,
+                    myName: senderInfo.myName,
+                    myPosition: senderInfo.myPosition,
+                    myServiceDescription: senderInfo.myServiceDescription,
+                };
+
+                try {
+                    // Call Process Item API
+                    const procRes = await fetch('/api/batch-jobs/process-item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            batchId,
+                            item: itemPayload,
+                            config: configPayload
+                        })
+                    });
+
+                    if (!procRes.ok) throw new Error('生成エラー');
+                    const procData = await procRes.json();
+
+                    if (procData.success) {
+                        successCount++;
+                        setResults(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], status: 'completed', content: '生成完了' }; // Content fetching omitted for perf, just status
+                            return next;
+                        });
+                    } else {
+                        throw new Error(procData.error || 'Unknown Error');
+                    }
+                } catch (err) {
+                    console.error('Item Error:', err);
+                    failureCount++;
+                    setResults(prev => {
+                        const next = [...prev];
+                        next[i] = { ...next[i], status: 'error', error: err instanceof Error ? err.message : 'Error' };
+                        return next;
+                    });
+                }
+
+                // Update Progress
+                setProgress({ current: i + 1, total: validItems.length });
+                setStatistics({ successCount, failureCount });
             }
+
+            // 4. Finalize
+            if (!cancelRef.current) {
+                await fetch('/api/batch-jobs/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batchId })
+                });
+            } else {
+                await fetch(`/api/batch-jobs/${batchId}/cancel`, {
+                    method: 'POST'
+                });
+                setErrorMessage('生成を中断しました。');
+                setIsGenerating(false);
+            }
+
         } catch (error) {
-            console.error('Cancel error:', error);
-        } finally {
-            setIsCancelling(false);
+            console.error('Batch Process Error:', error);
+            setErrorMessage(error instanceof Error ? error.message : '一括生成中にエラーが発生しました');
+            setIsGenerating(false);
         }
     };
 
@@ -393,125 +695,32 @@ export function BulkGenerator() {
     }, [getValidationErrors]);
 
     // ---- Step 3: Execution ----
-    const startGeneration = async () => {
-        if (!checkProAccess()) return;
-
-        setIsGenerating(true);
-        setStep('execution');
-        setErrorMessage(null); // Clear previous errors
-        setUsageInfo(null);
-
-        // Validate inputs
-        const validItems = csvData.filter(row => {
-            const hasCompany = !!row[mapping.companyName];
-            const hasName = nameMode === 'full'
-                ? !!row[mapping.name]
-                : (!!row[mapping.lastName] && !!row[mapping.firstName]);
-            return hasCompany && hasName;
-        });
-
-        // Prepare items for API
-        const items = validItems.map(row => {
-            // Name Construction
-            const fullName = nameMode === 'full'
-                ? (row[mapping.name] || '')
-                : `${row[mapping.lastName] || ''} ${row[mapping.firstName] || ''}`.trim();
-
-            const baseItem = {
-                companyName: row[mapping.companyName] || '',
-                name: fullName,
-                position: mapping.position ? row[mapping.position] : '',
-                department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
-                background: mapping.background ? row[mapping.background] : '',
-                note: mapping.note ? row[mapping.note] : '',
-                url: mapping.url ? row[mapping.url] : '',
-                eventName: mapping.eventName ? row[mapping.eventName] : '',
-                proposal: mapping.proposal ? row[mapping.proposal] : '',
-            };
-
-            // Sender Logic: 'direct' mode uses form input, 'csv_priority' uses CSV columns, 'default' uses profile (handled by backend)
-            if (senderRule === 'direct') {
-                return {
-                    ...baseItem,
-                    senderName: senderInfo.myName,
-                    senderCompany: senderInfo.myCompanyName,
-                    senderDepartment: senderInfo.myDepartment || '',
-                    senderPosition: senderInfo.myPosition || ''
-                };
-            } else if (senderRule === 'csv_priority') {
-                return {
-                    ...baseItem,
-                    senderName: mapping.senderName ? row[mapping.senderName] : '',
-                    senderCompany: mapping.senderCompany ? row[mapping.senderCompany] : '',
-                    senderDepartment: mapping.senderDepartment ? row[mapping.senderDepartment] : '',
-                    senderPosition: mapping.senderPosition ? row[mapping.senderPosition] : ''
-                };
-            } else {
-                // 'default' mode: backend will use profile data
-                return baseItem;
-            }
-        });
-
-        setProgress({ current: 0, total: items.length });
-        setResults(items.map((_, i) => ({ index: i, status: 'pending' })));
-
-        try {
-            const response = await fetch('/api/batch-generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    items,
-                    myCompanyName: senderInfo.myCompanyName,
-                    myDepartment: senderInfo.myDepartment,
-                    myName: senderInfo.myName,
-                    myPosition: senderInfo.myPosition,
-                    myServiceDescription: senderInfo.myServiceDescription,
-                    output_format: mediaType === 'mail' ? 'email' : 'letter',
-                    mode: generationMode,
-                    senderMode: senderRule  // Map frontend 'senderRule' to backend 'senderMode'
-                })
-            });
-
-            // 日次制限エラーのチェック
-            if (!response.ok) {
-                const errorData = await response.json();
-                setErrorMessage(errorData.error || '生成に失敗しました');
-                if (errorData.usage) {
-                    setUsageInfo(errorData.usage);
-                }
-                setIsGenerating(false);
-                return; // Stop execution
-            }
-
-            const data = await response.json();
-            const batchId = data.batchId;
-
-            // Show success modal instead of auto-redirect
-            setCompletedBatchId(batchId);
-            setShowSuccessModal(true);
-            setIsGenerating(false);
-
-        } catch (error) {
-            console.error('Generation Error', error);
-            const errorMsg = error instanceof Error ? error.message : '生成中にエラーが発生しました。';
-            setErrorMessage(errorMsg);
-            setIsGenerating(false);
-        }
-    };
 
     const handleReset = () => {
-        setCsvData([]); // Changed from setItems to setCsvData
-        // setCsvFile(null); // This state variable doesn't exist in the provided code
+        setCsvData([]);
         setResults([]);
         setErrorMessage(null);
-        setStatistics({ successCount: 0, failureCount: 0 }); // Changed from setStatistics(null)
+        setStatistics({ successCount: 0, failureCount: 0 });
         setShowSuccessModal(false);
-        setCompletedBatchId(null);
-        setStep('upload'); // Reset to upload step
+        setStep('upload');
+        setCurrentBatchId(null);
+        setIsGenerating(false);
+        setIsPaused(false);
+        setCurrentCompany('');
 
         // Reset file input if exists
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+    };
+
+    const handleBatchFinish = (action: 'history' | 'stay') => {
+        if (action === 'history' && currentBatchId) {
+            router.push(`/dashboard/history/batch/${currentBatchId}?highlight=true`);
+        } else {
+            // 'stay': Close modal, allow user to see the table.
+            setIsGenerating(false);
+            // We might want to keep the results visible.
+        }
     };
 
 
@@ -981,7 +1190,7 @@ export function BulkGenerator() {
                 {/* Footer Action */}
                 <div className="mt-8 flex justify-center pt-6 border-t border-slate-200 relative">
                     <button
-                        onClick={startGeneration}
+                        onClick={startBatchProcess}
                         disabled={getValidationErrors().length > 0 || isGenerating}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                     >
@@ -1019,6 +1228,19 @@ export function BulkGenerator() {
     // Execution Step
     return (
         <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+            <BatchProgressModal
+                isOpen={isGenerating}
+                progress={progress.current}
+                total={progress.total}
+                currentCompany={currentCompany}
+                isPaused={isPaused}
+                onPause={handleTogglePause}
+                onResume={handleTogglePause}
+                onCancel={handleCancelProcess}
+                onFinish={handleBatchFinish}
+                statistics={{ success: statistics.successCount, failure: statistics.failureCount }}
+            />
+
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
@@ -1028,25 +1250,6 @@ export function BulkGenerator() {
                     <div className="text-sm font-medium text-slate-600">
                         {progress.current} / {progress.total} 件完了
                     </div>
-                    {isGenerating && (
-                        <button
-                            onClick={handleCancelGeneration}
-                            disabled={isCancelling}
-                            className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {isCancelling ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    中断中...
-                                </>
-                            ) : (
-                                <>
-                                    <AlertCircle className="w-4 h-4" />
-                                    中断する
-                                </>
-                            )}
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -1098,7 +1301,7 @@ export function BulkGenerator() {
                                 </button>
                                 {usageInfo && usageInfo.userPlan !== 'premium' && (
                                     <button
-                                        onClick={() => { /* router.push('/dashboard/pricing') */ }} // Removed router.push
+                                        onClick={() => { /* router.push('/dashboard/pricing') */ }}
                                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
                                     >
                                         プランをアップグレード
@@ -1113,37 +1316,9 @@ export function BulkGenerator() {
             <div className="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
                 <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                    style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
             </div>
-
-            {/* Statistics Summary */}
-            {!isGenerating && progress.current === progress.total && progress.total > 0 && (
-                <>
-                    <div className="mb-6 grid grid-cols-2 gap-4">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-center gap-2">
-                                <Check className="w-5 h-5 text-green-600" />
-                                <div>
-                                    <div className="text-sm text-green-700 font-medium">成功</div>
-                                    <div className="text-2xl font-bold text-green-900">{statistics.successCount}件</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5 text-red-600" />
-                                <div>
-                                    <div className="text-sm text-red-700 font-medium">失敗</div>
-                                    <div className="text-2xl font-bold text-red-900">{statistics.failureCount}件</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Removed Redirect Notice */}
-                </>
-            )}
 
             <div className="border border-slate-200 rounded-lg overflow-hidden">
                 <div className="max-h-[500px] overflow-y-auto">
@@ -1207,14 +1382,8 @@ export function BulkGenerator() {
                 onClose={() => setShowProModal(false)}
                 featureName="CSV一括生成機能"
             />
-
-            {showSuccessModal && completedBatchId && (
-                <SuccessModal
-                    batchId={completedBatchId}
-                    onClose={() => setShowSuccessModal(false)}
-                    onReset={handleReset}
-                />
-            )}
         </div>
     );
 }
+
+

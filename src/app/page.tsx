@@ -122,6 +122,14 @@ export default function LandingPage() {
       },
       {
         "@type": "Question",
+        "name": "アップロードした顧客リストや生成データは安全ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい、万全の対策を行っております。データは高度な暗号化技術を用いて保存され、お客様ご本人以外からは一切アクセスできない仕組み（RLS）を採用しています。また、生成AI（Google Gemini）に送信されるデータは生成目的のみに使用され、AIの学習データとして二次利用されることはありません。"
+        }
+      },
+      {
+        "@type": "Question",
         "name": "生成されたレターは編集できますか？",
         "acceptedAnswer": {
           "@type": "Answer",
@@ -913,6 +921,19 @@ export default function LandingPage() {
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
                 <strong>いいえ、一切使用されません。</strong>入力データおよび生成されたコンテンツは、AIモデルの学習には使用しない契約を結んでいます。あなたのビジネス情報は厳重に保護されます。
+              </div>
+            </details>
+
+            {/* FAQ Security New */}
+            <details className="group bg-white rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-shadow">
+              <summary className="cursor-pointer px-6 py-5 font-semibold text-stone-900 flex items-center justify-between">
+                <span className="text-lg">アップロードした顧客リストや生成データは安全ですか？</span>
+                <svg className="w-5 h-5 text-stone-600 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <div className="px-6 pb-5 text-stone-700 leading-relaxed">
+                はい、万全の対策を行っております。データは高度な暗号化技術を用いて保存され、<strong>お客様ご本人以外からは一切アクセスできない仕組み（RLS）</strong>を採用しています。また、生成AI（Google Gemini）に送信されるデータは生成目的のみに使用され、<strong>AIの学習データとして二次利用されることはありません。</strong>
               </div>
             </details>
 

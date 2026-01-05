@@ -581,8 +581,6 @@ export function BulkGenerator() {
                         email_content: emailContent,
                         target_company: row[mapping.companyName] || '',
                         target_name: fullName,
-                        recipient_department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : null,
-                        sender_department: resolvedSenderDepartment || null,
                         batch_id: batchId,
                         status: 'generated',
                         mode: generationMode,

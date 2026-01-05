@@ -53,7 +53,7 @@ export function PreviewArea({
   onSave,
 }: PreviewAreaProps) {
   const { user } = useAuth();
-  const { isPro, isFree } = useUserPlan();
+  const { isPro, isPremium, isFree } = useUserPlan();
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [letterStatus, setLetterStatus] = useState<LetterStatus>(currentStatus || 'generated');
@@ -140,7 +140,7 @@ export function PreviewArea({
 
   const handleExportWord = async () => {
     // Check Pro plan
-    if (user && !isPro) {
+    if (user && !isPro && !isPremium) {
       setProFeatureName('Wordダウンロード');
       setShowProModal(true);
       return;

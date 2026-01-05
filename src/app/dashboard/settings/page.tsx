@@ -113,7 +113,7 @@ function SecuritySettings() {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { isPro, loading: planLoading } = useUserPlan();
+  const { isPro, isPremium, loading: planLoading } = useUserPlan();
   const { handleUpgrade, loading: upgrading } = useCheckout();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -304,10 +304,10 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm text-slate-500 mb-1">現在のプラン</p>
               <div className="flex items-center gap-2">
-                <span className={`text-2xl font-bold ${isPro ? 'text-indigo-600' : 'text-slate-700'}`}>
-                  {isPro ? 'Pro Plan' : 'Free Plan'}
+                <span className={`text-2xl font-bold ${isPro || isPremium ? 'text-indigo-600' : 'text-slate-700'}`}>
+                  {isPremium ? 'Premium Plan' : isPro ? 'Pro Plan' : 'Free Plan'}
                 </span>
-                {isPro && (
+                {(isPro || isPremium) && (
                   <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
                     ACTIVE
                   </span>
@@ -315,7 +315,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {!isPro ? (
+            {!isPro && !isPremium ? (
               <button
                 onClick={() => setIsUpgradeModalOpen(true)}
                 disabled={upgrading}
@@ -333,7 +333,7 @@ export default function SettingsPage() {
               </button>
             )}
           </div>
-          {!isPro && (
+          {!isPro && !isPremium && (
             <p className="text-xs text-slate-500 mt-3">
               ProプランまたはPremiumプランにアップグレードして、より多くの機能を利用できます。
             </p>

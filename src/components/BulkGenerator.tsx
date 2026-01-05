@@ -45,11 +45,11 @@ interface GenerationStatus {
 
 export function BulkGenerator() {
     const router = useRouter();
-    const { isPro } = useUserPlan();
+    const { isPro, isPremium } = useUserPlan();
     const [showProModal, setShowProModal] = useState(false);
 
     const checkProAccess = (e?: React.MouseEvent | React.ChangeEvent) => {
-        if (!isPro) {
+        if (!isPro && !isPremium) {
             e?.preventDefault();
             setShowProModal(true);
             return false;

@@ -282,10 +282,41 @@ export function BulkGenerator() {
         setMapping(prev => ({ ...prev, [key]: value }));
     };
 
+    // Validation Logic with Debugging
+    const getValidationErrors = () => {
+        const errors: string[] = [];
+
+        // 1. Recipient Validation
+        if (!mapping.companyName) errors.push('宛先会社名');
+
+        if (nameMode === 'full') {
+            if (!mapping.name) errors.push('宛先氏名');
+        } else {
+            if (!mapping.lastName || !mapping.firstName) errors.push('宛先氏名（姓・名）');
+        }
+
+        // 2. Sender Validation based on Rule
+        if (senderRule === 'direct') {
+            if (!senderInfo.myCompanyName) errors.push('差出人会社名');
+            if (!senderInfo.myName) errors.push('差出人氏名');
+            // Service Description is now optional as per request
+        } else if (senderRule === 'csv_priority') {
+            if (!mapping.senderCompany) errors.push('差出人会社名カラム');
+            if (!mapping.senderName) errors.push('差出人氏名カラム');
+        }
+        // 'default' mode does not enforce validation on client side (as per "Pattern A empty OK")
+        // logic assumes profile data or backend handling
+
+        return errors;
+    };
+
     const isMappingValid = () => {
-        const nameValid = nameMode === 'full' ? mapping.name : (mapping.lastName && mapping.firstName);
-        return mapping.companyName && nameValid &&
-            senderInfo.myCompanyName && senderInfo.myName && senderInfo.myServiceDescription;
+        const errors = getValidationErrors();
+        if (errors.length > 0) {
+            console.log('Validation Failed. Missing:', errors);
+            return false;
+        }
+        return true;
     };
 
     // ---- Step 3: Execution ----
@@ -915,10 +946,10 @@ export function BulkGenerator() {
                 </div>
 
                 {/* Footer Action */}
-                <div className="mt-8 flex justify-center pt-6 border-t border-slate-200">
+                <div className="mt-8 flex justify-center pt-6 border-t border-slate-200 relative">
                     <button
                         onClick={startGeneration}
-                        disabled={!isMappingValid() || isGenerating}
+                        disabled={getValidationErrors().length > 0 || isGenerating}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                     >
                         {isGenerating ? (
@@ -933,6 +964,14 @@ export function BulkGenerator() {
                             </>
                         )}
                     </button>
+                    {getValidationErrors().length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-3 text-center">
+                            <p className="text-xs text-red-500 font-bold bg-red-50 py-1 px-3 rounded-full inline-flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                未設定: {getValidationErrors().join('、')}
+                            </p>
+                        </div>
+                    )}
                     <button
                         onClick={() => setStep('upload')}
                         className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium absolute right-8"

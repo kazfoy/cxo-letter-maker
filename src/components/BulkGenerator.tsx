@@ -540,6 +540,9 @@ export function BulkGenerator() {
                 }
 
                 try {
+                    // Debug log
+                    console.log('[BulkGenerator] Generating for:', row[mapping.companyName], 'Payload:', generatePayload);
+
                     // Call /api/generate (same as /new page uses)
                     const genRes = await fetch('/api/generate', {
                         method: 'POST',
@@ -548,9 +551,12 @@ export function BulkGenerator() {
                     });
 
                     const genData = await genRes.json();
+                    console.log('[BulkGenerator] Response:', genRes.status, genData);
 
                     if (!genRes.ok) {
-                        throw new Error(genData.error || genData.details || '生成に失敗しました');
+                        const errorMsg = genData.error || genData.details || genData.message || '生成に失敗しました';
+                        console.error('[BulkGenerator] API Error:', errorMsg, genData);
+                        throw new Error(errorMsg);
                     }
 
                     // Extract content based on output format

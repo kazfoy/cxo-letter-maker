@@ -471,10 +471,15 @@ export function BulkGenerator() {
                 });
                 setCurrentCompany(row[mapping.companyName] || '');
 
-                // Prepare Name
+                // Prepare Name (姓 名の順序で結合)
                 const fullName = nameMode === 'full'
                     ? (row[mapping.name] || '')
-                    : `${row[mapping.lastName] || ''} ${row[mapping.firstName] || ''}`.trim();
+                    : `${row[mapping.lastName] || ''}${row[mapping.firstName] ? ' ' + row[mapping.firstName] : ''}`.trim();
+
+                // Debug: 姓名順序の確認
+                if (nameMode === 'separate') {
+                    console.log(`[Name Order] 姓: ${row[mapping.lastName]}, 名: ${row[mapping.firstName]} → ${fullName}`);
+                }
 
                 // Resolve sender info based on senderRule
                 let resolvedSenderCompany = senderInfo.myCompanyName;

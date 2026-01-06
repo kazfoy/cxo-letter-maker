@@ -44,29 +44,28 @@ export async function getProfile(): Promise<Profile | null> {
  * Update the current user's profile
  */
 export async function updateProfile(profile: Partial<Omit<Profile, 'id' | 'email'>>): Promise<Profile | null> {
-  try {
-    const supabase = createClient();
+  const supabase = createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('ログインが必要です');
-    }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(profile)
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Profile update error:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Profile update error:', error);
-    return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('ログインが必要です');
   }
+
+  console.log('[Profile Update] Updating profile for user:', user.id);
+  console.log('[Profile Update] Data:', JSON.stringify(profile, null, 2));
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(profile)
+    .eq('id', user.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Profile Update] Supabase error:', error.code, error.message, error.details, error.hint);
+    throw new Error(`プロフィール更新エラー: ${error.message}`);
+  }
+
+  console.log('[Profile Update] Success:', data);
+  return data;
 }

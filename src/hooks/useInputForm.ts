@@ -151,12 +151,17 @@ export function useInputForm({
 
       const { companyName, personName, personPosition, summary, context } = data.data;
 
+      // Track which fields were updated for user feedback
+      const updatedFields: string[] = [];
+
       if (sourceInputType === 'own') {
         setFormData((prev) => ({
           ...prev,
           myCompanyName: companyName || prev.myCompanyName,
           myServiceDescription: summary || prev.myServiceDescription,
         }));
+        if (companyName) updatedFields.push('会社名');
+        if (summary) updatedFields.push('サービス概要');
       } else {
         if (mode === 'event') {
           setFormData((prev) => ({
@@ -170,6 +175,10 @@ export function useInputForm({
                 : context
               : prev.invitationReason,
           }));
+          if (companyName) updatedFields.push('企業名');
+          if (personName) updatedFields.push('氏名');
+          if (personPosition) updatedFields.push('役職');
+          if (context) updatedFields.push('招待の背景');
         } else {
           setFormData((prev) => ({
             ...prev,
@@ -178,17 +187,39 @@ export function useInputForm({
             position: personPosition || prev.position,
             background: context || prev.background,
           }));
+          if (companyName) updatedFields.push('企業名');
+          if (personName) updatedFields.push('氏名');
+          if (personPosition) updatedFields.push('役職');
+          if (context) updatedFields.push('背景・フック');
         }
       }
 
       setMultiSourceModalOpen(false);
+
+      // Show success toast with updated fields
+      if (updatedFields.length > 0) {
+        toast({
+          title: "情報を入力しました",
+          description: `${updatedFields.join('、')}を自動入力しました`,
+          type: "success",
+          duration: 4000,
+        });
+      } else {
+        toast({
+          title: "情報が見つかりませんでした",
+          description: `URLから有効な情報を抽出できませんでした。別のページを試してください。`,
+          type: "warning",
+          duration: 5000,
+        });
+      }
     } catch (error) {
       console.error('ソース解析エラー:', error);
       showError('ソース解析に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsAnalyzingSource(false);
     }
-  }, [sourceInputType, mode, handleApiErrorData, setFormData, showError]);
+  }, [sourceInputType, mode, handleApiErrorData, setFormData, showError, toast]);
+
 
   const handleOpenStructureSuggestion = useCallback(() => {
     if (!formData.companyName || !formData.myServiceDescription) {

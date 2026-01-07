@@ -217,7 +217,7 @@ export async function POST(request: Request) {
         // Gemini APIで情報を抽出
         console.log('[DEBUG] Gemini API呼び出し開始');
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash-exp');
+        const model = google('gemini-2.0-flash');
 
         let extractPrompt: string;
 

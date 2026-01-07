@@ -117,10 +117,10 @@ const GenerateSchema = z.object({
 });
 
 // ... (generateWithFallback - unchanged)
-async function generateWithFallback(prompt: string, primaryModelName: string = 'gemini-2.0-flash-exp') {
+async function generateWithFallback(prompt: string, primaryModelName: string = 'gemini-2.0-flash') {
   const google = getGoogleProvider();
   const primaryModel = google(primaryModelName);
-  const fallbackModel = google('gemini-1.5-flash');
+  const fallbackModel = google('gemini-2.0-flash');
 
   try {
     const result = await generateText({
@@ -133,7 +133,7 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
     console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
       message: errorDetails.message,
     });
-    devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-1.5-flash...`, error);
+    devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-2.0-flash...`, error);
     try {
       const result = await generateText({
         model: fallbackModel,
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
           output_format: output_format,
         };
 
-        const primaryModelName = data.model === 'pro' ? 'gemini-2.0-flash-exp' : 'gemini-2.0-flash-exp';
+        const primaryModelName = data.model === 'pro' ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
 
         let prompt = '';
 

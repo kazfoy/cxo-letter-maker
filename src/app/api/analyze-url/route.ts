@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
         // Gemini APIで情報を抽出
         const google = getGoogleProvider();
-        const model = google('gemini-1.5-flash');
+        const model = google('gemini-2.0-flash');
 
         const extractPrompt = `以下のWebページのテキストから、企業情報を抽出してJSON形式で返してください。
 

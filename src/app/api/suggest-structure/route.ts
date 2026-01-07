@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         const safeBackground = sanitizeForPrompt(background || '', 5000);
 
         const google = getGoogleProvider();
-        const model = google('gemini-1.5-flash');
+        const model = google('gemini-2.0-flash');
 
         const prompt = `あなたはCxO向けセールスレターの構成案を提案する専門家です。
 

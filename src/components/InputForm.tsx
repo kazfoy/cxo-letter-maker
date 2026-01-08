@@ -48,6 +48,7 @@ export function InputForm({
     multiSourceModalOpen,
     sourceInputType,
     isAnalyzingSource,
+    analysisPhase,
     isGeneratingLocal,
     generationSuccess,
     inputMode,
@@ -252,6 +253,7 @@ export function InputForm({
         onAnalyze={handleAnalyzeMultiSource}
         type={sourceInputType}
         isAnalyzing={isAnalyzingSource}
+        analysisPhase={analysisPhase}
       />
 
       {/* 構成案提案モーダル */}

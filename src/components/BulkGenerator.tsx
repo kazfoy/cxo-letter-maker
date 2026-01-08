@@ -303,7 +303,7 @@ export function BulkGenerator() {
             const response = await fetch('/api/analyze-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: aiUrl }),
+                body: JSON.stringify({ url: aiUrl, type: 'own' }),
             });
 
             const data = await response.json();

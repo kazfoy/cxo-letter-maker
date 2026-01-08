@@ -85,6 +85,21 @@ export interface GenerateResponse {
   suggestion?: string;
 }
 
+// レター構成案の構造
+export interface LetterStructure {
+  background: string;
+  problem: string;
+  solution: string;
+  caseStudy: string;
+  offer: string;
+}
+
+// 解析フェーズ（SSE進捗表示用）
+export type AnalysisPhase = 'connecting' | 'extracting' | 'searching' | 'generating' | 'complete';
+
+// 業界タイプ
+export type Industry = 'it' | 'manufacturing' | 'service' | 'finance' | 'retail' | 'generic';
+
 // ソース解析レスポンス
 export interface AnalyzeSourceResponse {
   data?: {
@@ -96,10 +111,19 @@ export interface AnalyzeSourceResponse {
     eventName?: string;
     eventDateTime?: string;
     eventSpeakers?: string;
+    letterStructure?: LetterStructure;
   };
   error?: string;
   message?: string;
   suggestion?: string;
+}
+
+// SSEイベントデータ
+export interface SSEEvent {
+  phase?: AnalysisPhase;
+  message?: string;
+  data?: AnalyzeSourceResponse['data'];
+  error?: string;
 }
 
 // APIエラーレスポンス

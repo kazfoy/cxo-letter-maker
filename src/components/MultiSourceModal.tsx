@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { AnalysisPhase } from '@/types/letter';
 
 // PDF.js workerの設定
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 }
+
+// フェーズ設定
+const phaseConfig: Record<AnalysisPhase, { icon: string; message: string; progress: number }> = {
+  connecting: { icon: '🌐', message: 'サイトにアクセス中...', progress: 15 },
+  extracting: { icon: '🔍', message: '情報を抽出中...', progress: 40 },
+  searching: { icon: '🔎', message: 'Web検索で情報を補完中...', progress: 60 },
+  generating: { icon: '✍️', message: '構成案を作成中...', progress: 85 },
+  complete: { icon: '✅', message: '完了', progress: 100 },
+};
+
+// フェーズの順序
+const phaseOrder: AnalysisPhase[] = ['connecting', 'extracting', 'searching', 'generating', 'complete'];
 
 interface MultiSourceModalProps {
   isOpen: boolean;
@@ -12,6 +25,7 @@ interface MultiSourceModalProps {
   onAnalyze: (urls: string[], pdfText: string | null) => Promise<void>;
   type: 'own' | 'target';
   isAnalyzing: boolean;
+  analysisPhase?: AnalysisPhase | null;
 }
 
 export function MultiSourceModal({
@@ -20,6 +34,7 @@ export function MultiSourceModal({
   onAnalyze,
   type,
   isAnalyzing,
+  analysisPhase,
 }: MultiSourceModalProps) {
   const [urls, setUrls] = useState<string[]>(['']);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -134,7 +149,7 @@ export function MultiSourceModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col relative">
         {/* ヘッダー */}
         <div className="p-4 border-b flex justify-between items-center">
           <h3 className="text-lg font-semibold">
@@ -149,6 +164,86 @@ export function MultiSourceModal({
             ✕
           </button>
         </div>
+
+        {/* ローディングオーバーレイ - AI解析中 */}
+        {isAnalyzing && (
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+            {/* スピナーアニメーション */}
+            <div className="relative mb-6">
+              <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* タイトル */}
+            <p className="text-lg font-semibold text-gray-800 mb-4">
+              AIが情報を解析中...
+            </p>
+
+            {/* フェーズ表示 */}
+            <div className="space-y-2 mb-6">
+              {phaseOrder
+                .filter(phase => phase !== 'complete')
+                .filter(phase => {
+                  // searchingフェーズは実際に表示された時のみ表示
+                  if (phase === 'searching') {
+                    const currentIndex = analysisPhase ? phaseOrder.indexOf(analysisPhase) : -1;
+                    const searchingIndex = phaseOrder.indexOf('searching');
+                    return currentIndex >= searchingIndex;
+                  }
+                  return true;
+                })
+                .map((phase) => {
+                  const config = phaseConfig[phase];
+                  const currentIndex = analysisPhase ? phaseOrder.indexOf(analysisPhase) : -1;
+                  const phaseIndex = phaseOrder.indexOf(phase);
+                  const isComplete = currentIndex > phaseIndex;
+                  const isCurrent = analysisPhase === phase;
+
+                  return (
+                    <div
+                      key={phase}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 ${
+                        isCurrent
+                          ? 'bg-blue-50 border border-blue-200'
+                          : isComplete
+                          ? 'bg-green-50 border border-green-200'
+                          : 'bg-gray-50 border border-gray-200 opacity-50'
+                      }`}
+                    >
+                      <span className={`text-xl ${isCurrent ? 'animate-pulse' : ''}`}>
+                        {isComplete ? '✅' : config.icon}
+                      </span>
+                      <span
+                        className={`text-sm ${
+                          isCurrent
+                            ? 'text-blue-700 font-medium'
+                            : isComplete
+                            ? 'text-green-700'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        {config.message}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* 進捗バー */}
+            <div className="w-56 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${analysisPhase ? phaseConfig[analysisPhase].progress : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* ボディ - スクロール可能 */}
         <div className="overflow-y-auto flex-1 p-4 space-y-4">

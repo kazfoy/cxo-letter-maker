@@ -28,6 +28,7 @@ function getGoogleProvider() {
 // 入力スキーマ定義
 const AnalyzeUrlSchema = z.object({
   url: z.string().url('有効なURLを入力してください'),
+  type: z.enum(['own', 'target']).optional().default('target'),
 });
 
 export async function POST(request: Request) {
@@ -121,29 +122,90 @@ export async function POST(request: Request) {
         const google = getGoogleProvider();
         const model = google('gemini-2.0-flash');
 
-        const extractPrompt = `以下のWebページのテキストから、企業情報を抽出してJSON形式で返してください。
+        let extractPrompt: string;
+
+        if (data.type === 'own') {
+          extractPrompt = `あなたはセールスライティングの専門家です。以下のWebページのテキストから、自社の情報を抽出し、さらにそのサービスを活用したセールスレターの汎用的な構成案を生成してJSON形式で返してください。
+
+【Webページのテキスト】
+${mainText}
+
+【抽出・生成する情報】
+1. 基本情報:
+- companyName: 会社名
+- summary: 事業概要・サービス概要（200文字程度で具体的に）
+
+2. レター構成案（letterStructure）:
+自社の強みを活かした、汎用的なセールスレターの構成案を生成してください。
+- background: ターゲットが抱えがちな課題・背景（100-150文字）
+  * 自社サービスが解決できる「一般的な課題」を提示
+- problem: 具体的な課題の深掘り（100-150文字）
+  * 自社サービスを導入しないことによるデメリットや、現場の痛み
+- solution: 自社ソリューションの提示（100-150文字）
+  * 「弊社の〇〇というサービスは」という形式で、自社の強みをアピール
+- offer: 結び・ネクストアクション（80-120文字）
+  * 「一度詳細をご説明するお時間をいただけないでしょうか」といった標準的なオファー
+
+【出力形式】
+JSON形式のみを出力してください（Markdownのコードブロックは不要）：
+{
+  "companyName": "会社名",
+  "summary": "事業概要・サービス概要",
+  "letterStructure": {
+    "background": "想定されるターゲットの課題",
+    "problem": "課題の深掘り",
+    "solution": "自社サービスの強み",
+    "offer": "結び・オファー"
+  }
+}`;
+        } else {
+          extractPrompt = `あなたは企業分析とセールスレター構成の専門家です。以下のWebページのテキストから、ターゲット企業の情報を抽出し、さらにその企業へのセールスレター構成案を生成してJSON形式で返してください。
 
 【Webページのテキスト】
 ${mainText}
 
 【抽出する情報】
+1. 基本情報:
 - companyName: 会社名（ページから特定できる正式名称）
 - personName: 代表者名や担当者名（見つからない場合は空文字）
 - summary: 事業概要（100文字程度で簡潔に）
 - description: サービスや強みの説明（200文字程度で具体的に）
 
-【制約事項】
-- 必ず有効なJSON形式のみを出力してください
-- Markdownのコードブロック（\`\`\`jsonなど）を含めないでください
-- 確信が持てない項目は空文字にしてください
+2. レター構成案（letterStructure）:
+ソーステキストから読み取れる情報を基に、ターゲット企業向けのセールスレター構成案を生成してください。
+- background: 相手企業の課題・背景（100-150文字）
+  * ソースから読み取れる企業の課題、業界トレンド、最近の動向を反映
+  * 情報が少ない場合は、業界一般の課題を仮説として提示
+- problem: 具体的な課題の深掘り（100-150文字）
+  * 企業が直面しているであろう具体的な問題点
+  * 情報が少ない場合は、企業規模や業界から推測される一般的な課題を記載
+- solution: 自社ソリューションとの接点（100-150文字）
+  * 「御社の〇〇という課題に対して」という形式で、提案の余地を示す
+  * 具体的な解決の方向性を示す
+- offer: 結び・ネクストアクション（80-120文字）
+  * 面談依頼や情報提供のオファー
+  * 「ぜひ一度、〇〇についてお話しさせていただければ幸いです」のような形式
 
-【出力JSON例】
+【重要な指示】
+- 情報が不足している場合でもエラーにせず、会社名や業界から推測される一般的な課題・提案を仮説として生成してください
+- letterStructure の各項目は必ず生成してください（空文字は不可）
+- 推測で生成した場合は「〜と推察いたします」「〜ではないでしょうか」のような表現を使用してください
+
+【出力形式】
+JSON形式のみを出力してください（Markdownのコードブロックは不要）：
 {
-  "companyName": "株式会社サンプル",
-  "personName": "代表 太郎",
-  "summary": "クラウドサービスの開発・運営",
-  "description": "中小企業向けの業務効率化SaaSを提供しています。..."
+  "companyName": "会社名",
+  "personName": "代表者名",
+  "summary": "事業概要",
+  "description": "サービスや強みの説明",
+  "letterStructure": {
+    "background": "相手企業の課題・背景",
+    "problem": "具体的な課題の深掘り",
+    "solution": "自社ソリューションとの接点",
+    "offer": "結び・ネクストアクション"
+  }
 }`;
+        }
 
         const result = await generateText({
           model: model,
@@ -172,7 +234,8 @@ ${mainText}
           companyName: extractedData.companyName || '',
           personName: extractedData.personName || '',
           summary: extractedData.summary || '',
-          description: extractedData.description || extractedData.summary || ''
+          description: extractedData.description || extractedData.summary || '',
+          letterStructure: extractedData.letterStructure
         });
 
       } catch (error) {

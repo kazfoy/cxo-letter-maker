@@ -38,7 +38,7 @@ export const SalesForm = React.memo(function SalesForm({
 
     setIsSearching(true);
     try {
-      const res = await fetch('/api/search-company', {
+      const res = await fetch('/api/news-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyName: formData.companyName }),
@@ -47,9 +47,15 @@ export const SalesForm = React.memo(function SalesForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Search failed');
 
+      const trimmedResults = (data.results || '').trim();
+      if (!trimmedResults) {
+        alert('具体的なニュースファクトが見つかりませんでした。');
+        return;
+      }
+
       setFormData(prev => ({
         ...prev,
-        searchResults: data.results,
+        searchResults: trimmedResults,
       }));
 
       alert('最新ニュースを取得しました。「生成」時に活用されます。');

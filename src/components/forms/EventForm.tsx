@@ -51,7 +51,7 @@ export const EventForm = React.memo(function EventForm({
               value={formData.myCompanyName}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.myCompanyName}
             />
           </div>
@@ -65,7 +65,7 @@ export const EventForm = React.memo(function EventForm({
               name="myDepartment"
               value={formData.myDepartment || ''}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.myDepartment}
             />
           </div>
@@ -80,7 +80,7 @@ export const EventForm = React.memo(function EventForm({
               value={formData.myName}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.myName}
             />
           </div>
@@ -95,7 +95,7 @@ export const EventForm = React.memo(function EventForm({
               onChange={handleChange}
               required
               rows={3}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.myServiceDescription}
               maxLength={500}
             />
@@ -128,7 +128,7 @@ export const EventForm = React.memo(function EventForm({
               value={formData.companyName}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.companyName}
             />
           </div>
@@ -142,7 +142,7 @@ export const EventForm = React.memo(function EventForm({
               name="department"
               value={formData.department || ''}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.department}
             />
           </div>
@@ -157,7 +157,7 @@ export const EventForm = React.memo(function EventForm({
                 name="position"
                 value={formData.position}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.position}
               />
             </div>
@@ -172,7 +172,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.name}
               />
             </div>
@@ -222,7 +222,7 @@ export const EventForm = React.memo(function EventForm({
                   name="eventUrl"
                   value={formData.eventUrl || ''}
                   onChange={handleChange}
-                  className="flex-1 px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="flex-1 px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={EVENT_PLACEHOLDERS.eventUrl}
                 />
                 <button
@@ -247,7 +247,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.eventName || ''}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.eventName}
               />
             </div>
@@ -263,7 +263,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.eventDateTime || ''}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.eventDateTime}
               />
             </div>
@@ -278,7 +278,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.eventSpeakers || ''}
                 onChange={handleChange}
                 rows={2}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
                 maxLength={300}
               />
@@ -305,7 +305,7 @@ export const EventForm = React.memo(function EventForm({
                 onChange={handleChange}
                 required
                 rows={3}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.invitationReason}
                 maxLength={500}
               />
@@ -332,7 +332,7 @@ export const EventForm = React.memo(function EventForm({
                   value={formData.eventUrl || ''}
                   onChange={handleChange}
                   required={inputMode === 'freeform'}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-400"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
                   placeholder={EVENT_PLACEHOLDERS.eventUrlFreeform}
                 />
                 <button
@@ -358,7 +358,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.companyName}
                 onChange={handleChange}
                 required={inputMode === 'freeform'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.companyNameFreeform}
               />
             </div>
@@ -373,7 +373,7 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.invitationReason || ''}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.invitationMemo}
                 maxLength={500}
               />

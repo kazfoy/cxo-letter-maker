@@ -113,7 +113,7 @@ export const SalesForm = React.memo(function SalesForm({
                 value={formData.companyName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={SALES_PLACEHOLDERS.companyName}
               />
               <div className="flex justify-end mt-2">
@@ -149,7 +149,7 @@ export const SalesForm = React.memo(function SalesForm({
                 onChange={handleChange}
                 required
                 rows={3}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={SALES_PLACEHOLDERS.myServiceDescription}
                 maxLength={300}
               />
@@ -165,7 +165,7 @@ export const SalesForm = React.memo(function SalesForm({
                 name="simpleRequirement"
                 value={formData.simpleRequirement || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={SALES_PLACEHOLDERS.simpleRequirement}
                 maxLength={100}
               />
@@ -203,7 +203,7 @@ export const SalesForm = React.memo(function SalesForm({
                   value={formData.myCompanyName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.myCompanyName}
                 />
               </div>
@@ -217,7 +217,7 @@ export const SalesForm = React.memo(function SalesForm({
                   name="myDepartment"
                   value={formData.myDepartment || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.myDepartment}
                 />
               </div>
@@ -232,7 +232,7 @@ export const SalesForm = React.memo(function SalesForm({
                   value={formData.myName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.myName}
                 />
               </div>
@@ -247,7 +247,7 @@ export const SalesForm = React.memo(function SalesForm({
                   onChange={handleChange}
                   required
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.myServiceDescription}
                   maxLength={500}
                 />
@@ -280,7 +280,7 @@ export const SalesForm = React.memo(function SalesForm({
                   value={formData.companyName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.companyName}
                 />
                 <div className="flex justify-end mt-2">
@@ -304,7 +304,7 @@ export const SalesForm = React.memo(function SalesForm({
                   name="department"
                   value={formData.department || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.department}
                 />
               </div>
@@ -319,7 +319,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.position}
                   />
                 </div>
@@ -334,7 +334,7 @@ export const SalesForm = React.memo(function SalesForm({
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.name}
                   />
                 </div>
@@ -413,7 +413,7 @@ export const SalesForm = React.memo(function SalesForm({
                     onChange={handleChange}
                     required={inputMode === 'step'}
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.background}
                     maxLength={500}
                   />
@@ -440,7 +440,7 @@ export const SalesForm = React.memo(function SalesForm({
                     onChange={handleChange}
                     required={inputMode === 'step'}
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.problem}
                     maxLength={500}
                   />
@@ -467,7 +467,7 @@ export const SalesForm = React.memo(function SalesForm({
                     onChange={handleChange}
                     required={inputMode === 'step'}
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.solution}
                     maxLength={500}
                   />
@@ -494,7 +494,7 @@ export const SalesForm = React.memo(function SalesForm({
                     onChange={handleChange}
                     required={inputMode === 'step'}
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.caseStudy}
                     maxLength={500}
                   />
@@ -521,7 +521,7 @@ export const SalesForm = React.memo(function SalesForm({
                     onChange={handleChange}
                     required={inputMode === 'step'}
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.offer}
                     maxLength={500}
                   />
@@ -552,7 +552,7 @@ export const SalesForm = React.memo(function SalesForm({
                   onChange={handleChange}
                   required={inputMode === 'freeform'}
                   rows={15}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder={SALES_PLACEHOLDERS.freeformInput}
                 />
                 <p className="mt-2 text-xs text-gray-500">{MESSAGES.info.freeformHelp}</p>

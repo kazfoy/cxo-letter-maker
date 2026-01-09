@@ -1,0 +1,101 @@
+/**
+ * generate-v2 API の型定義
+ */
+
+import { z } from 'zod';
+import { AnalysisResultSchema } from './analysis';
+
+/**
+ * 差出人情報スキーマ
+ */
+export const SenderInfoSchema = z.object({
+  company_name: z.string().min(1),
+  department: z.string().optional(),
+  name: z.string().min(1),
+  service_description: z.string().min(1),
+});
+
+/**
+ * ユーザー上書きスキーマ
+ */
+export const UserOverridesSchema = z.object({
+  company_name: z.string().optional(),
+  person_name: z.string().optional(),
+  person_position: z.string().optional(),
+  additional_context: z.string().optional(),
+  custom_proof_points: z.array(z.string()).optional(),
+});
+
+/**
+ * 生成リクエストスキーマ
+ */
+export const GenerateV2RequestSchema = z.object({
+  analysis_result: AnalysisResultSchema,
+  user_overrides: UserOverridesSchema.optional(),
+  sender_info: SenderInfoSchema,
+  mode: z.enum(['draft', 'complete']),
+  output_format: z.enum(['letter', 'email']),
+});
+
+/**
+ * 根拠スキーマ
+ */
+export const RationaleSchema = z.object({
+  type: z.string(),
+  content: z.string(),
+});
+
+/**
+ * 品質情報スキーマ
+ */
+export const QualitySchema = z.object({
+  score: z.number().min(0).max(100).nullable(),
+  passed: z.boolean(),
+  issues: z.array(z.string()),
+  evaluation_comment: z.string().optional(),
+});
+
+/**
+ * バリエーションスキーマ
+ */
+export const VariationsSchema = z.object({
+  standard: z.string(),
+  emotional: z.string(),
+  consultative: z.string(),
+});
+
+/**
+ * 生成レスポンススキーマ（AI出力用）
+ */
+export const GenerateV2OutputSchema = z.object({
+  subjects: z.array(z.string()).min(1).max(5),
+  body: z.string(),
+  rationale: z.array(RationaleSchema).min(1).max(3),
+  variations: VariationsSchema.optional(),
+});
+
+/**
+ * 完全なレスポンススキーマ
+ */
+export const GenerateV2ResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    subjects: z.array(z.string()),
+    body: z.string(),
+    rationale: z.array(RationaleSchema),
+    quality: QualitySchema,
+    variations: VariationsSchema.optional(),
+  }).optional(),
+  error: z.string().optional(),
+  code: z.string().optional(),
+});
+
+// 型エクスポート
+export type SenderInfo = z.infer<typeof SenderInfoSchema>;
+export type UserOverrides = z.infer<typeof UserOverridesSchema>;
+export type GenerateV2Request = z.infer<typeof GenerateV2RequestSchema>;
+export type Rationale = z.infer<typeof RationaleSchema>;
+export type Quality = z.infer<typeof QualitySchema>;
+export type Variations = z.infer<typeof VariationsSchema>;
+export type GenerateV2Output = z.infer<typeof GenerateV2OutputSchema>;
+export type GenerateV2Response = z.infer<typeof GenerateV2ResponseSchema>;

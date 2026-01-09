@@ -102,6 +102,12 @@ function NewLetterPageContent() {
 
   // V2フロー: 分析APIを呼び出してモーダルを表示
   const handleAnalyzeForV2 = useCallback(async () => {
+    // 送り手情報の入力必須チェック
+    if (!formData.myCompanyName || !formData.myName || !formData.myServiceDescription) {
+      alert('送り手情報（会社名・氏名・サービス説明）を入力してください');
+      return;
+    }
+
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
       setShowLimitModal(true);
@@ -171,10 +177,10 @@ function NewLetterPageContent() {
           analysis_result: analysisResult,
           user_overrides: overrides,
           sender_info: {
-            company_name: formData.myCompanyName || '株式会社○○',
+            company_name: formData.myCompanyName,
             department: '',
-            name: formData.myName || '担当者',
-            service_description: formData.myServiceDescription || '',
+            name: formData.myName,
+            service_description: formData.myServiceDescription,
           },
           mode: generateMode,
           output_format: 'letter',

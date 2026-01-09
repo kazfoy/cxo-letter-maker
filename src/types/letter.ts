@@ -24,6 +24,7 @@ export interface LetterFormData {
   department?: string;
   position: string;
   name: string;
+  targetUrl?: string; // 相手企業URL（V2分析用）
 
   // セールスレター用フィールド
   background: string;

@@ -48,6 +48,7 @@ function NewLetterPageContent() {
     companyName: '',
     position: '',
     name: '',
+    targetUrl: '',
     background: '',
     problem: '',
     solution: '',
@@ -68,6 +69,15 @@ function NewLetterPageContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingV2, setIsGeneratingV2] = useState(false);
   const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
+  const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
+
+  // URLを抽出するユーティリティ関数
+  const extractFirstUrl = (text?: string): string | undefined => {
+    if (!text) return undefined;
+    const urlPattern = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
+    const matches = text.match(urlPattern);
+    return matches?.[0];
+  };
 
   // Load profile data and auto-populate form
   useEffect(() => {
@@ -118,6 +128,10 @@ function NewLetterPageContent() {
     setAnalysisResult(null);
 
     try {
+      // ターゲットURLを解決（入力欄優先、なければfreeformInputから抽出）
+      const targetUrl = formData.targetUrl?.trim() || extractFirstUrl(formData.freeformInput);
+      setResolvedTargetUrl(targetUrl);
+
       // ユーザーノートを構築（既存のフォームデータから）
       const userNotes = [
         formData.companyName && `企業名: ${formData.companyName}`,
@@ -132,6 +146,7 @@ function NewLetterPageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          target_url: targetUrl || undefined,
           user_notes: userNotes || undefined,
           sender_info: formData.myCompanyName ? {
             company_name: formData.myCompanyName,
@@ -407,6 +422,7 @@ function NewLetterPageContent() {
       companyName: '',
       position: '',
       name: '',
+      targetUrl: '',
       background: '',
       problem: '',
       solution: '',
@@ -784,7 +800,7 @@ function NewLetterPageContent() {
         analysisResult={analysisResult}
         onConfirm={handleGenerateV2}
         isLoading={isGeneratingV2}
-        hasUrl={false}
+        hasUrl={Boolean(resolvedTargetUrl)}
       />
     </div>
   );

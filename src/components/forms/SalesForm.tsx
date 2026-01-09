@@ -340,6 +340,23 @@ export const SalesForm = React.memo(function SalesForm({
                 </div>
               </div>
 
+              {/* 相手企業URL（V2分析用） */}
+              <div>
+                <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+                  相手企業URL（任意）
+                </label>
+                <input
+                  type="url"
+                  id="targetUrl"
+                  name="targetUrl"
+                  value={formData.targetUrl || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder="https://example.com"
+                />
+                <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+              </div>
+
               {/* 検索結果の表示エリア（自動入力） */}
               {formData.searchResults && (
                 <div className="bg-slate-50 p-3 rounded-md border border-slate-200">

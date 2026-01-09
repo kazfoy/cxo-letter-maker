@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 type TabType = 'login' | 'signup';
+type AuthMethod = 'magic_link' | 'otp_code';
 
 function LoginContent() {
   const [activeTab, setActiveTab] = useState<TabType>('login');
@@ -16,10 +17,14 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  // OTP (6桁コード) 関連の状態
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('magic_link');
+  const [otpCode, setOtpCode] = useState('');
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/dashboard';
+  const authError = searchParams.get('error');
   const supabase = createClient();
 
   // Redirect logged-in users
@@ -29,6 +34,23 @@ function LoginContent() {
       router.push(redirectPath);
     }
   }, [user, router, redirectPath]);
+
+  // Handle auth errors from callback
+  useEffect(() => {
+    if (authError) {
+      let errorMessage = 'ログインに失敗しました';
+      if (authError.includes('expired') || authError === 'otp_expired') {
+        errorMessage = 'リンクの有効期限が切れています。6桁コードでログインするか、リンクを再送信してください。';
+        setAuthMethod('otp_code');
+      } else if (authError.includes('pkce') || authError === 'pkce_not_found') {
+        errorMessage = 'セッションエラーが発生しました。6桁コードでログインしてください。';
+        setAuthMethod('otp_code');
+      } else if (authError === 'missing_code') {
+        errorMessage = '認証コードが見つかりません。再度お試しください。';
+      }
+      setMessage({ type: 'error', text: errorMessage });
+    }
+  }, [authError]);
 
   // 新規登録: Magic Link (OTP) を送信
   const handleSignUp = async (e: React.FormEvent) => {
@@ -123,6 +145,75 @@ function LoginContent() {
     }
   };
 
+  // OTP (6桁コード) で認証
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      console.log('Verifying OTP code...');
+
+      // まず type: 'email' で試す
+      let result = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'email',
+      });
+
+      // 失敗した場合は type: 'signup' で再試行
+      if (result.error) {
+        console.log('Trying with type: signup...');
+        result = await supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: 'signup',
+        });
+      }
+
+      if (result.error) {
+        console.error('OTP verification error:', result.error);
+        throw result.error;
+      }
+
+      console.log('OTP verification successful');
+      setMessage({
+        type: 'success',
+        text: '認証成功！移動します...',
+      });
+
+      // パスワード設定済みかチェック
+      const hasPasswordSet = result.data.user?.user_metadata?.password_set === true;
+
+      setTimeout(() => {
+        if (hasPasswordSet) {
+          router.push(redirectPath);
+        } else {
+          router.push('/setup-password');
+        }
+      }, 500);
+    } catch (error: unknown) {
+      console.error('OTP error:', error);
+      const errorMsg = getErrorMessage(error);
+      let displayMessage = 'コードの検証に失敗しました';
+
+      if (errorMsg.includes('expired')) {
+        displayMessage = 'コードの有効期限が切れています。新しいリンクを送信してください。';
+      } else if (errorMsg.includes('invalid')) {
+        displayMessage = 'コードが正しくありません。再度入力してください。';
+      } else if (errorMsg) {
+        displayMessage = errorMsg;
+      }
+
+      setMessage({
+        type: 'error',
+        text: displayMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Magic Link送信完了画面
   if (magicLinkSent) {
     return (
@@ -137,40 +228,122 @@ function LoginContent() {
               <p className="text-lg text-slate-700 mb-6">
                 登録用リンクを送信しました
               </p>
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
-                <p className="text-base text-blue-900 mb-4 font-medium">
-                  📨 送信先: <strong className="text-indigo-700">{email}</strong>
-                </p>
-                <div className="bg-white/60 rounded-md p-4 mb-4">
-                  <p className="text-sm text-blue-900 font-semibold mb-2">
-                    ✨ 次のステップ
-                  </p>
-                  <ol className="text-sm text-blue-800 space-y-2 text-left">
-                    <li className="flex items-start gap-2">
-                      <span className="font-bold">1.</span>
-                      <span>メールボックスを確認</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="font-bold">2.</span>
-                      <span>メール内のリンクをクリック</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="font-bold">3.</span>
-                      <span>パスワードを設定して登録完了！</span>
-                    </li>
-                  </ol>
-                </div>
-                <p className="text-xs text-blue-700">
-                  💡 メールが届かない場合は、迷惑メールフォルダもご確認ください
-                </p>
+
+              {/* 認証方法切り替えタブ */}
+              <div className="flex border-b border-slate-200 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('magic_link')}
+                  className={`flex-1 py-2 px-3 text-sm font-medium border-b-2 transition-colors ${authMethod === 'magic_link'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                  メールリンク
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('otp_code')}
+                  className={`flex-1 py-2 px-3 text-sm font-medium border-b-2 transition-colors ${authMethod === 'otp_code'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                  6桁コード
+                </button>
               </div>
+
+              {/* メールリンク方式 */}
+              {authMethod === 'magic_link' && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
+                  <p className="text-base text-blue-900 mb-4 font-medium">
+                    📨 送信先: <strong className="text-indigo-700">{email}</strong>
+                  </p>
+                  <div className="bg-white/60 rounded-md p-4 mb-4">
+                    <p className="text-sm text-blue-900 font-semibold mb-2">
+                      ✨ 次のステップ
+                    </p>
+                    <ol className="text-sm text-blue-800 space-y-2 text-left">
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold">1.</span>
+                        <span>メールボックスを確認</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold">2.</span>
+                        <span>メール内のリンクをクリック</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-bold">3.</span>
+                        <span>パスワードを設定して登録完了！</span>
+                      </li>
+                    </ol>
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    💡 メールが届かない場合は、迷惑メールフォルダもご確認ください
+                  </p>
+                  <p className="text-xs text-slate-600 mt-3">
+                    リンクが開けない場合は「6桁コード」タブをお試しください
+                  </p>
+                </div>
+              )}
+
+              {/* 6桁コード方式 */}
+              {authMethod === 'otp_code' && (
+                <form onSubmit={handleVerifyOtp} className="text-left mb-6">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-amber-800">
+                      📱 メールアプリ内でリンクが開けない場合は、メールに記載された6桁のコードを入力してください。
+                    </p>
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="otp-code" className="block text-sm font-medium text-slate-700 mb-2">
+                      6桁コード
+                    </label>
+                    <input
+                      id="otp-code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      required
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-center text-2xl tracking-widest font-mono text-slate-900"
+                      placeholder="000000"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {message && (
+                    <div
+                      className={`p-4 rounded-md mb-4 ${message.type === 'success'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}
+                    >
+                      <p className="text-sm">{message.text}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || otpCode.length !== 6}
+                    className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? '確認中...' : 'コードを確認'}
+                  </button>
+                </form>
+              )}
+
               <button
                 onClick={() => {
                   setMagicLinkSent(false);
                   setActiveTab('login');
                   setEmail('');
                   setPassword('');
+                  setOtpCode('');
                   setMessage(null);
+                  setAuthMethod('magic_link');
                 }}
                 className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium"
               >

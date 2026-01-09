@@ -49,7 +49,14 @@ export async function GET(request: Request) {
 
     if (error) {
       devLog.error('Callback error:', error.message);
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+      // 特定のエラータイプを識別
+      let errorCode = encodeURIComponent(error.message);
+      if (error.message.includes('expired') || error.message.includes('Token has expired')) {
+        errorCode = 'otp_expired';
+      } else if (error.message.includes('pkce') || error.message.includes('PKCE')) {
+        errorCode = 'pkce_not_found';
+      }
+      return NextResponse.redirect(`${origin}/login?error=${errorCode}`);
     }
 
     devLog.log('Session established successfully');

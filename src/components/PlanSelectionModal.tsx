@@ -2,7 +2,7 @@
 
 import { X, Zap, Check, Rocket } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
-import { PLANS, PlanType, getPlanConfig } from '@/config/subscriptionPlans';
+import { PlanType, getPlanConfig } from '@/config/subscriptionPlans';
 
 interface PlanSelectionModalProps {
     isOpen: boolean;

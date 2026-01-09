@@ -5,6 +5,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2024-12-18.acacia' as any, // Suppress type error due to rapid version changes, or use '2024-12-18.acacia' if valid
+    // Stripe APIバージョン（型定義が追いついていない場合はLatestApiVersionでキャスト）
+    apiVersion: '2024-12-18.acacia' as Stripe.LatestApiVersion,
     typescript: true,
 });

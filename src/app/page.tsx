@@ -814,7 +814,7 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <span>"鉄は熱いうちに打て"を実現</span>
+                      <span>&ldquo;鉄は熱いうちに打て&rdquo;を実現</span>
                       <p className="text-xs text-slate-400 mt-0.5">スピードフォローで競合に差をつける</p>
                     </div>
                   </li>

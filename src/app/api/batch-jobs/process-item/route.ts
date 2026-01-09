@@ -5,9 +5,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 
-import { getPlan } from '@/config/subscriptionPlans';
-
-
 const ProcessItemSchema = z.object({
     batchId: z.string().uuid(),
     item: z.object({
@@ -89,11 +86,18 @@ export async function POST(request: Request) {
 
             // 2. Resolve Sender Info
             // Fetch profile for fallbacks
+            type ProfileData = {
+                company_name?: string;
+                user_name?: string;
+                service_description?: string;
+                department?: string;
+                position?: string;
+            };
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
-                .single();
+                .single() as { data: ProfileData | null };
 
             let resolvedSenderCompany = '';
             let resolvedSenderDepartment = '';
@@ -111,16 +115,16 @@ export async function POST(request: Request) {
                 resolvedSenderPosition = myPosition || '';
             } else if (senderMode === 'csv_priority') {
                 resolvedSenderCompany = item.senderCompany || (profile?.company_name) || '';
-                resolvedSenderDepartment = item.senderDepartment || (profile as any)?.department || '';
-                resolvedSenderName = item.senderName || (profile?.user_name) || '';
-                resolvedSenderService = myServiceDescription || (profile?.service_description) || '';
-                resolvedSenderPosition = item.senderPosition || (profile as any)?.position || '';
+                resolvedSenderDepartment = item.senderDepartment || profile?.department || '';
+                resolvedSenderName = item.senderName || profile?.user_name || '';
+                resolvedSenderService = myServiceDescription || profile?.service_description || '';
+                resolvedSenderPosition = item.senderPosition || profile?.position || '';
             } else {
-                resolvedSenderCompany = (profile?.company_name) || '（未設定）';
-                resolvedSenderDepartment = (profile as any)?.department || '';
-                resolvedSenderName = (profile?.user_name) || '（未設定）';
-                resolvedSenderService = (profile?.service_description) || '（未設定）';
-                resolvedSenderPosition = (profile as any)?.position || '';
+                resolvedSenderCompany = profile?.company_name || '（未設定）';
+                resolvedSenderDepartment = profile?.department || '';
+                resolvedSenderName = profile?.user_name || '（未設定）';
+                resolvedSenderService = profile?.service_description || '（未設定）';
+                resolvedSenderPosition = profile?.position || '';
             }
 
             // 3. Prepare AI Prompt
@@ -193,7 +197,7 @@ ${specificInstruction}
                 const model = google(modelId);
 
                 const result = await generateText({ model, prompt });
-                let generatedText = cleanAIResponse(result.text.trim());
+                const generatedText = cleanAIResponse(result.text.trim());
                 let contentToSave = generatedText;
                 let emailData = null;
 
@@ -203,7 +207,7 @@ ${specificInstruction}
                         const parsed = JSON.parse(cleaned);
                         emailData = parsed;
                         contentToSave = `件名: ${parsed.subject}\n\n${parsed.body}`;
-                    } catch (e) {
+                    } catch {
                         contentToSave = generatedText;
                     }
                 }

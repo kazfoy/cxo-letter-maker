@@ -8,9 +8,10 @@ import { devLog } from '@/lib/logger';
 
 export const maxDuration = 60;
 
-let googleProvider: any = null;
+type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
+let googleProvider: GoogleProvider | null = null;
 
-function getGoogleProvider() {
+function getGoogleProvider(): GoogleProvider {
   if (googleProvider) return googleProvider;
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   return await apiGuard(
     request,
     AssistSchema,
-    async (data, user) => {
+    async (data, _user) => {
       try {
         const {
           field,

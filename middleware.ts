@@ -3,11 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Note: middleware runs in Edge runtime, so we inline devLog here
 const isDevelopment = process.env.NODE_ENV === 'development';
+type LogArg = string | number | boolean | null | undefined | Record<string, unknown>;
 const devLog = {
-  log: (...args: any[]) => {
+  log: (...args: LogArg[]) => {
     if (isDevelopment) console.log(...args);
   },
-  warn: (...args: any[]) => {
+  warn: (...args: LogArg[]) => {
     if (isDevelopment) console.warn(...args);
   },
 };
@@ -41,7 +42,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // セッションを更新（重要: これによりセッションが最新の状態に保たれる）
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 

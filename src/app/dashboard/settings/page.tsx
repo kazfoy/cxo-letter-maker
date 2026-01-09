@@ -112,16 +112,16 @@ function SecuritySettings() {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  useAuth(); // Ensure user is authenticated
   const { isPro, isPremium, loading: planLoading } = useUserPlan();
-  const { handleUpgrade, loading: upgrading } = useCheckout();
+  const { loading: upgrading } = useCheckout();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
+  const [_portalLoading, setPortalLoading] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({

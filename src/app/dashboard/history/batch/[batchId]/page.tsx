@@ -29,23 +29,6 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
     // Unwrap params using React.use()
     const resolvedParams = use(params);
 
-    useEffect(() => {
-        if (resolvedParams.batchId) {
-            setBatchId(resolvedParams.batchId);
-            loadBatch(resolvedParams.batchId);
-        }
-    }, [resolvedParams]);
-
-    // Auto-hide highlight after 5 seconds
-    useEffect(() => {
-        if (shouldHighlight) {
-            const timer = setTimeout(() => {
-                setShowHighlight(false);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [shouldHighlight]);
-
     const loadBatch = useCallback(async (id: string, silent = false) => {
         try {
             if (!silent) setLoading(true);
@@ -62,6 +45,23 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
         }
     }, []);
 
+    useEffect(() => {
+        if (resolvedParams.batchId) {
+            setBatchId(resolvedParams.batchId);
+            loadBatch(resolvedParams.batchId);
+        }
+    }, [resolvedParams, loadBatch]);
+
+    // Auto-hide highlight after 5 seconds
+    useEffect(() => {
+        if (shouldHighlight) {
+            const timer = setTimeout(() => {
+                setShowHighlight(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [shouldHighlight]);
+
     // Polling while running
     useEffect(() => {
         if (!batchId || (jobStatus && jobStatus.status !== 'processing')) return;
@@ -71,7 +71,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [batchId, jobStatus?.status, loadBatch]);
+    }, [batchId, jobStatus, loadBatch]);
 
     const handleCancel = async () => {
         if (!batchId || isCancelling) return;

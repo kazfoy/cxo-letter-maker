@@ -7,6 +7,8 @@ export interface Profile {
   service_description: string | null;
   company_url: string | null;
   email: string | null;
+  department?: string | null;
+  position?: string | null;
   reference_docs?: { name: string; path: string }[] | null;
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage } from '@/lib/errorUtils';
-
+import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000';
 
             // Checkout Session作成
-            const sessionParams: any = {
+            const sessionParams: Stripe.Checkout.SessionCreateParams = {
                 mode: 'subscription',
                 payment_method_types: ['card'],
                 line_items: [

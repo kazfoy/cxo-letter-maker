@@ -39,10 +39,11 @@ export function useCheckout() {
             } else {
                 throw new Error('決済URLの取得に失敗しました');
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error('Checkout error:', err);
-            setError(err.message || '予期せぬエラーが発生しました');
-            alert('エラーが発生しました: ' + (err.message || '予期せぬエラーが発生しました'));
+            const message = err instanceof Error ? err.message : '予期せぬエラーが発生しました';
+            setError(message);
+            alert('エラーが発生しました: ' + message);
         } finally {
             setLoading(false);
         }

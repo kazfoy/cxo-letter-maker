@@ -5,6 +5,12 @@
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+/** ログ引数として許容する型 */
+type LogArg = string | number | boolean | null | undefined | unknown;
+
+/** マスク対象となるオブジェクト型 */
+type MaskableObject = Record<string, unknown>;
+
 /**
  * メールアドレスをマスクする
  * 例: test@example.com -> t***@e***.com
@@ -32,21 +38,27 @@ function maskUserId(userId: string): string {
 /**
  * オブジェクトから機密情報をマスクする
  */
-function maskSensitiveData(data: any): any {
+function maskSensitiveData(data: unknown): unknown {
   if (!data || typeof data !== 'object') return data;
 
-  const masked = Array.isArray(data) ? [...data] : { ...data };
+  // 配列の場合は各要素を再帰的にマスク
+  if (Array.isArray(data)) {
+    return data.map(item => maskSensitiveData(item));
+  }
+
+  const masked: MaskableObject = { ...(data as MaskableObject) };
   const sensitiveKeys = ['password', 'token', 'apiKey', 'api_key', 'secret', 'credentials', 'user_metadata', 'app_metadata'];
 
   for (const key in masked) {
+    const value = masked[key];
     if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
       masked[key] = '***REDACTED***';
-    } else if (key === 'email' && typeof masked[key] === 'string') {
-      masked[key] = maskEmail(masked[key]);
-    } else if (key === 'id' && typeof masked[key] === 'string' && masked[key].includes('-')) {
-      masked[key] = maskUserId(masked[key]);
-    } else if (typeof masked[key] === 'object' && masked[key] !== null) {
-      masked[key] = maskSensitiveData(masked[key]);
+    } else if (key === 'email' && typeof value === 'string') {
+      masked[key] = maskEmail(value);
+    } else if (key === 'id' && typeof value === 'string' && value.includes('-')) {
+      masked[key] = maskUserId(value);
+    } else if (typeof value === 'object' && value !== null) {
+      masked[key] = maskSensitiveData(value);
     }
   }
 
@@ -57,13 +69,13 @@ function maskSensitiveData(data: any): any {
  * 開発環境でのみログを出力
  */
 export const logger = {
-  log: (...args: any[]) => {
+  log: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
 
-  error: (...args: any[]) => {
+  error: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.error(...args);
     } else {
@@ -81,7 +93,7 @@ export const logger = {
     }
   },
 
-  warn: (...args: any[]) => {
+  warn: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.warn(...args);
     }
@@ -90,7 +102,7 @@ export const logger = {
   /**
    * 機密情報をマスクしてログ出力
    */
-  logSecure: (message: string, data?: any) => {
+  logSecure: (message: string, data?: unknown) => {
     if (isDevelopment) {
       console.log(message, data);
     } else {
@@ -105,7 +117,7 @@ export const logger = {
   /**
    * エラーを安全にログ出力
    */
-  errorSecure: (message: string, error?: any) => {
+  errorSecure: (message: string, error?: unknown) => {
     if (isDevelopment) {
       console.error(message, error);
     } else {
@@ -124,17 +136,17 @@ export const logger = {
  * API開発用ログ（本番環境では出力しない）
  */
 export const devLog = {
-  log: (...args: any[]) => {
+  log: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
-  error: (...args: any[]) => {
+  error: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.error(...args);
     }
   },
-  warn: (...args: any[]) => {
+  warn: (...args: LogArg[]) => {
     if (isDevelopment) {
       console.warn(...args);
     }

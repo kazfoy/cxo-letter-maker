@@ -12,7 +12,24 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // One-off test scripts (not part of main codebase)
+    "test-gemini.js",
+    "test-gemini2.js",
   ]),
+  // Custom rule overrides
+  {
+    rules: {
+      // Allow unused variables with underscore prefix (common pattern for intentionally unused params)
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

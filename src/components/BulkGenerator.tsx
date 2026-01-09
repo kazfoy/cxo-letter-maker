@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw, CheckCircle2, ArrowRight, RotateCcw } from 'lucide-react';
@@ -191,9 +191,9 @@ const BatchProgressModal = ({
 };
 
 // Success Modal Component (Legacy - kept if needed but BatchProgressModal generally replaces it)
-const SuccessModal = ({
+const _SuccessModal = ({
     batchId,
-    onClose,
+    onClose: _onClose,
     onReset
 }: {
     batchId: string;
@@ -338,8 +338,8 @@ export function BulkGenerator() {
                     myCompanyName: profile.company_name || '',
                     myName: profile.user_name || '',
                     myServiceDescription: profile.service_description || '',
-                    myDepartment: (profile as any).department || '', // Temporary cast or fix type later
-                    myPosition: (profile as any).position || ''
+                    myDepartment: profile.department || '',
+                    myPosition: profile.position || ''
                 }));
             }
         });
@@ -367,7 +367,7 @@ export function BulkGenerator() {
     });
 
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isCancelling, setIsCancelling] = useState(false);
+    const [_isCancelling, setIsCancelling] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [currentCompany, setCurrentCompany] = useState('');
     const pausedRef = React.useRef(false); // Ref for immediate pause control in loop
@@ -383,17 +383,17 @@ export function BulkGenerator() {
         remaining: number;
         userPlan: string;
     } | null>(null);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [_showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Toggle Pause
-    const handleTogglePause = () => {
+    // Toggle Pause (kept for potential future use)
+    const _handleTogglePause = () => {
         const nextState = !isPaused;
         setIsPaused(nextState);
         pausedRef.current = nextState;
     };
 
-    // Cancel Process (Stops loop)
-    const handleCancelProcess = async () => {
+    // Cancel Process (Stops loop, kept for potential future use)
+    const _handleCancelProcess = async () => {
         setIsCancelling(true);
         // Note: The loop checks isCancelling state (or we can use a ref if needed, but state update usually triggers re-render 
         cancelRef.current = true; // Set ref to true for immediate exit
@@ -485,8 +485,7 @@ export function BulkGenerator() {
                 let resolvedSenderCompany = senderInfo.myCompanyName;
                 let resolvedSenderDepartment = senderInfo.myDepartment;
                 let resolvedSenderName = senderInfo.myName;
-                let resolvedSenderPosition = senderInfo.myPosition;
-                let resolvedSenderService = senderInfo.myServiceDescription;
+                const resolvedSenderService = senderInfo.myServiceDescription;
 
                 if (senderRule === 'csv_priority') {
                     // CSV優先: CSVにあればそれを使用、なければデフォルト
@@ -499,18 +498,15 @@ export function BulkGenerator() {
                     if (mapping.senderName && row[mapping.senderName]) {
                         resolvedSenderName = row[mapping.senderName];
                     }
-                    if (mapping.senderPosition && row[mapping.senderPosition]) {
-                        resolvedSenderPosition = row[mapping.senderPosition];
-                    }
                 }
 
                 // Build request payload for /api/generate (same format as /new page)
-                const generatePayload: Record<string, any> = {
+                const generatePayload: Record<string, string> = {
                     // Sender info
-                    myCompanyName: resolvedSenderCompany,
-                    myDepartment: resolvedSenderDepartment,
-                    myName: resolvedSenderName,
-                    myServiceDescription: resolvedSenderService,
+                    myCompanyName: resolvedSenderCompany || '',
+                    myDepartment: resolvedSenderDepartment || '',
+                    myName: resolvedSenderName || '',
+                    myServiceDescription: resolvedSenderService || '',
 
                     // Target info
                     companyName: row[mapping.companyName] || '',
@@ -772,7 +768,7 @@ export function BulkGenerator() {
     }, [csvData.length, mapping, nameMode, senderRule, senderInfo]);
 
     // isMappingValid is kept for backward compatibility but internally uses getValidationErrors
-    const isMappingValid = React.useCallback(() => {
+    const _isMappingValid = React.useCallback(() => {
         const errors = getValidationErrors();
         if (errors.length > 0) {
             console.log('[Validation Debug] Failed. Missing:', errors);
@@ -784,7 +780,7 @@ export function BulkGenerator() {
 
     // ---- Step 3: Execution ----
 
-    const handleReset = () => {
+    const _handleReset = () => {
         setCsvData([]);
         setResults([]);
         setErrorMessage(null);

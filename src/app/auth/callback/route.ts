@@ -6,7 +6,7 @@ import { devLog } from '@/lib/logger';
  * nextパラメータの検証（オープンリダイレクト対策）
  * 同一オリジンかつ相対パス（/で始まる）のみ許可
  */
-function validateNextParameter(next: string | null, origin: string): string | null {
+function validateNextParameter(next: string | null, _origin: string): string | null {
   if (!next) return null;
 
   // 相対パス（/で始まる）のみ許可

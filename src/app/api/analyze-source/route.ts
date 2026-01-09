@@ -28,7 +28,7 @@ function getGoogleProvider() {
 
 export async function POST(request: Request) {
   return await authGuard(
-    async (user) => {
+    async (_user) => {
       try {
         // FormDataを解析
         const formData = await request.formData();
@@ -182,9 +182,9 @@ export async function POST(request: Request) {
         if (extractedTexts.length === 0) {
           // 失敗したURLのエラー詳細を収集
           const failedUrls = urlResults
-            ?.filter((r) => r.status === 'rejected')
-            .map((r: any) => {
-              const reason = r.reason?.message || '';
+            ?.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+            .map((r) => {
+              const reason = (r.reason as Error | undefined)?.message || '';
               // エラーメッセージから詳細を抽出（ERROR_CODE:詳細メッセージ の形式）
               if (reason.includes(':')) {
                 return reason.split(':').slice(1).join(':').trim();

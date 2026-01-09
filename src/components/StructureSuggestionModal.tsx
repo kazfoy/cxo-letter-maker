@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 interface Approach {
   type: string;
@@ -30,13 +30,7 @@ export function StructureSuggestionModal({
   const [approaches, setApproaches] = useState<Approach[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && approaches.length === 0) {
-      fetchSuggestions();
-    }
-  }, [isOpen]);
-
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -64,7 +58,13 @@ export function StructureSuggestionModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [companyName, myServiceDescription, background]);
+
+  useEffect(() => {
+    if (isOpen && approaches.length === 0) {
+      fetchSuggestions();
+    }
+  }, [isOpen, approaches.length, fetchSuggestions]);
 
   const handleSelectApproach = (draftText: string) => {
     onSelectApproach(draftText);

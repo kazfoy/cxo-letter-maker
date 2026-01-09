@@ -13,8 +13,8 @@ import { createClient } from '@/utils/supabase/server';
 
 // ... (existing imports and setup)
 
-// Helper to fetch and parse reference docs
-async function getReferenceContext(userId: string): Promise<string> {
+// Helper to fetch and parse reference docs (kept for future use)
+async function _getReferenceContext(userId: string): Promise<string> {
   try {
     const supabase = await createClient();
 
@@ -47,11 +47,13 @@ async function getReferenceContext(userId: string): Promise<string> {
       try {
         const arrayBuffer = await data.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        // @ts-ignore
-        const pdf = require('pdf-parse');
-        const parsed = await pdf(buffer);
+        // Dynamic import for pdf-parse
+        const { PDFParse } = await import('pdf-parse');
+        const parser = new PDFParse({ data: buffer });
+        const result = await parser.getText();
+        await parser.destroy();
         // Truncate per doc to avoid token limit explosion (e.g. 3000 chars)
-        const text = parsed.text.slice(0, 3000).replace(/\s+/g, ' ').trim();
+        const text = result.text.slice(0, 3000).replace(/\s+/g, ' ').trim();
         combinedText += `\n【参照資料: ${doc.name}】\n${text}\n`;
       } catch (parseError) {
         console.warn(`Failed to parse auth doc: ${doc.name}`, parseError);
@@ -67,9 +69,10 @@ async function getReferenceContext(userId: string): Promise<string> {
 
 export const maxDuration = 60;
 
-let googleProvider: any = null;
+type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
+let googleProvider: GoogleProvider | null = null;
 
-function getGoogleProvider() {
+function getGoogleProvider(): GoogleProvider {
   if (googleProvider) return googleProvider;
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
@@ -140,7 +143,7 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
         prompt: prompt,
       });
       return result;
-    } catch (fallbackError: any) {
+    } catch (fallbackError: unknown) {
       throw fallbackError;
     }
   }
@@ -742,7 +745,12 @@ ${jsonInstruction}
         const generatedText = result.text.trim();
 
         // JSONパース処理
-        let responseData: any = {};
+        type GenerateResponse = {
+          email?: { subject: string; body: string };
+          letter?: string;
+          variations?: Record<string, string>;
+        };
+        let responseData: GenerateResponse = {};
 
         try {
           // 1. Markdownコードブロックを除去 regex to capture content between ```json and ```

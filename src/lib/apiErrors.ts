@@ -35,7 +35,7 @@ export interface ApiError {
   code: ErrorCode;
   message: string;
   suggestion?: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -107,17 +107,22 @@ export function createErrorResponse(
   code: ErrorCode,
   customMessage?: string,
   customSuggestion?: string,
-  details?: any
+  details?: unknown
 ): ApiError {
   const defaultError = errorMessages[code];
 
-  return {
+  const response: ApiError = {
     error: true,
     code,
     message: customMessage || defaultError.message,
     suggestion: customSuggestion || defaultError.suggestion,
-    ...(details && { details }),
   };
+
+  if (details !== undefined) {
+    response.details = details;
+  }
+
+  return response;
 }
 
 /**

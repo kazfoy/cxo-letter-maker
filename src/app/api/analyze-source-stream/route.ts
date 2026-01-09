@@ -174,7 +174,7 @@ export async function POST(request: Request) {
         });
 
         const extractedTexts: string[] = [];
-        let detectedCompanyName: string | null = null;
+        const detectedCompanyName: string | null = null;
 
         // 複数URLからテキスト抽出（並列処理）
         if (urls.length > 0) {

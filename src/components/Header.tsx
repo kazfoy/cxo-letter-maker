@@ -16,7 +16,7 @@ export function Header() {
   const pathname = usePathname();
 
   const { isPro, isPremium, loading: planLoading } = useUserPlan();
-  const { handleUpgrade, loading: upgrading } = useCheckout();
+  useCheckout(); // Hook for potential upgrade functionality
 
   // LPページかどうかを判定（トップページのみLP扱い）
   const isLandingPage = pathname === '/';

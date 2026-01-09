@@ -3,6 +3,14 @@ import { devLog } from './logger';
 
 const GUEST_DAILY_LIMIT = 3;
 
+// guest_usage テーブルの型定義（Supabase generated typesがない場合の最小定義）
+type GuestUsageRow = {
+  guest_id: string;
+  usage_date: string;
+  count: number;
+  updated_at: string;
+};
+
 export interface GuestUsage {
     count: number;
     limit: number;
@@ -19,12 +27,12 @@ export async function checkAndIncrementGuestUsage(guestId: string): Promise<{ al
     try {
         // 1. 現在の利用状況を取得
         const supabaseAdmin = getSupabaseAdmin();
-        const { data: currentUsage, error: fetchError } = await (supabaseAdmin
-            .from('guest_usage') as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types未使用のため、guest_usageテーブルの型が不明
+        const { data: currentUsage, error: fetchError } = await (supabaseAdmin.from('guest_usage') as any)
             .select('count')
             .eq('guest_id', guestId)
             .eq('usage_date', today)
-            .single();
+            .single() as { data: Pick<GuestUsageRow, 'count'> | null; error: { code: string } | null };
 
         if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: no rows returned
             devLog.error('Failed to fetch guest usage:', fetchError);
@@ -48,15 +56,15 @@ export async function checkAndIncrementGuestUsage(guestId: string): Promise<{ al
         }
 
         // 3. カウントアップ（Upsert）
-        const { error: upsertError } = await (supabaseAdmin
-            .from('guest_usage') as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types未使用
+        const { error: upsertError } = await (supabaseAdmin.from('guest_usage') as any)
             .upsert(
                 {
                     guest_id: guestId,
                     usage_date: today,
                     count: currentCount + 1,
                     updated_at: new Date().toISOString(),
-                },
+                } satisfies GuestUsageRow,
                 { onConflict: 'guest_id, usage_date' }
             );
 
@@ -94,12 +102,12 @@ export async function getGuestUsage(guestId: string): Promise<GuestUsage> {
 
     try {
         const supabaseAdmin = getSupabaseAdmin();
-        const { data, error } = await (supabaseAdmin
-            .from('guest_usage') as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generated types未使用
+        const { data, error } = await (supabaseAdmin.from('guest_usage') as any)
             .select('count')
             .eq('guest_id', guestId)
             .eq('usage_date', today)
-            .single();
+            .single() as { data: Pick<GuestUsageRow, 'count'> | null; error: { code: string } | null };
 
         if (error && error.code !== 'PGRST116') {
             console.error('Failed to fetch guest usage:', error);

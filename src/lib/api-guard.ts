@@ -70,7 +70,7 @@ export async function apiGuard<T extends z.ZodType>(
     let body: unknown;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: '無効なJSON形式です' },
         { status: 400 }

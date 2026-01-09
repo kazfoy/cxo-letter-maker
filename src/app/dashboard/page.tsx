@@ -14,8 +14,8 @@ import { PlanSelectionModal } from '@/components/PlanSelectionModal';
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { isPro, isPremium, loading: planLoading } = useUserPlan();
-  const { handleUpgrade, loading: upgrading } = useCheckout();
+  const { isPremium, loading: planLoading } = useUserPlan();
+  useCheckout(); // Hook for potential future upgrade functionality
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [loading, setLoading] = useState(true);

@@ -4,7 +4,7 @@ import { getErrorMessage } from '@/lib/errorUtils';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/utils/supabase/server';
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();

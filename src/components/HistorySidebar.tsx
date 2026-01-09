@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
@@ -30,44 +30,12 @@ const getStatusBadge = (status?: LetterStatus) => {
   return badges[s];
 };
 
-export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle, refreshTrigger, selectedId }: HistorySidebarProps) {
+export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperience, isOpen, onToggle, refreshTrigger: _refreshTrigger, selectedId }: HistorySidebarProps) {
   const [histories, setHistories] = useState<LetterHistory[]>([]);
   const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>('all');
   const { user } = useAuth();
 
-  useEffect(() => {
-    loadHistories();
-
-    // Add event listener for guest history updates (custom event or storage event if needed)
-    // For simplicity, we mostly rely on poll or parent passing refreshTrigger
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'cxo_guest_history') {
-        loadHistories();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [user]);
-
-  // ... (refreshTrigger effect - keep same)
-
-  // Poll for updates every 10 seconds to catch new letters
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadHistories();
-    }, 10000); // Polling valid for both guest (other tabs) and user
-
-    return () => clearInterval(interval);
-  }, [user]);
-
-  // Custom event listener for local updates
-  useEffect(() => {
-    const handleLocalUpdate = () => loadHistories();
-    window.addEventListener('guest-history-updated', handleLocalUpdate);
-    return () => window.removeEventListener('guest-history-updated', handleLocalUpdate);
-  }, []);
-
-  const loadHistories = async () => {
+  const loadHistories = useCallback(async () => {
     try {
       if (user) {
         const histories = await getHistories();
@@ -81,7 +49,37 @@ export function HistorySidebar({ onRestore, onSampleExperience, isOpen, onToggle
     } catch (error) {
       console.error('履歴読み込みエラー:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadHistories();
+
+    // Add event listener for guest history updates (custom event or storage event if needed)
+    // For simplicity, we mostly rely on poll or parent passing refreshTrigger
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cxo_guest_history') {
+        loadHistories();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [loadHistories]);
+
+  // Poll for updates every 10 seconds to catch new letters
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadHistories();
+    }, 10000); // Polling valid for both guest (other tabs) and user
+
+    return () => clearInterval(interval);
+  }, [loadHistories]);
+
+  // Custom event listener for local updates
+  useEffect(() => {
+    const handleLocalUpdate = () => loadHistories();
+    window.addEventListener('guest-history-updated', handleLocalUpdate);
+    return () => window.removeEventListener('guest-history-updated', handleLocalUpdate);
+  }, [loadHistories]);
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // クリックイベントの伝播を止める

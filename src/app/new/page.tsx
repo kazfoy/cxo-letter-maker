@@ -1,18 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
+import { AnalysisPreviewModal } from '@/components/AnalysisPreviewModal';
 import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
 import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
+import type { AnalysisResult } from '@/types/analysis';
+import type { UserOverrides } from '@/types/generate-v2';
 import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails } from '@/lib/errorUtils';
 
@@ -59,6 +62,13 @@ function NewLetterPageContent() {
     simpleRequirement: '',
   });
 
+  // V2生成フロー用のステート
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingV2, setIsGeneratingV2] = useState(false);
+  const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
+
   // Load profile data and auto-populate form
   useEffect(() => {
     const loadProfileData = async () => {
@@ -89,6 +99,154 @@ function NewLetterPageContent() {
       setShowLimitModal(true);
     }
   }, [usage, user]);
+
+  // V2フロー: 分析APIを呼び出してモーダルを表示
+  const handleAnalyzeForV2 = useCallback(async () => {
+    // ゲスト制限チェック
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    try {
+      // ユーザーノートを構築（既存のフォームデータから）
+      const userNotes = [
+        formData.companyName && `企業名: ${formData.companyName}`,
+        formData.name && `担当者: ${formData.name}`,
+        formData.position && `役職: ${formData.position}`,
+        formData.background && `背景・経緯: ${formData.background}`,
+        formData.problem && `課題: ${formData.problem}`,
+        formData.freeformInput && `追加情報: ${formData.freeformInput}`,
+      ].filter(Boolean).join('\n');
+
+      const response = await fetch('/api/analyze-input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_notes: userNotes || undefined,
+          sender_info: formData.myCompanyName ? {
+            company_name: formData.myCompanyName,
+            service_description: formData.myServiceDescription || '',
+          } : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `分析に失敗しました (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        setAnalysisResult(data.data);
+        setShowAnalysisModal(true);
+      } else {
+        throw new Error(data.error || '分析結果の取得に失敗しました');
+      }
+    } catch (error) {
+      const errorDetails = getErrorDetails(error);
+      console.error('分析エラー:', errorDetails);
+      alert(`分析に失敗しました: ${errorDetails.message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [formData, usage, user]);
+
+  // V2フロー: 分析結果を使ってレター生成
+  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete') => {
+    if (!analysisResult) return;
+
+    setIsGeneratingV2(true);
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch('/api/generate-v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_result: analysisResult,
+          user_overrides: overrides,
+          sender_info: {
+            company_name: formData.myCompanyName || '株式会社○○',
+            department: '',
+            name: formData.myName || '担当者',
+            service_description: formData.myServiceDescription || '',
+          },
+          mode: generateMode,
+          output_format: 'letter',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          setShowLimitModal(true);
+          refetchGuestUsage();
+          return;
+        }
+        throw new Error(errorData.error || `生成に失敗しました (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        // リセット
+        setVariations(undefined);
+        setEmailData(undefined);
+
+        // 本文をセット
+        setGeneratedLetter(data.data.body);
+
+        // バリエーションがあればセット
+        if (data.data.variations) {
+          setVariations(data.data.variations);
+          setActiveVariation('standard');
+        }
+
+        // 履歴に保存
+        const contentToSave = data.data.body;
+        if (user) {
+          const savedLetter = await saveToHistory(formData, contentToSave, mode);
+          if (savedLetter) {
+            setCurrentLetterId(savedLetter.id);
+            setCurrentLetterStatus(savedLetter.status);
+          }
+        } else {
+          const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+          const savedLetter = saveToGuestHistory(formData, contentToSave, mode);
+          setCurrentLetterId(savedLetter.id);
+          setCurrentLetterStatus(savedLetter.status);
+          window.dispatchEvent(new Event('guest-history-updated'));
+        }
+
+        // ゲスト利用回数を更新
+        if (!user) {
+          increment();
+        }
+
+        // モーダルを閉じる
+        setShowAnalysisModal(false);
+
+        // 品質スコアが低い場合は警告
+        if (data.data.quality && !data.data.quality.passed) {
+          console.warn('品質スコアが基準を下回りました:', data.data.quality);
+        }
+      } else {
+        throw new Error(data.error || '生成結果の取得に失敗しました');
+      }
+    } catch (error) {
+      const errorDetails = getErrorDetails(error);
+      console.error('V2生成エラー:', errorDetails);
+      alert(`生成に失敗しました: ${errorDetails.message}`);
+    } finally {
+      setIsGeneratingV2(false);
+      setIsGenerating(false);
+    }
+  }, [analysisResult, formData, mode, user, increment, refetchGuestUsage]);
 
   // Restore letter from history
   useEffect(() => {
@@ -423,6 +581,20 @@ function NewLetterPageContent() {
                 🎫 イベント招待
               </button>
             </div>
+
+            {/* V2フロートグル */}
+            <div className="flex items-center gap-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useV2Flow}
+                  onChange={(e) => setUseV2Flow(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className="ml-2 text-sm font-medium text-slate-700 hidden sm:inline">高品質モード</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -481,6 +653,38 @@ function NewLetterPageContent() {
 
             {/* 中央: 入力フォーム（自然に伸びる） */}
             <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} transition-all duration-300`}>
+              {/* V2モード時の分析ボタン */}
+              {useV2Flow && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-indigo-600 text-lg">✨</span>
+                      <div>
+                        <p className="text-sm font-medium text-indigo-900">高品質モードが有効です</p>
+                        <p className="text-xs text-indigo-600">入力情報を分析し、品質チェック付きで生成します</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleAnalyzeForV2}
+                      disabled={isAnalyzing || isGeneratingV2 || (!user && usage?.isLimitReached)}
+                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>分析中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔍</span>
+                          <span>分析してレター生成</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <InputForm
                 mode={mode}
                 onGenerate={handleGenerate}
@@ -490,7 +694,6 @@ function NewLetterPageContent() {
                 onSampleFill={handleSampleExperience}
                 onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
-
               />
             </div>
 
@@ -567,6 +770,16 @@ function NewLetterPageContent() {
           </div>
         </div>
       )}
+
+      {/* V2分析プレビューモーダル */}
+      <AnalysisPreviewModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        analysisResult={analysisResult}
+        onConfirm={handleGenerateV2}
+        isLoading={isGeneratingV2}
+        hasUrl={false}
+      />
     </div>
   );
 }

@@ -2,16 +2,21 @@
  * /api/generate-v2
  *
  * 分析結果を材料に、推測なしでCxO向けレターを生成する
- * Self-Correction: qualityGate → AI採点 → 再生成のループ
+ * Self-Correction: qualityGate → 詳細スコア → リライトのループ
  */
 
 import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
-import { generateJson, scoreLetterWithAI } from '@/lib/gemini';
-import { validateLetterOutput, calculateQualityScore, type ProofPoint } from '@/lib/qualityGate';
+import { generateJson } from '@/lib/gemini';
+import {
+  validateLetterOutput,
+  calculateDetailedScore,
+  type ProofPoint,
+} from '@/lib/qualityGate';
+import { selectFactsForLetter } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
-import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisResult, SelectedFact } from '@/types/analysis';
 import {
   GenerateV2RequestSchema,
   GenerateV2OutputSchema,
@@ -32,7 +37,8 @@ function buildGenerationPrompt(
   sender: SenderInfo,
   mode: 'draft' | 'complete',
   format: 'letter' | 'email',
-  isRetry: boolean = false
+  factsForLetter: SelectedFact[] = [],
+  improvementPoints?: string[]
 ): string {
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
   const personName = overrides?.person_name || analysis.facts.person_name || '';
@@ -42,9 +48,12 @@ function buildGenerationPrompt(
     ? '【下書きモード】情報が不足している箇所は【要確認: 〇〇】の形式でプレースホルダーを使用してください。推測で情報を埋めないでください。'
     : '【完成モード】すべての情報を具体的に記載してください。プレースホルダー（【要確認:】、〇〇、●●など）は使用禁止です。';
 
-  const retryInstruction = isRetry
-    ? '\n\n【リトライ注意】前回の生成は品質基準を満たしませんでした。以下の点に特に注意してください：\n- 具体的な数値や事例を必ず含める\n- CxO視点（ガバナンス、リスク、経営スピード）で記述する\n- 350-500文字の範囲内で簡潔にまとめる'
-    : '';
+  // リライト時の改善指示
+  let retryInstruction = '';
+  if (improvementPoints && improvementPoints.length > 0) {
+    retryInstruction = `\n\n【リライト注意】前回の生成は品質基準を満たしませんでした。以下の点を改善してください：
+${improvementPoints.map(p => `- ${p}`).join('\n')}`;
+  }
 
   // 使用可能な証拠をリスト化
   const proofPointsList = analysis.proof_points.length > 0
@@ -85,20 +94,27 @@ function buildGenerationPrompt(
     extractedFactsList = factItems.join('\n');
   }
 
-  // ファクトがない場合のフォールバック指示
-  const noFactsInstruction = !hasExtractedFacts
-    ? '\n\n【ファクト不足時の対応】\n- 具体的なファクトが取得できなかったため、業界一般の課題と仮説で構成してください\n- 「〜ではないでしょうか」「〜と推察します」等の可能性表現を使用\n- 架空の数字・固有名詞・実績は絶対に生成しない\n- 「推測」「想像」「おそらく」等の曖昧ワードは本文に出さない'
-    : '';
+  // 選定ファクトの必須引用指示
+  let factsForLetterInstruction = '';
+  if (factsForLetter.length > 0) {
+    const factsList = factsForLetter.map(f => `- [${f.category}] ${f.content}`).join('\n');
+    factsForLetterInstruction = `\n\n【必須引用ファクト（フックで必ず1つ以上使用）】
+${factsList}
 
-  // ファクト必須指示
-  const factsRequirement = hasExtractedFacts
-    ? '\n7. 【重要】以下の抽出ファクトから最低1つを本文の冒頭フックに含める'
+【一般論禁止ルール】
+以下の表現は、相手固有のファクトに紐付く場合のみ使用可能:
+- 「多くの企業では」「一般的に」「近年では」`;
+  }
+
+  // ファクトがない場合のフォールバック指示
+  const noFactsInstruction = !hasExtractedFacts && factsForLetter.length === 0
+    ? '\n\n【ファクト不足時の対応】\n- 具体的なファクトが取得できなかったため、業界一般の課題と仮説で構成してください\n- 「〜ではないでしょうか」「〜と推察します」等の可能性表現を使用\n- 架空の数字・固有名詞・実績は絶対に生成しない\n- 「推測」「想像」「おそらく」等の曖昧ワードは本文に出さない'
     : '';
 
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${retryInstruction}${noFactsInstruction}
+${modeInstruction}${retryInstruction}${factsForLetterInstruction}${noFactsInstruction}
 
 【絶対ルール】
 1. 架空の数字・社名・実績は禁止。proof_points / recent_news / extracted_facts にあるものだけ使用可能
@@ -106,7 +122,14 @@ ${modeInstruction}${retryInstruction}${noFactsInstruction}
 3. 冒頭の儀礼的褒め言葉（「ご活躍を拝見」「感銘を受けました」等）は禁止
 4. 「業務効率化」「コスト削減」ではなく「ガバナンス強化」「経営スピード向上」「リスク低減」の視点
 5. 文字数: 350-500文字（一画面で読める長さ）
-6. CTAは軽量に（「15分だけ」「情報交換として」）${factsRequirement}
+6. CTAは軽量に（「15分だけ」「情報交換として」）- URLなしでも成立させる
+
+【文章構造（5要素必須）】
+1. フック: ${factsForLetter.length > 0 ? 'factsForLetterから1つ以上を必ず引用' : '相手企業への関心を示す'}
+2. 課題仮説: 役職に寄せる（経営企画なら管理、統制、意思決定スピード等）
+3. 解決策: 提供価値を1-2文で簡潔に
+4. 実績/根拠: 具体的な数字や事例
+5. CTA: 「15分だけ」等の軽量オファー
 
 【ターゲット情報】
 企業名: ${sanitizeForPrompt(companyName, 200) || '（未指定）'}
@@ -177,7 +200,7 @@ export async function POST(request: Request) {
     async (data, _user) => {
       const { analysis_result, user_overrides, sender_info, mode, output_format } = data;
 
-      const maxAttempts = 3;
+      const maxAttempts = 2; // 最大2回（初稿 + 1回リライト）
       let bestResult: GenerateV2Output | null = null;
       let bestQuality: Quality = {
         score: null,
@@ -185,8 +208,26 @@ export async function POST(request: Request) {
         issues: [],
         evaluation_comment: 'Not evaluated',
       };
+      let improvementPoints: string[] = [];
 
       const proofPoints = convertToQualityGateProofPoints(analysis_result.proof_points);
+
+      // ファクト選定
+      const targetPosition = user_overrides?.person_position || analysis_result.facts.person_position;
+      const productStrength = sender_info.service_description;
+      const { factsForLetter } = selectFactsForLetter(
+        analysis_result.extracted_facts,
+        targetPosition,
+        productStrength
+      );
+
+      devLog.log(`Selected ${factsForLetter.length} facts for letter`);
+
+      // ファクトの数値/固有名詞有無を判定
+      const hasFactNumbers = factsForLetter.some(f => f.category === 'numbers') ||
+        (analysis_result.extracted_facts?.numbers?.length ?? 0) > 0;
+      const hasProperNouns = factsForLetter.some(f => f.category === 'properNouns') ||
+        (analysis_result.extracted_facts?.properNouns?.length ?? 0) > 0;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         devLog.log(`Generation attempt ${attempt}/${maxAttempts}`);
@@ -199,7 +240,8 @@ export async function POST(request: Request) {
             sender_info,
             mode,
             output_format,
-            attempt > 1
+            factsForLetter,
+            attempt > 1 ? improvementPoints : undefined
           );
 
           // 2. 生成
@@ -216,9 +258,18 @@ export async function POST(request: Request) {
             hasRecentNews: analysis_result.recent_news.length > 0,
           });
 
-          if (validation.ok) {
-            // 品質OK - AI採点をスキップして即返却（速度優先）
-            devLog.log('Quality gate passed, returning result');
+          // 4. 詳細スコア計算（factsForLetter を使用）
+          const detailedScore = calculateDetailedScore(
+            result.body,
+            hasFactNumbers,
+            hasProperNouns,
+            factsForLetter
+          );
+          devLog.log(`Detailed score: ${detailedScore.total}, breakdown:`, detailedScore.breakdown);
+
+          // 品質OK（80点以上）または最終試行
+          if (detailedScore.total >= 80 || attempt === maxAttempts) {
+            devLog.log(`Returning result (score: ${detailedScore.total}, attempt: ${attempt})`);
             return NextResponse.json({
               success: true,
               data: {
@@ -226,93 +277,33 @@ export async function POST(request: Request) {
                 body: result.body,
                 rationale: result.rationale,
                 quality: {
-                  score: null,
-                  passed: true,
-                  issues: [],
-                  evaluation_comment: 'qualityGate passed, scoring skipped for speed',
+                  score: detailedScore.total,
+                  passed: detailedScore.total >= 80 && validation.ok,
+                  issues: [...validation.reasons, ...detailedScore.suggestions],
+                  evaluation_comment: `Detailed score: ${detailedScore.total}/100 (${Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ')})`,
                 },
                 variations: result.variations,
+                // 追加フィールド
+                sources: analysis_result.sources || [],
+                factsForLetter: factsForLetter,
               },
             });
           }
 
-          // 4. 品質NG - 機械スコア計算
-          const machineScore = calculateQualityScore(result.body, proofPoints, mode);
-          devLog.log(`Machine score: ${machineScore}, issues: ${validation.reasons.join(', ')}`);
-
-          // 80点以上なら許容
-          if (machineScore >= 80) {
-            devLog.log('Machine score >= 80, returning result');
-            return NextResponse.json({
-              success: true,
-              data: {
-                subjects: result.subjects,
-                body: result.body,
-                rationale: result.rationale,
-                quality: {
-                  score: machineScore,
-                  passed: true,
-                  issues: validation.reasons,
-                  evaluation_comment: `Machine score: ${machineScore}/100`,
-                },
-                variations: result.variations,
-              },
-            });
+          // リライト用改善ポイント収集
+          improvementPoints = detailedScore.suggestions;
+          if (validation.reasons.length > 0) {
+            improvementPoints = [...improvementPoints, ...validation.reasons.slice(0, 2)];
           }
-
-          // 5. 最終試行またはスコアが60以上ならAI採点
-          if (attempt === maxAttempts || machineScore >= 60) {
-            try {
-              const aiScore = await scoreLetterWithAI(result.body, mode);
-              devLog.log(`AI score: ${aiScore.total}`);
-
-              if (aiScore.total >= 80 || attempt === maxAttempts) {
-                return NextResponse.json({
-                  success: true,
-                  data: {
-                    subjects: result.subjects,
-                    body: result.body,
-                    rationale: result.rationale,
-                    quality: {
-                      score: aiScore.total,
-                      passed: aiScore.total >= 80,
-                      issues: validation.reasons,
-                      evaluation_comment: aiScore.comment,
-                    },
-                    variations: result.variations,
-                  },
-                });
-              }
-            } catch (scoreError) {
-              devLog.warn('AI scoring failed:', scoreError);
-              // AI採点失敗時は機械スコアで返却
-              if (attempt === maxAttempts) {
-                return NextResponse.json({
-                  success: true,
-                  data: {
-                    subjects: result.subjects,
-                    body: result.body,
-                    rationale: result.rationale,
-                    quality: {
-                      score: machineScore,
-                      passed: machineScore >= 70,
-                      issues: validation.reasons,
-                      evaluation_comment: 'AI scoring failed, using machine score',
-                    },
-                    variations: result.variations,
-                  },
-                });
-              }
-            }
-          }
+          improvementPoints = improvementPoints.slice(0, 3); // 最大3つ
 
           // 次の試行のために結果を保存
           bestResult = result;
           bestQuality = {
-            score: machineScore,
+            score: detailedScore.total,
             passed: false,
-            issues: validation.reasons,
-            evaluation_comment: `Attempt ${attempt} - score too low, retrying`,
+            issues: [...validation.reasons, ...detailedScore.suggestions],
+            evaluation_comment: `Attempt ${attempt} - score ${detailedScore.total}/100, retrying`,
           };
 
         } catch (error) {
@@ -329,6 +320,8 @@ export async function POST(request: Request) {
                   rationale: bestResult.rationale,
                   quality: bestQuality,
                   variations: bestResult.variations,
+                  sources: analysis_result.sources || [],
+                  factsForLetter: factsForLetter,
                 },
               });
             }

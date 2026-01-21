@@ -4,6 +4,8 @@
  * AI採点の前に、明確にNGな出力を高速で弾く
  */
 
+import type { SelectedFact } from '@/types/analysis';
+
 /**
  * 証拠ポイントの型
  */
@@ -249,12 +251,14 @@ export interface DetailedQualityScore {
  * @param body - レター本文
  * @param hasFactNumbers - 数値ファクトがあるかどうか
  * @param hasProperNouns - 固有名詞があるかどうか
+ * @param factsForLetter - 選定されたファクト（quoteKeyによる引用チェック用）
  * @returns 詳細品質スコア
  */
 export function calculateDetailedScore(
   body: string,
   hasFactNumbers: boolean = false,
-  hasProperNouns: boolean = false
+  hasProperNouns: boolean = false,
+  factsForLetter?: SelectedFact[]
 ): DetailedQualityScore {
   const suggestions: string[] = [];
 
@@ -272,6 +276,35 @@ export function calculateDetailedScore(
   } else if (suggestions.length < 3) {
     suggestions.push('製品名やサービス名などの固有名詞を含めると信頼性が向上します');
   }
+
+  // factsForLetter 引用チェック
+  if (factsForLetter && factsForLetter.length > 0) {
+    // フックでファクト引用チェック（冒頭200文字以内）
+    const hookText = body.substring(0, 200);
+    const hookHasFact = factsForLetter.some(f => hookText.includes(f.quoteKey));
+
+    // 全文でのファクト引用数
+    const factQuoteCount = factsForLetter.filter(f => body.includes(f.quoteKey)).length;
+
+    // factsForLetter が 2 個以上あるのに引用が 0 なら減点
+    if (factsForLetter.length >= 2 && factQuoteCount === 0) {
+      specificity -= 10;
+      if (suggestions.length < 3) {
+        suggestions.push('抽出されたファクトを本文で引用してください');
+      }
+    }
+
+    // フックにファクトがない場合は減点
+    if (!hookHasFact && factQuoteCount > 0) {
+      specificity -= 5;
+      if (suggestions.length < 3) {
+        suggestions.push('冒頭のフックでファクトを引用すると導入が強くなります');
+      }
+    }
+  }
+
+  // 具体性の最低値は0
+  specificity = Math.max(0, specificity);
 
   // 2. 共感性 (0-20)
   let empathy = 0;
@@ -355,6 +388,24 @@ export function calculateDetailedScore(
   const operationalWords = ['業務効率化', 'コスト削減', '作業時間短縮', '人件費削減'];
   const operationalCount = operationalWords.filter(p => body.includes(p)).length;
   noNgExpressions -= operationalCount * 5;
+
+  // 一般論検出と減点（ファクトがある場合ほど減点を強める）
+  const generalStatementPatterns = [
+    /多くの企業では/,
+    /一般的に/,
+    /近年では/,
+  ];
+  const generalCount = generalStatementPatterns.filter(p => p.test(body)).length;
+  if (generalCount > 0) {
+    // ファクトがあるのに一般論を使う場合は強く減点
+    const penalty = factsForLetter?.length
+      ? generalCount * 7  // ファクトありで一般論は -7/回
+      : generalCount * 3; // ファクトなしでも -3/回
+    noNgExpressions -= penalty;
+    if (suggestions.length < 3 && factsForLetter?.length) {
+      suggestions.push('一般論ではなく、抽出したファクトを使用してください');
+    }
+  }
 
   // 最低0点
   noNgExpressions = Math.max(0, noNgExpressions);

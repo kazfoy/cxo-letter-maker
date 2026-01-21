@@ -88,6 +88,19 @@ export const ExtractedFactsSchema = z.object({
 export type ExtractedFacts = z.infer<typeof ExtractedFactsSchema>;
 
 /**
+ * 選定ファクトスキーマ（生成に使用するファクト）
+ */
+export const SelectedFactSchema = z.object({
+  content: z.string(),
+  category: z.enum(['recentMoves', 'companyDirection', 'numbers', 'hiringTrends', 'properNouns']),
+  relevanceScore: z.number().min(0).max(100),
+  reason: z.string(),
+  quoteKey: z.string(),  // 本文引用チェック用キー
+});
+
+export type SelectedFact = z.infer<typeof SelectedFactSchema>;
+
+/**
  * 情報ソースカテゴリスキーマ
  */
 export const SourceCategorySchema = z.enum([

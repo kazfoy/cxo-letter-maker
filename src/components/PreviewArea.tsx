@@ -8,7 +8,9 @@ import { updateStatus } from '@/lib/supabaseHistoryUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { ProFeatureModal } from './ProFeatureModal';
+import { SourcesDisplay } from './SourcesDisplay';
 import type { LetterStatus } from '@/types/letter';
+import type { InformationSource } from '@/types/analysis';
 
 // LocalStorageキー
 const EDIT_USAGE_KEY = 'guest_edit_usage';
@@ -36,6 +38,8 @@ interface PreviewAreaProps {
   };
   onEmailChange?: (email: { subject: string; body: string }) => void;
   onSave?: () => void;
+  sources?: InformationSource[];
+  hasUrl?: boolean;
 }
 
 export function PreviewArea({
@@ -51,6 +55,8 @@ export function PreviewArea({
   emailData,
   onEmailChange,
   onSave,
+  sources,
+  hasUrl = false,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const { isPro, isPremium, isFree } = useUserPlan();
@@ -621,6 +627,17 @@ export function PreviewArea({
           </div>
         )}
       </div>
+
+      {/* 情報ソース表示（生成後のみ） */}
+      {content && (
+        <div className="mt-6">
+          <SourcesDisplay
+            sources={sources}
+            hasUrl={hasUrl}
+            defaultExpanded={false}
+          />
+        </div>
+      )}
 
       {/* Pro Feature Modal */}
       <ProFeatureModal

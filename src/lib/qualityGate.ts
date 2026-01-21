@@ -66,6 +66,27 @@ const FORBIDDEN_WORDS = [
 ];
 
 /**
+ * 電報調検出パターン（体言止め）
+ * 文末が名詞や形容詞の連体形で終わる電報的表現を検出
+ */
+const TELEGRAM_PATTERNS = [
+  /期待。/,
+  /可能。/,
+  /必要。/,
+  /重要。/,
+  /課題。/,
+  /状況。/,
+  /実現。/,
+  /成功。/,
+  /提案。/,
+  /機会。/,
+  /展開。/,
+  /強化。/,
+  /推進。/,
+  /対応。/,
+];
+
+/**
  * プレースホルダーパターン（Completeモードで禁止）
  */
 const PLACEHOLDER_PATTERNS = [
@@ -160,6 +181,12 @@ export function validateLetterOutput(
     if (!confirmationMatches || confirmationMatches.length === 0) {
       reasons.push('Draftモードで情報不足があるのにプレースホルダー【要確認:】がありません');
     }
+  }
+
+  // 7. 電報調（体言止め）チェック
+  const telegramHits = TELEGRAM_PATTERNS.filter(p => p.test(body));
+  if (telegramHits.length >= 2) {
+    reasons.push('電報調の文章（体言止め）が複数含まれています。「です・ます」で終える文体にしてください');
   }
 
   return {
@@ -388,6 +415,15 @@ export function calculateDetailedScore(
   const operationalWords = ['業務効率化', 'コスト削減', '作業時間短縮', '人件費削減'];
   const operationalCount = operationalWords.filter(p => body.includes(p)).length;
   noNgExpressions -= operationalCount * 5;
+
+  // 電報調（体言止め）検出（各-5点）
+  const telegramCount = TELEGRAM_PATTERNS.filter(p => p.test(body)).length;
+  if (telegramCount > 0) {
+    noNgExpressions -= telegramCount * 5;
+    if (suggestions.length < 3) {
+      suggestions.push('体言止めを避け、「です・ます」で文を終えてください');
+    }
+  }
 
   // 一般論検出と減点（ファクトがある場合ほど減点を強める）
   const generalStatementPatterns = [

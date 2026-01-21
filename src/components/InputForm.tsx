@@ -17,15 +17,13 @@ const MultiSourceModal = dynamic(
 
 import { StructureSuggestionModal } from './StructureSuggestionModal';
 
-type SampleType = 'real' | 'fictional';
-
 interface InputFormProps {
   mode: LetterMode;
   onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
-  onSampleFill?: (sampleType: SampleType) => void;
+  onSampleFill?: () => void;
   onReset?: () => void;
   disabled?: boolean;
   onGenerationAttempt?: () => void | Promise<void>;
@@ -106,38 +104,14 @@ export function InputForm({
             </button>
           )}
           {onSampleFill && (
-            <div className="relative group">
-              <button
-                type="button"
-                onClick={() => onSampleFill('real')}
-                className="bg-amber-500 text-white px-4 py-2 rounded-md hover:bg-amber-600 transition-colors font-bold shadow-sm flex items-center justify-center gap-2 text-sm"
-              >
-                <span>{ICONS.sample}</span>
-                <span>{BUTTON_TEXTS.sample}</span>
-                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {/* ドロップダウンメニュー */}
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <button
-                  type="button"
-                  onClick={() => onSampleFill('real')}
-                  className="w-full px-4 py-3 text-left hover:bg-amber-50 rounded-t-lg transition-colors"
-                >
-                  <div className="font-medium text-slate-900 text-sm">🏢 実在企業サンプル</div>
-                  <div className="text-xs text-slate-500 mt-0.5">トヨタ自動車（URL自動入力）</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSampleFill('fictional')}
-                  className="w-full px-4 py-3 text-left hover:bg-slate-50 rounded-b-lg transition-colors border-t border-slate-100"
-                >
-                  <div className="font-medium text-slate-900 text-sm">🏭 架空企業サンプル</div>
-                  <div className="text-xs text-slate-500 mt-0.5">グローバルマニュファクチャリング</div>
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={onSampleFill}
+              className="bg-amber-500 text-white px-4 py-2 rounded-md hover:bg-amber-600 transition-colors font-bold shadow-sm flex items-center justify-center gap-2 text-sm"
+            >
+              <span>{ICONS.sample}</span>
+              <span>{BUTTON_TEXTS.sample}</span>
+            </button>
           )}
         </div>
       </div>

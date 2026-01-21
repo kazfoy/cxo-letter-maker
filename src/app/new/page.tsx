@@ -12,7 +12,8 @@ import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
-import { SAMPLE_DATA, SAMPLE_DATA_FICTIONAL, SAMPLE_EVENT_DATA, type SampleType } from '@/lib/sampleData';
+import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
+import type { InformationSource } from '@/types/analysis';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import type { AnalysisResult } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
@@ -71,6 +72,7 @@ function NewLetterPageContent() {
   const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
   const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
   const [urlWarning, setUrlWarning] = useState<string | null>(null);
+  const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
 
   // URLを抽出するユーティリティ関数
   const extractFirstUrl = (text?: string): string | undefined => {
@@ -111,27 +113,15 @@ function NewLetterPageContent() {
     }
   }, [usage, user]);
 
-  // V2フロー: 分析APIを呼び出してモーダルを表示
-  const handleAnalyzeForV2 = useCallback(async () => {
-    // 送り手情報の入力必須チェック
-    if (!formData.myCompanyName || !formData.myName || !formData.myServiceDescription) {
-      alert('送り手情報（会社名・氏名・サービス説明）を入力してください');
-      return;
-    }
-
-    // ゲスト制限チェック
-    if (usage?.isLimitReached && !user) {
-      setShowLimitModal(true);
-      return;
-    }
-
+  // V2フロー: 分析APIを呼び出してモーダルを表示（フォームデータを引数で受け取るバージョン）
+  const handleAnalyzeForV2WithFormData = useCallback(async (inputFormData: LetterFormData) => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setUrlWarning(null);
 
     try {
       // ターゲットURLを解決（入力欄優先、なければfreeformInputから抽出）
-      const targetUrl = formData.targetUrl?.trim() || extractFirstUrl(formData.freeformInput);
+      const targetUrl = inputFormData.targetUrl?.trim() || extractFirstUrl(inputFormData.freeformInput);
       setResolvedTargetUrl(targetUrl);
 
       // URL未入力時は警告を表示（ブロックはしない）
@@ -140,14 +130,14 @@ function NewLetterPageContent() {
         console.warn('URLが未入力です。分析精度が低下する可能性があります。');
       }
 
-      // ユーザーノートを構築（既存のフォームデータから）
+      // ユーザーノートを構築（フォームデータから）
       const userNotes = [
-        formData.companyName && `企業名: ${formData.companyName}`,
-        formData.name && `担当者: ${formData.name}`,
-        formData.position && `役職: ${formData.position}`,
-        formData.background && `背景・経緯: ${formData.background}`,
-        formData.problem && `課題: ${formData.problem}`,
-        formData.freeformInput && `追加情報: ${formData.freeformInput}`,
+        inputFormData.companyName && `企業名: ${inputFormData.companyName}`,
+        inputFormData.name && `担当者: ${inputFormData.name}`,
+        inputFormData.position && `役職: ${inputFormData.position}`,
+        inputFormData.background && `背景・経緯: ${inputFormData.background}`,
+        inputFormData.problem && `課題: ${inputFormData.problem}`,
+        inputFormData.freeformInput && `追加情報: ${inputFormData.freeformInput}`,
       ].filter(Boolean).join('\n');
 
       const response = await fetch('/api/analyze-input', {
@@ -156,9 +146,9 @@ function NewLetterPageContent() {
         body: JSON.stringify({
           target_url: targetUrl || undefined,
           user_notes: userNotes || undefined,
-          sender_info: formData.myCompanyName ? {
-            company_name: formData.myCompanyName,
-            service_description: formData.myServiceDescription || '',
+          sender_info: inputFormData.myCompanyName ? {
+            company_name: inputFormData.myCompanyName,
+            service_description: inputFormData.myServiceDescription || '',
           } : undefined,
         }),
       });
@@ -173,6 +163,11 @@ function NewLetterPageContent() {
       if (data.success && data.data) {
         setAnalysisResult(data.data);
         setShowAnalysisModal(true);
+
+        // sourcesを分析結果から保存
+        if (data.data.sources) {
+          setGeneratedSources(data.data.sources);
+        }
       } else {
         throw new Error(data.error || '分析結果の取得に失敗しました');
       }
@@ -183,7 +178,24 @@ function NewLetterPageContent() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [formData, usage, user]);
+  }, []);
+
+  // V2フロー: 分析APIを呼び出してモーダルを表示
+  const handleAnalyzeForV2 = useCallback(async () => {
+    // 送り手情報の入力必須チェック
+    if (!formData.myCompanyName || !formData.myName || !formData.myServiceDescription) {
+      alert('送り手情報（会社名・氏名・サービス説明）を入力してください');
+      return;
+    }
+
+    // ゲスト制限チェック
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+      return;
+    }
+
+    await handleAnalyzeForV2WithFormData(formData);
+  }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
   // V2フロー: 分析結果を使ってレター生成
   const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete') => {
@@ -450,9 +462,10 @@ function NewLetterPageContent() {
     setCurrentLetterStatus(undefined);
     setVariations(undefined);
     setEmailData(undefined);
+    setGeneratedSources(undefined);
   };
 
-  const handleSampleExperience = async (sampleType: SampleType = 'real') => {
+  const handleSampleExperience = async () => {
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
       setShowLimitModal(true);
@@ -460,11 +473,9 @@ function NewLetterPageContent() {
     }
 
     // URLの決定（ユーザー入力優先）
-    // 既にユーザーがURL欄に何か入力している場合は上書きしない
     const currentUrl = formData.targetUrl?.trim();
 
-    // モードとサンプル種別に応じてフォームデータを構築
-    // TypeScriptの型推論を正しく機能させるため、モード別に分離
+    // モードに応じてフォームデータを構築
     let sampleFormData: LetterFormData;
 
     if (mode === 'event') {
@@ -476,7 +487,7 @@ function NewLetterPageContent() {
         companyName: eventSample.companyName,
         position: eventSample.position,
         name: eventSample.name,
-        targetUrl: currentUrl || '',
+        targetUrl: currentUrl || eventSample.targetUrl || '',
         background: '',
         problem: '',
         solution: '',
@@ -491,8 +502,8 @@ function NewLetterPageContent() {
         simpleRequirement: '',
       };
     } else {
-      // salesモード: サンプル種別に応じてデータを選択
-      const salesSample = sampleType === 'fictional' ? SAMPLE_DATA_FICTIONAL : SAMPLE_DATA;
+      // salesモード: 実在企業サンプル（トヨタ自動車）
+      const salesSample = SAMPLE_DATA;
       sampleFormData = {
         myCompanyName: salesSample.myCompanyName,
         myName: salesSample.myName,
@@ -516,88 +527,11 @@ function NewLetterPageContent() {
       };
     }
 
+    // フォームにデータをセット
     setFormData(sampleFormData);
-    setIsGenerating(true);
 
-    try {
-      // Generate letter with sample data
-
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...sampleFormData,
-          mode,
-          inputComplexity: mode === 'sales' ? 'simple' : 'detailed',
-        }),
-      });
-
-
-
-      if (!response.ok) {
-        // エラーレスポンスの本文を取得
-        let errorData;
-        try {
-          errorData = await response.json();
-          console.error('[ERROR] エラーレスポンス本文:', errorData);
-        } catch (parseError) {
-          console.error('[ERROR] レスポンス本文のパースに失敗:', parseError);
-          const text = await response.text();
-          console.error('[ERROR] レスポンステキスト:', text);
-        }
-
-        // 429エラーの場合は制限モーダルを表示
-        if (response.status === 429) {
-          setShowLimitModal(true);
-          refetchGuestUsage();
-          return;
-        }
-
-        throw new Error(`生成に失敗しました (${response.status}): ${errorData?.error || errorData?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-
-
-
-      setGeneratedLetter(data.letter);
-
-      // バリエーションがあれば保存
-      if (data.variations) {
-        setVariations(data.variations);
-        setActiveVariation('standard'); // 生成後は標準をセット
-      } else {
-        setVariations(undefined);
-      }
-
-      if (user) {
-        const savedLetter = await saveToHistory(sampleFormData, data.letter, mode);
-        if (savedLetter) {
-          setCurrentLetterId(savedLetter.id);
-          setCurrentLetterStatus(savedLetter.status);
-        }
-      } else {
-        // Guest save
-        const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
-        const savedLetter = saveToGuestHistory(sampleFormData, data.letter, mode);
-        setCurrentLetterId(savedLetter.id);
-        setCurrentLetterStatus(savedLetter.status);
-        window.dispatchEvent(new Event('guest-history-updated'));
-      }
-      // ゲスト利用状況を更新
-      if (!user) {
-        refetchGuestUsage();
-      }
-    } catch (error: unknown) {
-      const errorDetails = getErrorDetails(error);
-      console.error('[ERROR] サンプル生成エラー詳細:', {
-        ...errorDetails,
-        fullError: error,
-      });
-      alert(`サンプルの生成に失敗しました。もう一度お試しください。\n\nエラー: ${errorDetails.message}`);
-    } finally {
-      setIsGenerating(false);
-    }
+    // サンプルは常にV2フロー（分析→モーダル→生成）を使用
+    await handleAnalyzeForV2WithFormData(sampleFormData);
   };
 
   return (
@@ -803,6 +737,8 @@ function NewLetterPageContent() {
                   setGeneratedLetter(`件名: ${newEmail.subject}\n\n${newEmail.body}`);
                 }}
                 onSave={handleSaveOnly}
+                sources={generatedSources}
+                hasUrl={Boolean(resolvedTargetUrl || formData.targetUrl)}
               />
             </div>
           </div>

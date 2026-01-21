@@ -12,7 +12,7 @@ import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
-import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
+import { SAMPLE_DATA, SAMPLE_DATA_FICTIONAL, SAMPLE_EVENT_DATA, type SampleType } from '@/lib/sampleData';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import type { AnalysisResult } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
@@ -452,37 +452,69 @@ function NewLetterPageContent() {
     setEmailData(undefined);
   };
 
-  const handleSampleExperience = async () => {
+  const handleSampleExperience = async (sampleType: SampleType = 'real') => {
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
       setShowLimitModal(true);
       return;
     }
 
-    // モードに応じたサンプルデータを選択
-    const sampleData = mode === 'sales' ? SAMPLE_DATA : SAMPLE_EVENT_DATA;
+    // URLの決定（ユーザー入力優先）
+    // 既にユーザーがURL欄に何か入力している場合は上書きしない
+    const currentUrl = formData.targetUrl?.trim();
 
-    // フォームにサンプルデータを入力
-    const sampleFormData: LetterFormData = {
-      myCompanyName: sampleData.myCompanyName,
-      myName: sampleData.myName,
-      myServiceDescription: sampleData.myServiceDescription,
-      companyName: sampleData.companyName,
-      position: sampleData.position,
-      name: sampleData.name,
-      background: mode === 'sales' ? SAMPLE_DATA.background : '',
-      problem: mode === 'sales' ? SAMPLE_DATA.problem : '',
-      solution: mode === 'sales' ? SAMPLE_DATA.solution : '',
-      caseStudy: mode === 'sales' ? SAMPLE_DATA.caseStudy : '',
-      offer: mode === 'sales' ? SAMPLE_DATA.offer : '',
-      freeformInput: mode === 'sales' ? SAMPLE_DATA.freeformInput : '',
-      eventUrl: mode === 'event' ? SAMPLE_EVENT_DATA.eventUrl : '',
-      eventName: mode === 'event' ? SAMPLE_EVENT_DATA.eventName : '',
-      eventDateTime: mode === 'event' ? SAMPLE_EVENT_DATA.eventDateTime : '',
-      eventSpeakers: mode === 'event' ? SAMPLE_EVENT_DATA.eventSpeakers : '',
-      invitationReason: mode === 'event' ? SAMPLE_EVENT_DATA.invitationReason : '',
-      simpleRequirement: '',
-    };
+    // モードとサンプル種別に応じてフォームデータを構築
+    // TypeScriptの型推論を正しく機能させるため、モード別に分離
+    let sampleFormData: LetterFormData;
+
+    if (mode === 'event') {
+      const eventSample = SAMPLE_EVENT_DATA;
+      sampleFormData = {
+        myCompanyName: eventSample.myCompanyName,
+        myName: eventSample.myName,
+        myServiceDescription: eventSample.myServiceDescription,
+        companyName: eventSample.companyName,
+        position: eventSample.position,
+        name: eventSample.name,
+        targetUrl: currentUrl || '',
+        background: '',
+        problem: '',
+        solution: '',
+        caseStudy: '',
+        offer: '',
+        freeformInput: '',
+        eventUrl: eventSample.eventUrl,
+        eventName: eventSample.eventName,
+        eventDateTime: eventSample.eventDateTime,
+        eventSpeakers: eventSample.eventSpeakers,
+        invitationReason: eventSample.invitationReason,
+        simpleRequirement: '',
+      };
+    } else {
+      // salesモード: サンプル種別に応じてデータを選択
+      const salesSample = sampleType === 'fictional' ? SAMPLE_DATA_FICTIONAL : SAMPLE_DATA;
+      sampleFormData = {
+        myCompanyName: salesSample.myCompanyName,
+        myName: salesSample.myName,
+        myServiceDescription: salesSample.myServiceDescription,
+        companyName: salesSample.companyName,
+        position: salesSample.position,
+        name: salesSample.name,
+        targetUrl: currentUrl || salesSample.targetUrl || '',
+        background: salesSample.background,
+        problem: salesSample.problem,
+        solution: salesSample.solution,
+        caseStudy: salesSample.caseStudy,
+        offer: salesSample.offer,
+        freeformInput: salesSample.freeformInput,
+        eventUrl: '',
+        eventName: '',
+        eventDateTime: '',
+        eventSpeakers: '',
+        invitationReason: '',
+        simpleRequirement: '',
+      };
+    }
 
     setFormData(sampleFormData);
     setIsGenerating(true);

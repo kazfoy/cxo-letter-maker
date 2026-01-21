@@ -144,7 +144,7 @@ export const SalesForm = React.memo(function SalesForm({
             {/* 相手企業URL（かんたんモード） */}
             <div>
               <label htmlFor="simpleTargetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                相手企業URL <span className="text-slate-500 text-xs font-normal">（任意）</span>
+                相手企業URL <span className="text-indigo-600 text-xs font-medium">（推奨）</span>
               </label>
               <input
                 type="url"
@@ -153,9 +153,11 @@ export const SalesForm = React.memo(function SalesForm({
                 value={formData.targetUrl || ''}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder="https://example.com"
+                placeholder="https://example.com（サンプル実行時は自動入力）"
               />
-              <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+              <p className="mt-1 text-xs text-slate-500">
+                <span className="text-indigo-600 font-medium">URLを入れると、ニュース・採用・IRなどから具体的な根拠を抽出</span>し、説得力のあるレターを作成できます
+              </p>
             </div>
 
             <div>
@@ -345,7 +347,7 @@ export const SalesForm = React.memo(function SalesForm({
               {/* 相手企業URL（V2分析用） */}
               <div>
                 <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                  相手企業URL <span className="text-slate-500 text-xs font-normal">（推奨）</span>
+                  相手企業URL <span className="text-indigo-600 text-xs font-medium">（推奨）</span>
                 </label>
                 <input
                   type="url"
@@ -354,9 +356,11 @@ export const SalesForm = React.memo(function SalesForm({
                   value={formData.targetUrl || ''}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                  placeholder="https://example.com"
+                  placeholder="https://example.com（サンプル実行時は自動入力）"
                 />
-                <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  <span className="text-indigo-600 font-medium">URLを入れると、ニュース・採用・IRなどから具体的な根拠を抽出</span>し、説得力のあるレターを作成できます
+                </p>
               </div>
 
               <div>

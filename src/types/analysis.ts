@@ -88,6 +88,32 @@ export const ExtractedFactsSchema = z.object({
 export type ExtractedFacts = z.infer<typeof ExtractedFactsSchema>;
 
 /**
+ * 情報ソースカテゴリスキーマ
+ */
+export const SourceCategorySchema = z.enum([
+  'corporate',  // 企業情報 (/about, /company)
+  'news',       // ニュース (/news, /press)
+  'recruit',    // 採用 (/recruit, /careers)
+  'ir',         // IR情報
+  'product',    // 製品・サービス
+  'other'       // その他
+]);
+
+export type SourceCategory = z.infer<typeof SourceCategorySchema>;
+
+/**
+ * 情報ソーススキーマ
+ */
+export const InformationSourceSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  category: SourceCategorySchema,
+  isPrimary: z.boolean().default(false),
+});
+
+export type InformationSource = z.infer<typeof InformationSourceSchema>;
+
+/**
  * 分析結果スキーマ
  */
 export const AnalysisResultSchema = z.object({
@@ -100,6 +126,8 @@ export const AnalysisResultSchema = z.object({
   risk_flags: z.array(RiskFlagSchema),
   // Phase 5: 抽出されたファクト（サブルート探索から）
   extracted_facts: ExtractedFactsSchema.optional(),
+  // Phase 5: 情報ソース（参照元URL一覧）
+  sources: z.array(InformationSourceSchema).optional(),
 });
 
 // 型エクスポート

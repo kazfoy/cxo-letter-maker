@@ -14,15 +14,123 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
-import { ExtractedFactsSchema, type ExtractedFacts } from '@/types/analysis';
+import { ExtractedFactsSchema, type ExtractedFacts, type InformationSource, type SourceCategory } from '@/types/analysis';
 
 export const maxDuration = 60;
 
 // サブルート候補
 const SUB_ROUTE_CANDIDATES = ['/about', '/company', '/recruit', '/careers', '/news', '/press', '/ir', '/service', '/product'];
 const MAX_PAGES = 4;
+const MAX_SOURCES = 8;
 const FETCH_TIMEOUT = 10000; // 10秒
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * URL正規化（重複排除用）
+ * - search/hash除去
+ * - 末尾スラッシュ除去
+ * - /index.html, /index.htm除去
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    let pathname = parsed.pathname
+      .replace(/\/index\.html?$/i, '')  // /index.html, /index.htm除去
+      .replace(/\/+$/, '');              // 末尾スラッシュ除去
+    if (!pathname) pathname = '';
+    return `${parsed.origin}${pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * パスからカテゴリを推定
+ */
+function detectCategory(url: string): SourceCategory {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    if (pathname.includes('/about') || pathname.includes('/company') || pathname.includes('/corporate')) return 'corporate';
+    if (pathname.includes('/news') || pathname.includes('/press') || pathname.includes('/release')) return 'news';
+    if (pathname.includes('/recruit') || pathname.includes('/careers') || pathname.includes('/job')) return 'recruit';
+    if (pathname.includes('/ir') || pathname.includes('/investor')) return 'ir';
+    if (pathname.includes('/product') || pathname.includes('/service') || pathname.includes('/solution')) return 'product';
+    return 'other';
+  } catch {
+    return 'other';
+  }
+}
+
+/**
+ * カテゴリ優先順位（小さいほど優先）
+ * news → ir → recruit → corporate → product → other
+ */
+const CATEGORY_PRIORITY: Record<SourceCategory, number> = {
+  news: 0,
+  ir: 1,
+  recruit: 2,
+  corporate: 3,
+  product: 4,
+  other: 5,
+};
+
+/**
+ * ソースを優先順位でソートし、isPrimaryを設定
+ * - 主ソース最大3件
+ * - カテゴリ優先順: news→ir→recruit→corporate→product→other
+ * - 同カテゴリ: title有り優先→URL短い方優先
+ * - 全体上限8件
+ */
+function prioritizeSources(sources: InformationSource[]): InformationSource[] {
+  // ソート: カテゴリ優先順 → title有り優先 → URL短い方優先
+  const sorted = [...sources].sort((a, b) => {
+    // 1. カテゴリ優先順
+    const catDiff = CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category];
+    if (catDiff !== 0) return catDiff;
+
+    // 2. title有り優先
+    const aHasTitle = a.title ? 0 : 1;
+    const bHasTitle = b.title ? 0 : 1;
+    if (aHasTitle !== bHasTitle) return aHasTitle - bHasTitle;
+
+    // 3. URL短い方優先
+    return a.url.length - b.url.length;
+  });
+
+  // 上限8件に制限し、上位3件をisPrimary=trueに
+  return sorted.slice(0, MAX_SOURCES).map((source, index) => ({
+    ...source,
+    isPrimary: index < 3,
+  }));
+}
+
+/**
+ * HTMLからタイトルを抽出
+ * 優先順位: og:title → twitter:title → title → h1
+ * 空白正規化・100文字制限
+ */
+function extractPageTitle(html: string, fallbackHostname?: string): string | undefined {
+  const $ = cheerio.load(html);
+
+  const candidates = [
+    $('meta[property="og:title"]').attr('content'),
+    $('meta[name="twitter:title"]').attr('content'),
+    $('title').first().text(),
+    $('h1').first().text(),
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate) {
+      const normalized = candidate.replace(/\s+/g, ' ').trim();
+      if (normalized) {
+        return normalized.substring(0, 100);
+      }
+    }
+  }
+
+  // fallback: hostname
+  return fallbackHostname || undefined;
+}
 
 type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
 let googleProvider: GoogleProvider | null = null;
@@ -79,11 +187,24 @@ function extractTextFromHtml(html: string): string {
     .substring(0, 8000); // サブルート探索のため上限を増やす
 }
 
+interface FetchResult {
+  content: string;
+  title?: string;
+}
+
 /**
  * URLからコンテンツを安全に取得
  */
-async function fetchPageContent(url: string): Promise<string | null> {
+async function fetchPageContent(url: string): Promise<FetchResult | null> {
   try {
+    // hostnameをfallback用に取得
+    let hostname: string | undefined;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      hostname = undefined;
+    }
+
     const response = await safeFetch(
       url,
       {
@@ -100,7 +221,10 @@ async function fetchPageContent(url: string): Promise<string | null> {
     }
 
     const html = await response.text();
-    return extractTextFromHtml(html);
+    const content = extractTextFromHtml(html);
+    const title = extractPageTitle(html, hostname);
+
+    return { content, title };
   } catch (error) {
     devLog.log(`Failed to fetch ${url}:`, error instanceof Error ? error.message : 'Unknown error');
     return null;
@@ -189,29 +313,56 @@ export async function POST(request: Request) {
 
         // 1. トップページを取得
         devLog.log('Fetching top page:', url);
-        const topPageContent = await fetchPageContent(url);
+        const topPageResult = await fetchPageContent(url);
 
-        if (!topPageContent || topPageContent.length < 50) {
+        if (!topPageResult || topPageResult.content.length < 50) {
           return NextResponse.json(
             { error: '有効なコンテンツを抽出できませんでした' },
             { status: 400 }
           );
         }
 
+        // ソース追跡用Map（URL正規化による重複排除）
+        // isPrimaryは後でprioritizeSourcesで設定
+        const sourceMap = new Map<string, InformationSource>();
+        const normalizedTopUrl = normalizeUrl(url);
+        sourceMap.set(normalizedTopUrl, {
+          url: url,
+          title: topPageResult.title,
+          category: detectCategory(url),
+          isPrimary: false, // 後で設定
+        });
+
         // 2. サブルートURLを生成し並列取得
         const subRouteUrls = buildSubRouteUrls(url);
         devLog.log('Fetching sub-routes:', subRouteUrls.slice(0, 5).join(', '));
 
         const subRouteResults = await Promise.allSettled(
-          subRouteUrls.map(subUrl => fetchPageContent(subUrl))
+          subRouteUrls.map(async (subUrl) => {
+            const result = await fetchPageContent(subUrl);
+            return { url: subUrl, result };
+          })
         );
 
         // 成功したページのコンテンツを収集
-        const successfulContents: string[] = [topPageContent];
+        const successfulContents: string[] = [topPageResult.content];
 
-        for (const result of subRouteResults) {
-          if (result.status === 'fulfilled' && result.value) {
-            successfulContents.push(result.value);
+        for (const settled of subRouteResults) {
+          if (settled.status === 'fulfilled' && settled.value.result) {
+            const { url: subUrl, result } = settled.value;
+            successfulContents.push(result.content);
+
+            // ソースを追跡（重複排除）
+            const normalizedSubUrl = normalizeUrl(subUrl);
+            if (!sourceMap.has(normalizedSubUrl) && sourceMap.size < MAX_SOURCES) {
+              sourceMap.set(normalizedSubUrl, {
+                url: subUrl,
+                title: result.title,
+                category: detectCategory(subUrl),
+                isPrimary: false, // 後で設定
+              });
+            }
+
             if (successfulContents.length >= MAX_PAGES) break;
           }
         }
@@ -266,11 +417,16 @@ export async function POST(request: Request) {
           0
         );
 
-        devLog.log(`Extracted ${totalFactCount} facts from ${successfulContents.length} pages`);
+        // ソース一覧を配列に変換し、優先順位付け
+        const rawSources = Array.from(sourceMap.values());
+        const sources = prioritizeSources(rawSources);
+
+        devLog.log(`Extracted ${totalFactCount} facts from ${successfulContents.length} pages, ${sources.length} sources tracked`);
 
         return NextResponse.json({
           success: true,
           facts: extractedFacts,
+          sources,
           metadata: {
             pagesAnalyzed: successfulContents.length,
             totalFactCount,

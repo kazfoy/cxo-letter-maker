@@ -12,7 +12,30 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CTA_OPTIONS, type CtaType } from '@/lib/constants';
-import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisResult, InformationSource } from '@/types/analysis';
+import { SourcesDisplay } from './SourcesDisplay';
+
+/**
+ * APIレスポンスの参照揺れを吸収
+ * result.sources または result.analysis?.sources のどちらでも対応
+ */
+function normalizeSources(
+    result: AnalysisResult | { analysis?: AnalysisResult } | null | undefined
+): InformationSource[] | undefined {
+    if (!result) return undefined;
+
+    // 直接 sources を持つ場合 (AnalysisResult)
+    if ('sources' in result && result.sources) {
+        return result.sources;
+    }
+
+    // analysis プロパティを持つ場合
+    if ('analysis' in result && result.analysis?.sources) {
+        return result.analysis.sources;
+    }
+
+    return undefined;
+}
 
 type Step = 'upload' | 'mapping' | 'preview' | 'execution';
 type MediaType = 'letter' | 'mail';
@@ -381,6 +404,7 @@ export function BulkGenerator() {
         content?: string;
         status: 'pending' | 'generating' | 'completed' | 'error';
         error?: string;
+        sources?: InformationSource[];
     }>>([]);
     const [isPreviewGenerating, setIsPreviewGenerating] = useState(false);
     const [ctaType, setCtaType] = useState<CtaType>('schedule_url');
@@ -427,7 +451,7 @@ export function BulkGenerator() {
         senderName: string;
         senderService: string;
         outputFormat: 'letter' | 'email';
-    }): Promise<{ success: boolean; content?: string; error?: string }> => {
+    }): Promise<{ success: boolean; content?: string; error?: string; sources?: InformationSource[] }> => {
         try {
             // Step 1: analyze-input API
             const userNotes = [
@@ -462,6 +486,7 @@ export function BulkGenerator() {
             }
 
             const analysisResult: AnalysisResult = analysisData.data;
+            const sources = normalizeSources(analysisResult);
 
             // Step 2: generate-v2 API
             const genRes = await fetch('/api/generate-v2', {
@@ -496,7 +521,7 @@ export function BulkGenerator() {
                 content = `件名: ${genData.data.subjects[0]}\n\n${genData.data.body}`;
             }
 
-            return { success: true, content };
+            return { success: true, content, sources };
         } catch (error) {
             console.error('[V2 Flow Error]', error);
             return {
@@ -956,7 +981,7 @@ export function BulkGenerator() {
 
                 setPreviewItems(prev => {
                     const next = [...prev];
-                    next[i] = { ...next[i], status: 'completed', content: contentToShow };
+                    next[i] = { ...next[i], status: 'completed', content: contentToShow, sources: v2Result.sources };
                     return next;
                 });
 
@@ -1653,11 +1678,18 @@ export function BulkGenerator() {
                             {/* コンテンツ */}
                             <div className="p-6">
                                 {item.status === 'completed' && item.content ? (
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans leading-relaxed">
-                                            {item.content}
-                                        </pre>
-                                    </div>
+                                    <>
+                                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                            <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans leading-relaxed">
+                                                {item.content}
+                                            </pre>
+                                        </div>
+                                        <SourcesDisplay
+                                            sources={item.sources}
+                                            hasUrl={!!item.row[mapping.url]}
+                                            className="mt-4"
+                                        />
+                                    </>
                                 ) : item.status === 'error' ? (
                                     <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-red-700 text-sm">
                                         {item.error || 'エラーが発生しました'}

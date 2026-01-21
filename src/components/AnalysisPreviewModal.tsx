@@ -1,9 +1,22 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisResult, InformationSource } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
 import { FactsDisplay } from '@/components/FactsDisplay';
+import { SourcesDisplay } from '@/components/SourcesDisplay';
+
+/**
+ * APIレスポンスの参照揺れを吸収
+ */
+function normalizeSources(
+  result: AnalysisResult | { analysis?: AnalysisResult } | null | undefined
+): InformationSource[] | undefined {
+  if (!result) return undefined;
+  if ('sources' in result && result.sources) return result.sources;
+  if ('analysis' in result && result.analysis?.sources) return result.analysis.sources;
+  return undefined;
+}
 
 interface AnalysisPreviewModalProps {
   isOpen: boolean;
@@ -147,6 +160,19 @@ export function AnalysisPreviewModal({
                   />
                 </section>
               )}
+
+              {/* 情報ソース */}
+              <section className="mb-6">
+                <h4 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
+                  <span className="text-lg">🔗</span>
+                  参照元（情報ソース）
+                </h4>
+                <SourcesDisplay
+                  sources={normalizeSources(analysisResult)}
+                  hasUrl={hasUrl}
+                  defaultExpanded={false}
+                />
+              </section>
 
               {/* 不足情報（高優先度のみ） */}
               {highPriorityMissing.length > 0 && (

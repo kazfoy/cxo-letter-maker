@@ -16,6 +16,7 @@ import {
   ExtractedFactsSchema,
   type AnalysisResult,
   type ExtractedFacts,
+  type InformationSource,
 } from '@/types/analysis';
 
 export const maxDuration = 60;
@@ -139,11 +140,85 @@ JSON形式のみ：
 }
 
 /**
+ * URL正規化（重複排除用）
+ * - search/hash除去
+ * - 末尾スラッシュ除去
+ * - /index.html, /index.htm除去
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    let pathname = parsed.pathname
+      .replace(/\/index\.html?$/i, '')
+      .replace(/\/+$/, '');
+    if (!pathname) pathname = '';
+    return `${parsed.origin}${pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * パスからカテゴリを推定
+ */
+function detectCategory(url: string): InformationSource['category'] {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    if (pathname.includes('/about') || pathname.includes('/company') || pathname.includes('/corporate')) return 'corporate';
+    if (pathname.includes('/news') || pathname.includes('/press') || pathname.includes('/release')) return 'news';
+    if (pathname.includes('/recruit') || pathname.includes('/careers') || pathname.includes('/job')) return 'recruit';
+    if (pathname.includes('/ir') || pathname.includes('/investor')) return 'ir';
+    if (pathname.includes('/product') || pathname.includes('/service') || pathname.includes('/solution')) return 'product';
+    return 'other';
+  } catch {
+    return 'other';
+  }
+}
+
+/**
+ * カテゴリ優先順位（小さいほど優先）
+ */
+const CATEGORY_PRIORITY: Record<InformationSource['category'], number> = {
+  news: 0,
+  ir: 1,
+  recruit: 2,
+  corporate: 3,
+  product: 4,
+  other: 5,
+};
+
+/**
+ * ソースを優先順位でソートし、isPrimaryを設定
+ */
+function prioritizeSources(sources: InformationSource[]): InformationSource[] {
+  const sorted = [...sources].sort((a, b) => {
+    const catDiff = CATEGORY_PRIORITY[a.category] - CATEGORY_PRIORITY[b.category];
+    if (catDiff !== 0) return catDiff;
+    const aHasTitle = a.title ? 0 : 1;
+    const bHasTitle = b.title ? 0 : 1;
+    if (aHasTitle !== bHasTitle) return aHasTitle - bHasTitle;
+    return a.url.length - b.url.length;
+  });
+  return sorted.slice(0, 8).map((source, index) => ({
+    ...source,
+    isPrimary: index < 3,
+  }));
+}
+
+interface FactExtractionResult {
+  facts: ExtractedFacts;
+  sources: InformationSource[];
+}
+
+/**
  * Phase 5: サブルート探索でファクトを抽出
  */
-async function extractFactsFromUrl(baseUrl: string): Promise<ExtractedFacts | null> {
+async function extractFactsFromUrl(baseUrl: string): Promise<FactExtractionResult | null> {
   try {
     devLog.log('Starting enhanced URL analysis:', baseUrl);
+
+    // ソース追跡用Map（isPrimaryは後でprioritizeSourcesで設定）
+    const sourceMap = new Map<string, InformationSource>();
 
     // トップページを取得
     const topPageContent = await fetchPageContent(baseUrl);
@@ -151,17 +226,50 @@ async function extractFactsFromUrl(baseUrl: string): Promise<ExtractedFacts | nu
       return null;
     }
 
+    // hostnameをfallback titleとして取得
+    let hostname: string | undefined;
+    try {
+      hostname = new URL(baseUrl).hostname;
+    } catch {
+      hostname = undefined;
+    }
+
+    // トップページをソースに追加
+    const normalizedBaseUrl = normalizeUrl(baseUrl);
+    sourceMap.set(normalizedBaseUrl, {
+      url: baseUrl,
+      title: hostname,
+      category: detectCategory(baseUrl),
+      isPrimary: false, // 後で設定
+    });
+
     // サブルートを並列取得
     const subRouteUrls = buildSubRouteUrls(baseUrl);
     const subRouteResults = await Promise.allSettled(
-      subRouteUrls.map(subUrl => fetchPageContent(subUrl))
+      subRouteUrls.map(async (subUrl) => {
+        const content = await fetchPageContent(subUrl);
+        return { url: subUrl, content };
+      })
     );
 
     // 成功したページを収集
     const successfulContents: string[] = [topPageContent];
-    for (const result of subRouteResults) {
-      if (result.status === 'fulfilled' && result.value) {
-        successfulContents.push(result.value);
+    for (const settled of subRouteResults) {
+      if (settled.status === 'fulfilled' && settled.value.content) {
+        const { url: subUrl, content } = settled.value;
+        successfulContents.push(content);
+
+        // ソースを追跡（重複排除、最大8件）
+        const normalizedSubUrl = normalizeUrl(subUrl);
+        if (!sourceMap.has(normalizedSubUrl) && sourceMap.size < 8) {
+          sourceMap.set(normalizedSubUrl, {
+            url: subUrl,
+            title: undefined,
+            category: detectCategory(subUrl),
+            isPrimary: false, // 後で設定
+          });
+        }
+
         if (successfulContents.length >= MAX_PAGES) break;
       }
     }
@@ -182,9 +290,16 @@ async function extractFactsFromUrl(baseUrl: string): Promise<ExtractedFacts | nu
       (sum, arr) => sum + arr.length,
       0
     );
-    devLog.log(`Extracted ${totalFactCount} facts`);
+    devLog.log(`Extracted ${totalFactCount} facts from ${sourceMap.size} sources`);
 
-    return extractedFacts;
+    // 優先順位付けしてisPrimaryを設定
+    const rawSources = Array.from(sourceMap.values());
+    const sources = prioritizeSources(rawSources);
+
+    return {
+      facts: extractedFacts,
+      sources,
+    };
   } catch (error) {
     devLog.warn('Fact extraction failed:', error);
     return null;
@@ -238,8 +353,9 @@ export async function POST(request: Request) {
       let extractedContent = '';
       const riskFlags: { type: string; message: string; severity: string }[] = [];
 
-      // Phase 5: 抽出ファクトを保持
+      // Phase 5: 抽出ファクトとソースを保持
       let extractedFacts: ExtractedFacts | null = null;
+      let extractedSources: InformationSource[] = [];
 
       // 1. URL解析
       if (target_url) {
@@ -271,7 +387,11 @@ export async function POST(request: Request) {
           }
 
           // Phase 5: サブルート探索でファクト抽出（並列実行）
-          extractedFacts = await extractFactsFromUrl(target_url);
+          const factResult = await extractFactsFromUrl(target_url);
+          if (factResult) {
+            extractedFacts = factResult.facts;
+            extractedSources = factResult.sources;
+          }
         } catch (error) {
           devLog.warn('URL extraction failed:', error);
           riskFlags.push({
@@ -369,9 +489,12 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
           ];
         }
 
-        // Phase 5: 抽出ファクトを追加
+        // Phase 5: 抽出ファクトとソースを追加
         if (extractedFacts) {
           result.extracted_facts = extractedFacts;
+        }
+        if (extractedSources.length > 0) {
+          result.sources = extractedSources;
         }
 
         devLog.log('Analysis completed successfully');

@@ -141,6 +141,23 @@ export const SalesForm = React.memo(function SalesForm({
               </div>
             </div>
 
+            {/* 相手企業URL（かんたんモード） */}
+            <div>
+              <label htmlFor="simpleTargetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+                相手企業URL <span className="text-slate-500 text-xs font-normal">（任意）</span>
+              </label>
+              <input
+                type="url"
+                id="simpleTargetUrl"
+                name="targetUrl"
+                value={formData.targetUrl || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                placeholder="https://example.com"
+              />
+              <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+            </div>
+
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label htmlFor="simpleServiceDescription" className="block text-sm font-medium text-gray-700">
@@ -183,23 +200,6 @@ export const SalesForm = React.memo(function SalesForm({
                 maxLength={100}
               />
               <p className="mt-1 text-xs text-gray-500">{MESSAGES.info.simpleRequirementHelp}</p>
-            </div>
-
-            {/* 相手企業URL（かんたんモード） */}
-            <div>
-              <label htmlFor="simpleTargetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                相手企業URL <span className="text-amber-600 text-xs font-normal">（基本必須）</span>
-              </label>
-              <input
-                type="url"
-                id="simpleTargetUrl"
-                name="targetUrl"
-                value={formData.targetUrl || ''}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder="https://example.com"
-              />
-              <p className="mt-1 text-xs text-slate-500">高品質なレター生成に必要です。URLからファクトを抽出し説得力を高めます</p>
             </div>
           </div>
         </>
@@ -341,6 +341,24 @@ export const SalesForm = React.memo(function SalesForm({
                   </button>
                 </div>
               </div>
+
+              {/* 相手企業URL（V2分析用） */}
+              <div>
+                <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+                  相手企業URL <span className="text-slate-500 text-xs font-normal">（推奨）</span>
+                </label>
+                <input
+                  type="url"
+                  id="targetUrl"
+                  name="targetUrl"
+                  value={formData.targetUrl || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder="https://example.com"
+                />
+                <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+              </div>
+
               <div>
                 <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
                   {FIELD_LABELS.department}
@@ -372,7 +390,7 @@ export const SalesForm = React.memo(function SalesForm({
                 </div>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
-                    {FIELD_LABELS.name} <span className="text-red-500">{REQUIRED_MARK}</span>
+                    {FIELD_LABELS.name}
                   </label>
                   <input
                     type="text"
@@ -380,28 +398,10 @@ export const SalesForm = React.memo(function SalesForm({
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    required
                     className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.name}
                   />
                 </div>
-              </div>
-
-              {/* 相手企業URL（V2分析用） */}
-              <div>
-                <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                  相手企業URL <span className="text-amber-600 text-xs font-normal">（基本必須）</span>
-                </label>
-                <input
-                  type="url"
-                  id="targetUrl"
-                  name="targetUrl"
-                  value={formData.targetUrl || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                  placeholder="https://example.com"
-                />
-                <p className="mt-1 text-xs text-slate-500">高品質なレター生成に必要です。URLからファクトを抽出し説得力を高めます</p>
               </div>
 
               {/* ターゲットの課題（Phase 5） */}

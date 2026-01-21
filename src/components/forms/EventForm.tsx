@@ -116,6 +116,20 @@ export const EventForm = React.memo(function EventForm({
             {ICONS.targetHp} {BUTTON_TEXTS.targetHp}
           </button>
         </div>
+
+        {/* URL未入力時の警告バナー */}
+        {!formData.targetUrl && (
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-amber-800">相手企業URLが未入力です</p>
+              <p className="text-xs text-amber-600 mt-1">高品質なレター生成にはURLが基本必須です。URLを入力すると具体的なファクトを抽出し、説得力のあるレターを作成できます</p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <div>
             <label htmlFor="companyName" className="block text-sm font-medium text-slate-700 mb-2">
@@ -132,6 +146,24 @@ export const EventForm = React.memo(function EventForm({
               placeholder={EVENT_PLACEHOLDERS.companyName}
             />
           </div>
+
+          {/* 相手企業URL（推奨） */}
+          <div>
+            <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+              相手企業URL <span className="text-slate-500 text-xs font-normal">（推奨）</span>
+            </label>
+            <input
+              type="url"
+              id="targetUrl"
+              name="targetUrl"
+              value={formData.targetUrl || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+              placeholder="https://example.com"
+            />
+            <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+          </div>
+
           <div>
             <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
               {FIELD_LABELS.department}
@@ -163,7 +195,7 @@ export const EventForm = React.memo(function EventForm({
             </div>
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.name} <span className="text-red-500">{REQUIRED_MARK}</span>
+                {FIELD_LABELS.name}
               </label>
               <input
                 type="text"
@@ -171,7 +203,6 @@ export const EventForm = React.memo(function EventForm({
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                required
                 className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.name}
               />

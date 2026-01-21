@@ -70,6 +70,7 @@ function NewLetterPageContent() {
   const [isGeneratingV2, setIsGeneratingV2] = useState(false);
   const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
   const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
+  const [urlWarning, setUrlWarning] = useState<string | null>(null);
 
   // URLを抽出するユーティリティ関数
   const extractFirstUrl = (text?: string): string | undefined => {
@@ -126,11 +127,18 @@ function NewLetterPageContent() {
 
     setIsAnalyzing(true);
     setAnalysisResult(null);
+    setUrlWarning(null);
 
     try {
       // ターゲットURLを解決（入力欄優先、なければfreeformInputから抽出）
       const targetUrl = formData.targetUrl?.trim() || extractFirstUrl(formData.freeformInput);
       setResolvedTargetUrl(targetUrl);
+
+      // URL未入力時は警告を表示（ブロックはしない）
+      if (!targetUrl) {
+        setUrlWarning('URLが未入力です。分析精度が低下する可能性があります。');
+        console.warn('URLが未入力です。分析精度が低下する可能性があります。');
+      }
 
       // ユーザーノートを構築（既存のフォームデータから）
       const userNotes = [
@@ -704,6 +712,15 @@ function NewLetterPageContent() {
                       )}
                     </button>
                   </div>
+                  {/* URL未入力警告 */}
+                  {urlWarning && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2">
+                      <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span className="text-sm text-amber-800">{urlWarning}</span>
+                    </div>
+                  )}
                 </div>
               )}
 

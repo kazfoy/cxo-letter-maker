@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw, CheckCircle2, ArrowRight, RotateCcw } from 'lucide-react';
+import { Upload, Check, Play, Loader2, AlertCircle, ChevronDown, ChevronUp, FileSpreadsheet, Download, HelpCircle, Wand2, RefreshCw, CheckCircle2, ArrowRight, RotateCcw, Eye, Shuffle } from 'lucide-react';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { getProfile } from '@/lib/profileUtils';
 import { ProFeatureModal } from './ProFeatureModal';
@@ -11,8 +11,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { CTA_OPTIONS, type CtaType } from '@/lib/constants';
+import type { AnalysisResult } from '@/types/analysis';
 
-type Step = 'upload' | 'mapping' | 'execution';
+type Step = 'upload' | 'mapping' | 'preview' | 'execution';
 type MediaType = 'letter' | 'mail';
 type GenerationMode = 'sales' | 'event';
 type SenderRule = 'default' | 'direct' | 'csv_priority' | 'overwrite';
@@ -372,6 +374,18 @@ export function BulkGenerator() {
     const [currentCompany, setCurrentCompany] = useState('');
     const pausedRef = React.useRef(false); // Ref for immediate pause control in loop
 
+    // Phase 5: Preview state
+    const [previewItems, setPreviewItems] = useState<Array<{
+        index: number;
+        row: AnalyzedRow;
+        content?: string;
+        status: 'pending' | 'generating' | 'completed' | 'error';
+        error?: string;
+    }>>([]);
+    const [isPreviewGenerating, setIsPreviewGenerating] = useState(false);
+    const [ctaType, setCtaType] = useState<CtaType>('schedule_url');
+    const [_isPreviewApproved, setIsPreviewApproved] = useState(false);
+
     const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<GenerationStatus[]>([]);
@@ -400,7 +414,99 @@ export function BulkGenerator() {
     };
     const cancelRef = React.useRef(false);
 
-    // Start Sequential Batch Process - Using /api/generate directly (same as /new page)
+    // V2フロー用のヘルパー関数
+    const generateWithV2Flow = async (params: {
+        targetUrl?: string;
+        companyName: string;
+        personName: string;
+        position?: string;
+        background?: string;
+        note?: string;
+        senderCompany: string;
+        senderDepartment?: string;
+        senderName: string;
+        senderService: string;
+        outputFormat: 'letter' | 'email';
+    }): Promise<{ success: boolean; content?: string; error?: string }> => {
+        try {
+            // Step 1: analyze-input API
+            const userNotes = [
+                params.companyName && `企業名: ${params.companyName}`,
+                params.personName && `担当者: ${params.personName}`,
+                params.position && `役職: ${params.position}`,
+                params.background && `背景・経緯: ${params.background}`,
+                params.note && `追加情報: ${params.note}`,
+            ].filter(Boolean).join('\n');
+
+            const analysisRes = await fetch('/api/analyze-input', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_url: params.targetUrl || undefined,
+                    user_notes: userNotes || undefined,
+                    sender_info: {
+                        company_name: params.senderCompany,
+                        service_description: params.senderService,
+                    },
+                }),
+            });
+
+            if (!analysisRes.ok) {
+                const errorData = await analysisRes.json().catch(() => ({}));
+                throw new Error(errorData.error || `分析に失敗しました (${analysisRes.status})`);
+            }
+
+            const analysisData = await analysisRes.json();
+            if (!analysisData.success || !analysisData.data) {
+                throw new Error(analysisData.error || '分析結果の取得に失敗しました');
+            }
+
+            const analysisResult: AnalysisResult = analysisData.data;
+
+            // Step 2: generate-v2 API
+            const genRes = await fetch('/api/generate-v2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    analysis_result: analysisResult,
+                    sender_info: {
+                        company_name: params.senderCompany,
+                        department: params.senderDepartment || '',
+                        name: params.senderName,
+                        service_description: params.senderService,
+                    },
+                    mode: 'complete',
+                    output_format: params.outputFormat,
+                }),
+            });
+
+            if (!genRes.ok) {
+                const errorData = await genRes.json().catch(() => ({}));
+                throw new Error(errorData.error || `生成に失敗しました (${genRes.status})`);
+            }
+
+            const genData = await genRes.json();
+            if (!genData.success || !genData.data) {
+                throw new Error(genData.error || '生成結果の取得に失敗しました');
+            }
+
+            // コンテンツを抽出
+            let content = genData.data.body;
+            if (params.outputFormat === 'email' && genData.data.subjects && genData.data.subjects.length > 0) {
+                content = `件名: ${genData.data.subjects[0]}\n\n${genData.data.body}`;
+            }
+
+            return { success: true, content };
+        } catch (error) {
+            console.error('[V2 Flow Error]', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '生成中にエラーが発生しました',
+            };
+        }
+    };
+
+    // Start Sequential Batch Process - Using V2 flow (analyze-input + generate-v2)
     const startBatchProcess = async () => {
         if (!checkProAccess()) return;
 
@@ -500,76 +606,34 @@ export function BulkGenerator() {
                     }
                 }
 
-                // Build request payload for /api/generate (same format as /new page)
-                const generatePayload: Record<string, string> = {
-                    // Sender info
-                    myCompanyName: resolvedSenderCompany || '',
-                    myDepartment: resolvedSenderDepartment || '',
-                    myName: resolvedSenderName || '',
-                    myServiceDescription: resolvedSenderService || '',
-
-                    // Target info
-                    companyName: row[mapping.companyName] || '',
-                    name: fullName,
-                    position: mapping.position ? row[mapping.position] : '',
-                    department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
-
-                    // Content
-                    background: mapping.background ? row[mapping.background] : '',
-                    freeformInput: mapping.note ? row[mapping.note] : '',
-
-                    // Mode settings
-                    mode: generationMode,
-                    output_format: mediaType === 'mail' ? 'email' : 'letter',
-                    inputComplexity: 'simple',
-                    model: 'flash',
-                };
-
-                // Event mode specific fields
-                if (generationMode === 'event') {
-                    generatePayload.eventName = mapping.eventName ? row[mapping.eventName] : '';
-                    generatePayload.invitationReason = mapping.note ? row[mapping.note] : '';
-                }
-
-                // Sales mode specific fields
-                if (generationMode === 'sales') {
-                    generatePayload.simpleRequirement = mapping.proposal ? row[mapping.proposal] : '';
-                }
-
+                // V2フローで生成
                 try {
                     // Debug log
-                    console.log('[BulkGenerator] Generating for:', row[mapping.companyName], 'Payload:', generatePayload);
+                    console.log('[BulkGenerator V2] Generating for:', row[mapping.companyName]);
 
-                    // Call /api/generate (same as /new page uses)
-                    const genRes = await fetch('/api/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(generatePayload)
+                    const v2Result = await generateWithV2Flow({
+                        targetUrl: mapping.url ? row[mapping.url] : undefined,
+                        companyName: row[mapping.companyName] || '',
+                        personName: fullName,
+                        position: mapping.position ? row[mapping.position] : undefined,
+                        background: mapping.background ? row[mapping.background] : undefined,
+                        note: mapping.note ? row[mapping.note] : undefined,
+                        senderCompany: resolvedSenderCompany || '',
+                        senderDepartment: resolvedSenderDepartment || undefined,
+                        senderName: resolvedSenderName || '',
+                        senderService: resolvedSenderService || '',
+                        outputFormat: mediaType === 'mail' ? 'email' : 'letter',
                     });
 
-                    const genData = await genRes.json();
-                    console.log('[BulkGenerator] Response:', genRes.status, genData);
+                    console.log('[BulkGenerator V2] Response:', v2Result.success, v2Result.error || 'OK');
 
-                    if (!genRes.ok) {
-                        const errorMsg = genData.error || genData.details || genData.message || '生成に失敗しました';
-                        console.error('[BulkGenerator] API Error:', errorMsg, genData);
-                        throw new Error(errorMsg);
+                    if (!v2Result.success || !v2Result.content) {
+                        throw new Error(v2Result.error || '生成に失敗しました');
                     }
 
-                    // Extract content based on output format
-                    let contentToSave = '';
-                    let emailContent = null;
-
-                    if (mediaType === 'mail' && genData.email) {
-                        // Email mode
-                        emailContent = genData.email;
-                        contentToSave = `件名: ${genData.email.subject}\n\n${genData.email.body}`;
-                    } else if (genData.variations) {
-                        // Letter mode - use standard variation
-                        contentToSave = genData.variations.standard || genData.letter || '';
-                    } else if (genData.letter) {
-                        contentToSave = genData.letter;
-                    }
+                    // Extract content
+                    const contentToSave = v2Result.content;
+                    const emailContent = mediaType === 'mail' ? { subject: '', body: contentToSave } : null;
 
                     // Save to Supabase letters table
                     const { error: dbError } = await supabase.from('letters').insert({
@@ -581,7 +645,7 @@ export function BulkGenerator() {
                         batch_id: batchId,
                         status: 'generated',
                         mode: generationMode,
-                        model_name: 'gemini-2.0-flash-exp',
+                        model_name: 'gemini-2.0-flash-exp (V2)',
                         inputs: {
                             companyName: row[mapping.companyName] || '',
                             name: fullName,
@@ -766,6 +830,161 @@ export function BulkGenerator() {
 
         return errors;
     }, [csvData.length, mapping, nameMode, senderRule, senderInfo]);
+
+    // Phase 5: URL列のバリデーション警告を取得
+    const getUrlWarnings = React.useCallback(() => {
+        const warnings: string[] = [];
+
+        // URLマッピングがない場合
+        if (!mapping.url) {
+            warnings.push('URL列がマッピングされていません。URLを含めると品質が向上します');
+            return warnings;
+        }
+
+        // URL列がマッピングされているが、空の行がある場合
+        const rowsWithoutUrl = csvData.filter(row => {
+            const hasCompany = !!row[mapping.companyName];
+            const hasName = nameMode === 'full'
+                ? !!row[mapping.name]
+                : !!row[mapping.lastName];
+            const hasUrl = !!row[mapping.url];
+            return hasCompany && hasName && !hasUrl;
+        });
+
+        if (rowsWithoutUrl.length > 0) {
+            warnings.push(`${rowsWithoutUrl.length}件のデータでURLが空です`);
+        }
+
+        return warnings;
+    }, [csvData, mapping, nameMode]);
+
+    // Phase 5: プレビュー用のランダム3件を選択
+    const selectRandomPreviewItems = React.useCallback(() => {
+        const validItems = csvData
+            .map((row, index) => ({ row, index }))
+            .filter(({ row }) => {
+                const hasCompany = !!row[mapping.companyName];
+                const hasName = nameMode === 'full'
+                    ? !!row[mapping.name]
+                    : (!!row[mapping.lastName] && !!row[mapping.firstName]);
+                return hasCompany && hasName;
+            });
+
+        // ランダムに3件選択
+        const shuffled = [...validItems].sort(() => Math.random() - 0.5);
+        const selected = shuffled.slice(0, Math.min(3, shuffled.length));
+
+        return selected.map(item => ({
+            index: item.index,
+            row: item.row,
+            status: 'pending' as const,
+        }));
+    }, [csvData, mapping, nameMode]);
+
+    // Phase 5: プレビュー生成を開始
+    const startPreviewGeneration = async () => {
+        if (!checkProAccess()) return;
+
+        const selectedItems = selectRandomPreviewItems();
+        if (selectedItems.length === 0) {
+            alert('プレビューするデータがありません');
+            return;
+        }
+
+        setPreviewItems(selectedItems);
+        setIsPreviewGenerating(true);
+        setIsPreviewApproved(false);
+        setStep('preview');
+
+        // プレビュー生成を開始
+        for (let i = 0; i < selectedItems.length; i++) {
+            const item = selectedItems[i];
+
+            // ステータスを更新
+            setPreviewItems(prev => {
+                const next = [...prev];
+                next[i] = { ...next[i], status: 'generating' };
+                return next;
+            });
+
+            try {
+                // 名前を構築
+                const fullName = nameMode === 'full'
+                    ? (item.row[mapping.name] || '')
+                    : `${item.row[mapping.lastName] || ''}${item.row[mapping.firstName] ? ' ' + item.row[mapping.firstName] : ''}`.trim();
+
+                // 差出人情報を解決
+                let resolvedSenderCompany = senderInfo.myCompanyName;
+                let resolvedSenderDepartment = senderInfo.myDepartment;
+                let resolvedSenderName = senderInfo.myName;
+                const resolvedSenderService = senderInfo.myServiceDescription;
+
+                if (senderRule === 'csv_priority') {
+                    if (mapping.senderCompany && item.row[mapping.senderCompany]) {
+                        resolvedSenderCompany = item.row[mapping.senderCompany];
+                    }
+                    if (mapping.senderDepartment && item.row[mapping.senderDepartment]) {
+                        resolvedSenderDepartment = item.row[mapping.senderDepartment];
+                    }
+                    if (mapping.senderName && item.row[mapping.senderName]) {
+                        resolvedSenderName = item.row[mapping.senderName];
+                    }
+                }
+
+                // V2フローで生成
+                console.log('[BulkGenerator V2 Preview] Generating for:', item.row[mapping.companyName]);
+
+                const v2Result = await generateWithV2Flow({
+                    targetUrl: mapping.url ? item.row[mapping.url] : undefined,
+                    companyName: item.row[mapping.companyName] || '',
+                    personName: fullName,
+                    position: mapping.position ? item.row[mapping.position] : undefined,
+                    background: mapping.background ? item.row[mapping.background] : undefined,
+                    note: mapping.note ? item.row[mapping.note] : undefined,
+                    senderCompany: resolvedSenderCompany || '',
+                    senderDepartment: resolvedSenderDepartment || undefined,
+                    senderName: resolvedSenderName || '',
+                    senderService: resolvedSenderService || '',
+                    outputFormat: mediaType === 'mail' ? 'email' : 'letter',
+                });
+
+                if (!v2Result.success || !v2Result.content) {
+                    throw new Error(v2Result.error || '生成に失敗しました');
+                }
+
+                const contentToShow = v2Result.content;
+
+                setPreviewItems(prev => {
+                    const next = [...prev];
+                    next[i] = { ...next[i], status: 'completed', content: contentToShow };
+                    return next;
+                });
+
+            } catch (err) {
+                console.error('Preview generation error:', err);
+                setPreviewItems(prev => {
+                    const next = [...prev];
+                    next[i] = { ...next[i], status: 'error', error: err instanceof Error ? err.message : 'エラー' };
+                    return next;
+                });
+            }
+        }
+
+        setIsPreviewGenerating(false);
+    };
+
+    // Phase 5: プレビュー承認後に残り全件を生成
+    const startFullGeneration = async () => {
+        setIsPreviewApproved(true);
+        setStep('execution');
+        await startBatchProcess();
+    };
+
+    // Phase 5: プレビューをシャッフル（別の3件を選び直す）
+    const reshufflePreview = () => {
+        setPreviewItems([]);
+        startPreviewGeneration();
+    };
 
     // isMappingValid is kept for backward compatibility but internally uses getValidationErrors
     const _isMappingValid = React.useCallback(() => {
@@ -1271,22 +1490,39 @@ export function BulkGenerator() {
                     </div>
                 </div>
 
+                {/* Phase 5: URL警告 */}
+                {getUrlWarnings().length > 0 && (
+                    <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <h4 className="font-medium text-amber-800 mb-1">品質向上のヒント</h4>
+                                <ul className="text-sm text-amber-700 space-y-1">
+                                    {getUrlWarnings().map((warning, i) => (
+                                        <li key={i}>• {warning}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Footer Action */}
                 <div className="mt-8 flex justify-center pt-6 border-t border-slate-200 relative">
                     <button
-                        onClick={startBatchProcess}
-                        disabled={getValidationErrors().length > 0 || isGenerating}
+                        onClick={startPreviewGeneration}
+                        disabled={getValidationErrors().length > 0 || isGenerating || isPreviewGenerating}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                     >
-                        {isGenerating ? (
+                        {isPreviewGenerating ? (
                             <>
                                 <Loader2 className="w-6 h-6 animate-spin" />
-                                生成準備中...
+                                プレビュー生成中...
                             </>
                         ) : (
                             <>
-                                <Play className="w-6 h-6 fill-current" />
-                                一括生成を開始する
+                                <Eye className="w-6 h-6" />
+                                プレビューを生成
                             </>
                         )}
                     </button>
@@ -1306,6 +1542,182 @@ export function BulkGenerator() {
                     </button>
                 </div>
             </div >
+        );
+    }
+
+    // Phase 5: Preview Step
+    if (step === 'preview') {
+        const completedCount = previewItems.filter(item => item.status === 'completed').length;
+        const totalCount = previewItems.length;
+
+        return (
+            <div className="p-8 max-w-5xl mx-auto">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mb-4">
+                        <Eye className="w-8 h-8 text-white" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-slate-800 mb-2">プレビュー確認</h2>
+                    <p className="text-slate-500">
+                        ランダムに選んだ{totalCount}件のサンプルを確認し、品質をチェックしてください
+                    </p>
+                </div>
+
+                {/* CTA選択セクション */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <ArrowRight className="w-5 h-5 text-indigo-600" />
+                        CTAタイプを選択
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {(Object.keys(CTA_OPTIONS) as CtaType[]).map((type) => (
+                            <label
+                                key={type}
+                                className={`relative flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                                    ctaType === type
+                                        ? 'border-indigo-500 bg-indigo-50'
+                                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="ctaType"
+                                    value={type}
+                                    checked={ctaType === type}
+                                    onChange={(e) => setCtaType(e.target.value as CtaType)}
+                                    className="sr-only"
+                                />
+                                <span className="font-medium text-slate-800 mb-1">
+                                    {CTA_OPTIONS[type].label}
+                                </span>
+                                <span className="text-xs text-slate-500 line-clamp-2">
+                                    {CTA_OPTIONS[type].template}
+                                </span>
+                                {ctaType === type && (
+                                    <div className="absolute top-2 right-2">
+                                        <Check className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* プレビュー一覧 */}
+                <div className="space-y-4 mb-8">
+                    {previewItems.map((item, index) => (
+                        <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            {/* ヘッダー */}
+                            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-700 rounded-full font-bold text-sm">
+                                        {index + 1}
+                                    </span>
+                                    <div>
+                                        <p className="font-semibold text-slate-800">
+                                            {item.row[mapping.companyName] || '企業名なし'}
+                                        </p>
+                                        <p className="text-sm text-slate-500">
+                                            {nameMode === 'full'
+                                                ? item.row[mapping.name]
+                                                : `${item.row[mapping.lastName] || ''} ${item.row[mapping.firstName] || ''}`.trim()
+                                            } 様
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    {item.status === 'pending' && (
+                                        <span className="text-sm text-slate-400">待機中...</span>
+                                    )}
+                                    {item.status === 'generating' && (
+                                        <span className="flex items-center gap-2 text-sm text-blue-600">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            生成中...
+                                        </span>
+                                    )}
+                                    {item.status === 'completed' && (
+                                        <span className="flex items-center gap-1 text-sm text-green-600">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            完了
+                                        </span>
+                                    )}
+                                    {item.status === 'error' && (
+                                        <span className="flex items-center gap-1 text-sm text-red-600">
+                                            <AlertCircle className="w-4 h-4" />
+                                            エラー
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* コンテンツ */}
+                            <div className="p-6">
+                                {item.status === 'completed' && item.content ? (
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans leading-relaxed">
+                                            {item.content}
+                                        </pre>
+                                    </div>
+                                ) : item.status === 'error' ? (
+                                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-red-700 text-sm">
+                                        {item.error || 'エラーが発生しました'}
+                                    </div>
+                                ) : (
+                                    <div className="h-32 flex items-center justify-center text-slate-400">
+                                        {item.status === 'generating' ? (
+                                            <Loader2 className="w-8 h-8 animate-spin" />
+                                        ) : (
+                                            <span>生成待ち</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* アクションボタン */}
+                <div className="flex items-center justify-center gap-4 pt-6 border-t border-slate-200">
+                    <button
+                        onClick={() => setStep('mapping')}
+                        className="px-6 py-3 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                    >
+                        マッピングに戻る
+                    </button>
+
+                    <button
+                        onClick={reshufflePreview}
+                        disabled={isPreviewGenerating}
+                        className="px-6 py-3 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <Shuffle className="w-5 h-5" />
+                        別のサンプルを選ぶ
+                    </button>
+
+                    <button
+                        onClick={startFullGeneration}
+                        disabled={isPreviewGenerating || completedCount < totalCount}
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-50 disabled:transform-none"
+                    >
+                        <Play className="w-5 h-5 fill-current" />
+                        承認して全件生成を開始
+                    </button>
+                </div>
+
+                {/* 進行状況 */}
+                {isPreviewGenerating && (
+                    <div className="mt-4 text-center">
+                        <p className="text-sm text-slate-500">
+                            {completedCount} / {totalCount} 件のプレビューが完了
+                        </p>
+                    </div>
+                )}
+                <ProFeatureModal
+                    isOpen={showProModal}
+                    onClose={() => setShowProModal(false)}
+                    featureName="CSV一括生成機能"
+                />
+            </div>
         );
     }
 

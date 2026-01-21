@@ -31,6 +31,7 @@ export interface ValidateOptions {
   maxChars?: number;
   hasProofPoints?: boolean;
   hasRecentNews?: boolean;
+  missingInfoHighCount?: number;
 }
 
 /**
@@ -101,6 +102,7 @@ export function validateLetterOutput(
     maxChars = 650,
     hasProofPoints = proofPoints.length > 0,
     hasRecentNews = false,
+    missingInfoHighCount = 0,
   } = options;
 
   // 1. 文字数チェック
@@ -151,7 +153,12 @@ export function validateLetterOutput(
   }
 
   // 6. Draftモードで情報不足なのにプレースホルダーがない
-  // （これはオプショナル - 情報が十分なら不要）
+  if (mode === 'draft' && missingInfoHighCount > 0) {
+    const confirmationMatches = body.match(/【要確認[：:]/g);
+    if (!confirmationMatches || confirmationMatches.length === 0) {
+      reasons.push('Draftモードで情報不足があるのにプレースホルダー【要確認:】がありません');
+    }
+  }
 
   return {
     ok: reasons.length === 0,
@@ -219,4 +226,151 @@ export function calculateQualityScore(
  */
 export function getForbiddenWords(): string[] {
   return [...FORBIDDEN_WORDS];
+}
+
+/**
+ * Phase 5: 詳細品質スコア
+ */
+export interface DetailedQualityScore {
+  total: number;  // 0-100
+  breakdown: {
+    specificity: number;         // 具体性（ファクト有無）0-20
+    empathy: number;             // 共感性（相手文脈）0-20
+    ctaClarity: number;          // CTAの明確さ 0-20
+    fiveElementsComplete: number; // 5要素構造の充足 0-20
+    noNgExpressions: number;     // NG表現（過剰・失礼）0-20
+  };
+  suggestions: string[];  // 改善ポイント（最大3つ）
+}
+
+/**
+ * 詳細品質スコアを計算（5軸のルールベース評価）
+ *
+ * @param body - レター本文
+ * @param hasFactNumbers - 数値ファクトがあるかどうか
+ * @param hasProperNouns - 固有名詞があるかどうか
+ * @returns 詳細品質スコア
+ */
+export function calculateDetailedScore(
+  body: string,
+  hasFactNumbers: boolean = false,
+  hasProperNouns: boolean = false
+): DetailedQualityScore {
+  const suggestions: string[] = [];
+
+  // 1. 具体性 (0-20)
+  let specificity = 0;
+  // 数値ファクト有り +10
+  if (hasFactNumbers || /\d+[%％万億件社名時間日週月年]/g.test(body)) {
+    specificity += 10;
+  } else {
+    suggestions.push('具体的な数値を含めるとより説得力が増します');
+  }
+  // 固有名詞有り +10
+  if (hasProperNouns || /「.+?」/.test(body) || /[A-Z社様].*では/.test(body)) {
+    specificity += 10;
+  } else if (suggestions.length < 3) {
+    suggestions.push('製品名やサービス名などの固有名詞を含めると信頼性が向上します');
+  }
+
+  // 2. 共感性 (0-20)
+  let empathy = 0;
+  // 相手の文脈への言及チェック
+  const empathyPatterns = [
+    /御社.*では/,
+    /貴社.*では/,
+    /〜と伺って/,
+    /〜と拝見/,
+    /お取り組み/,
+    /ご注力/,
+    /ご状況/,
+    /課題.*お持ち/,
+    /お悩み/,
+    /ではないでしょうか/,
+    /と推察/,
+  ];
+  const empathyHits = empathyPatterns.filter(p => p.test(body)).length;
+  if (empathyHits >= 2) {
+    empathy = 20;
+  } else if (empathyHits === 1) {
+    empathy = 10;
+  } else {
+    if (suggestions.length < 3) {
+      suggestions.push('相手企業の状況や課題への言及を加えると共感が生まれます');
+    }
+  }
+
+  // 3. CTAの明確さ (0-20)
+  let ctaClarity = 0;
+  const ctaPatterns = [
+    /ご検討.*いただけ/,
+    /お時間.*いただけ/,
+    /ご連絡.*いただけ/,
+    /\d+分/,
+    /情報交換/,
+    /ご相談/,
+    /お打ち合わせ/,
+    /ご都合.*お聞かせ/,
+    /日程調整/,
+    /ご返信/,
+  ];
+  const ctaHits = ctaPatterns.filter(p => p.test(body)).length;
+  if (ctaHits >= 2) {
+    ctaClarity = 20;
+  } else if (ctaHits === 1) {
+    ctaClarity = 15;
+  } else {
+    if (suggestions.length < 3) {
+      suggestions.push('明確なアクション（面談依頼、返信依頼等）を提示しましょう');
+    }
+  }
+
+  // 4. 5要素構造の充足 (0-20)
+  // 各要素の存在をチェック
+  let fiveElementsComplete = 0;
+  const fiveElements = {
+    background: /なぜ.*今|このたび|背景|ご連絡.*理由/.test(body),
+    problem: /課題|お悩み|懸念|リスク/.test(body),
+    solution: /解決|支援|サポート|提供|ご提案/.test(body),
+    caseStudy: /導入.*事例|実績|%削減|%向上|[A-Z]社様/.test(body),
+    offer: /お時間|ご相談|ご検討|面談/.test(body),
+  };
+  const elementCount = Object.values(fiveElements).filter(Boolean).length;
+  fiveElementsComplete = elementCount * 4; // 各要素4点
+
+  // 5. NG表現チェック (0-20, 減点方式)
+  let noNgExpressions = 20;
+
+  // 儀礼的フレーズ（各-7点）
+  const ceremonialPhrases = ['感銘を受けました', 'ご活躍を拝見', '拝察', '幸いです'];
+  const ceremonialCount = ceremonialPhrases.filter(p => body.includes(p)).length;
+  noNgExpressions -= ceremonialCount * 7;
+
+  // 過剰断定（各-7点）
+  const overassertivePhrases = ['必ず', '絶対に', '間違いなく', '確実に'];
+  const overassertiveCount = overassertivePhrases.filter(p => body.includes(p)).length;
+  noNgExpressions -= overassertiveCount * 7;
+
+  // 運用視点のワード（各-5点）
+  const operationalWords = ['業務効率化', 'コスト削減', '作業時間短縮', '人件費削減'];
+  const operationalCount = operationalWords.filter(p => body.includes(p)).length;
+  noNgExpressions -= operationalCount * 5;
+
+  // 最低0点
+  noNgExpressions = Math.max(0, noNgExpressions);
+
+  // 合計スコア
+  const total = specificity + empathy + ctaClarity + fiveElementsComplete + noNgExpressions;
+
+  return {
+    total,
+    breakdown: {
+      specificity,
+      empathy,
+      ctaClarity,
+      fiveElementsComplete,
+      noNgExpressions,
+    },
+    suggestions: suggestions.slice(0, 3),
+  };
 }

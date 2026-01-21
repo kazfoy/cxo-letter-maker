@@ -101,6 +101,19 @@ export const SalesForm = React.memo(function SalesForm({
             <p className="text-sm text-blue-800">{MESSAGES.info.simpleMode}</p>
           </div>
 
+          {/* URL未入力時の警告バナー（かんたんモード） */}
+          {!formData.targetUrl && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4 flex items-start gap-3">
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-amber-800">相手企業URLが未入力です</p>
+                <p className="text-xs text-amber-600 mt-1">高品質なレター生成にはURLが基本必須です。URLを入力すると具体的なファクトを抽出し、説得力のあるレターを作成できます</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label htmlFor="simpleCompanyName" className="block text-sm font-medium text-slate-700 mb-2">
@@ -170,6 +183,23 @@ export const SalesForm = React.memo(function SalesForm({
                 maxLength={100}
               />
               <p className="mt-1 text-xs text-gray-500">{MESSAGES.info.simpleRequirementHelp}</p>
+            </div>
+
+            {/* 相手企業URL（かんたんモード） */}
+            <div>
+              <label htmlFor="simpleTargetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+                相手企業URL <span className="text-amber-600 text-xs font-normal">（基本必須）</span>
+              </label>
+              <input
+                type="url"
+                id="simpleTargetUrl"
+                name="targetUrl"
+                value={formData.targetUrl || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                placeholder="https://example.com"
+              />
+              <p className="mt-1 text-xs text-slate-500">高品質なレター生成に必要です。URLからファクトを抽出し説得力を高めます</p>
             </div>
           </div>
         </>
@@ -251,6 +281,23 @@ export const SalesForm = React.memo(function SalesForm({
                   placeholder={SALES_PLACEHOLDERS.myServiceDescription}
                   maxLength={500}
                 />
+              </div>
+              {/* 商材の強み（Phase 5） */}
+              <div>
+                <label htmlFor="productStrength" className="block text-sm font-medium text-slate-700 mb-2">
+                  {FIELD_LABELS.productStrength}
+                </label>
+                <textarea
+                  id="productStrength"
+                  name="productStrength"
+                  value={formData.productStrength || ''}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder="例: 導入実績500社以上、業界シェアNo.1、独自の特許技術で他社比30%効率化"
+                  maxLength={300}
+                />
+                <p className="mt-1 text-xs text-slate-500">競合との差別化ポイントや具体的な実績を記載すると効果的です</p>
               </div>
             </div>
           </div>
@@ -343,7 +390,7 @@ export const SalesForm = React.memo(function SalesForm({
               {/* 相手企業URL（V2分析用） */}
               <div>
                 <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                  相手企業URL（任意）
+                  相手企業URL <span className="text-amber-600 text-xs font-normal">（基本必須）</span>
                 </label>
                 <input
                   type="url"
@@ -354,7 +401,25 @@ export const SalesForm = React.memo(function SalesForm({
                   className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
                   placeholder="https://example.com"
                 />
-                <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+                <p className="mt-1 text-xs text-slate-500">高品質なレター生成に必要です。URLからファクトを抽出し説得力を高めます</p>
+              </div>
+
+              {/* ターゲットの課題（Phase 5） */}
+              <div>
+                <label htmlFor="targetChallenges" className="block text-sm font-medium text-slate-700 mb-2">
+                  {FIELD_LABELS.targetChallenges}
+                </label>
+                <textarea
+                  id="targetChallenges"
+                  name="targetChallenges"
+                  value={formData.targetChallenges || ''}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder="例: DX推進の遅れ、人材不足、レガシーシステムの刷新、コンプライアンス対応"
+                  maxLength={300}
+                />
+                <p className="mt-1 text-xs text-slate-500">把握している課題があれば記載すると、より刺さるレターになります</p>
               </div>
 
               {/* 検索結果の表示エリア（自動入力） */}

@@ -46,6 +46,10 @@ export interface LetterFormData {
 
   // 検索結果（ニュース統合）
   searchResults?: string;
+
+  // Phase 5: 追加フィールド
+  productStrength?: string;     // 商材の強み
+  targetChallenges?: string;    // ターゲットの課題
 }
 
 // レターの履歴データ構造（クライアント用 - キャメルケース）

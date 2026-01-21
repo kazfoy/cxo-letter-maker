@@ -75,6 +75,19 @@ export const FactsSchema = z.object({
 });
 
 /**
+ * Phase 5: 抽出ファクトスキーマ（サブルート探索から取得）
+ */
+export const ExtractedFactsSchema = z.object({
+  numbers: z.array(z.string()),        // 数字（人数、拠点数、年数、売上など）
+  properNouns: z.array(z.string()),    // 固有名詞（製品名、拠点名、サービス名）
+  recentMoves: z.array(z.string()),    // 最近の動き（提携、新商品等）
+  hiringTrends: z.array(z.string()),   // 採用動向
+  companyDirection: z.array(z.string()), // 会社の方向性（ビジョン、重点領域）
+});
+
+export type ExtractedFacts = z.infer<typeof ExtractedFactsSchema>;
+
+/**
  * 分析結果スキーマ
  */
 export const AnalysisResultSchema = z.object({
@@ -85,6 +98,8 @@ export const AnalysisResultSchema = z.object({
   hypotheses: HypothesesSchema,
   missing_info: z.array(MissingInfoSchema),
   risk_flags: z.array(RiskFlagSchema),
+  // Phase 5: 抽出されたファクト（サブルート探索から）
+  extracted_facts: ExtractedFactsSchema.optional(),
 });
 
 // 型エクスポート

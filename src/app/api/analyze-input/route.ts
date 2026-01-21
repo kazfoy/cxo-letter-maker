@@ -13,7 +13,9 @@ import { devLog } from '@/lib/logger';
 import {
   AnalyzeInputRequestSchema,
   AnalysisResultSchema,
+  ExtractedFactsSchema,
   type AnalysisResult,
+  type ExtractedFacts,
 } from '@/types/analysis';
 
 export const maxDuration = 60;
@@ -43,6 +45,150 @@ function extractTextFromHtml(html: string): string {
   text = text.replace(/\s+/g, ' ');
 
   return text.trim();
+}
+
+// Phase 5: サブルート候補
+const SUB_ROUTE_CANDIDATES = ['/about', '/company', '/recruit', '/careers', '/news', '/press', '/ir', '/service', '/product'];
+const MAX_PAGES = 4;
+const FETCH_TIMEOUT = 10000;
+const MAX_SIZE = 5 * 1024 * 1024;
+
+/**
+ * Phase 5: サブルートURLを生成
+ */
+function buildSubRouteUrls(baseUrl: string): string[] {
+  try {
+    const parsedUrl = new URL(baseUrl);
+    const origin = parsedUrl.origin;
+    return SUB_ROUTE_CANDIDATES.map(path => `${origin}${path}`);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Phase 5: ページコンテンツを安全に取得
+ */
+async function fetchPageContent(url: string): Promise<string | null> {
+  try {
+    const response = await safeFetch(
+      url,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; CxOLetterMaker/1.0)',
+          Accept: 'text/html,application/xhtml+xml',
+        },
+      },
+      FETCH_TIMEOUT,
+      MAX_SIZE
+    );
+
+    if (!response.ok) return null;
+    const html = await response.text();
+    return extractTextFromHtml(html).substring(0, 8000);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Phase 5: ファクト抽出プロンプト
+ */
+function buildFactExtractionPrompt(combinedText: string): string {
+  return `あなたはビジネスインテリジェンスの専門家です。以下の企業Webページのテキストから、セールスレター作成に有用なファクトを抽出してください。
+
+【Webページのテキスト】
+${combinedText.substring(0, 12000)}
+
+【抽出する情報（各カテゴリ最大5件）】
+
+1. numbers（数値情報）:
+   - 従業員数、拠点数、設立年数、売上高、成長率など
+   - 例: "従業員1,500名", "全国32拠点", "創業50年"
+
+2. properNouns（固有名詞）:
+   - 製品名、サービス名、ブランド名、主要取引先など
+   - 例: "〇〇システム", "△△サービス"
+
+3. recentMoves（最近の動き）:
+   - 業務提携、M&A、新サービスリリース、資金調達など
+   - 例: "2024年に〇〇社と業務提携"
+
+4. hiringTrends（採用動向）:
+   - 積極採用中の職種、採用人数など
+   - 例: "エンジニア積極採用中"
+
+5. companyDirection（会社の方向性）:
+   - ビジョン、ミッション、重点領域など
+   - 例: "AI活用を推進"
+
+【重要な指示】
+- 具体的な情報のみ抽出（曖昧な表現は除外）
+- 情報が見つからないカテゴリは空配列[]を返す
+- 嘘や推測は絶対に含めない
+
+【出力形式】
+JSON形式のみ：
+{
+  "numbers": [],
+  "properNouns": [],
+  "recentMoves": [],
+  "hiringTrends": [],
+  "companyDirection": []
+}`;
+}
+
+/**
+ * Phase 5: サブルート探索でファクトを抽出
+ */
+async function extractFactsFromUrl(baseUrl: string): Promise<ExtractedFacts | null> {
+  try {
+    devLog.log('Starting enhanced URL analysis:', baseUrl);
+
+    // トップページを取得
+    const topPageContent = await fetchPageContent(baseUrl);
+    if (!topPageContent || topPageContent.length < 50) {
+      return null;
+    }
+
+    // サブルートを並列取得
+    const subRouteUrls = buildSubRouteUrls(baseUrl);
+    const subRouteResults = await Promise.allSettled(
+      subRouteUrls.map(subUrl => fetchPageContent(subUrl))
+    );
+
+    // 成功したページを収集
+    const successfulContents: string[] = [topPageContent];
+    for (const result of subRouteResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        successfulContents.push(result.value);
+        if (successfulContents.length >= MAX_PAGES) break;
+      }
+    }
+
+    devLog.log(`Fetched ${successfulContents.length} pages for fact extraction`);
+
+    // 全テキストを結合
+    const combinedText = successfulContents.join('\n\n---\n\n');
+
+    // Geminiでファクト抽出
+    const extractedFacts = await generateJson({
+      prompt: buildFactExtractionPrompt(combinedText),
+      schema: ExtractedFactsSchema,
+      maxRetries: 1,
+    });
+
+    const totalFactCount = Object.values(extractedFacts).reduce(
+      (sum, arr) => sum + arr.length,
+      0
+    );
+    devLog.log(`Extracted ${totalFactCount} facts`);
+
+    return extractedFacts;
+  } catch (error) {
+    devLog.warn('Fact extraction failed:', error);
+    return null;
+  }
 }
 
 /**
@@ -92,6 +238,9 @@ export async function POST(request: Request) {
       let extractedContent = '';
       const riskFlags: { type: string; message: string; severity: string }[] = [];
 
+      // Phase 5: 抽出ファクトを保持
+      let extractedFacts: ExtractedFacts | null = null;
+
       // 1. URL解析
       if (target_url) {
         try {
@@ -120,6 +269,9 @@ export async function POST(request: Request) {
               severity: 'medium',
             });
           }
+
+          // Phase 5: サブルート探索でファクト抽出（並列実行）
+          extractedFacts = await extractFactsFromUrl(target_url);
         } catch (error) {
           devLog.warn('URL extraction failed:', error);
           riskFlags.push({
@@ -215,6 +367,11 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
               severity: rf.severity as 'high' | 'medium' | 'low',
             })),
           ];
+        }
+
+        // Phase 5: 抽出ファクトを追加
+        if (extractedFacts) {
+          result.extracted_facts = extractedFacts;
         }
 
         devLog.log('Analysis completed successfully');

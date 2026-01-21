@@ -59,18 +59,54 @@ function buildGenerationPrompt(
     ? analysis.signals.map(s => `- ${s.description} (${s.type}, 確度: ${s.confidence})`).join('\n')
     : '（経営シグナルなし）';
 
+  // Phase 5: 抽出ファクトの整形
+  const extractedFacts = analysis.extracted_facts;
+  const hasExtractedFacts = extractedFacts &&
+    Object.values(extractedFacts).some(arr => arr.length > 0);
+
+  let extractedFactsList = '';
+  if (hasExtractedFacts) {
+    const factItems: string[] = [];
+    if (extractedFacts.numbers.length > 0) {
+      factItems.push(`- 数値情報: ${extractedFacts.numbers.join(', ')}`);
+    }
+    if (extractedFacts.properNouns.length > 0) {
+      factItems.push(`- 固有名詞: ${extractedFacts.properNouns.join(', ')}`);
+    }
+    if (extractedFacts.recentMoves.length > 0) {
+      factItems.push(`- 最近の動き: ${extractedFacts.recentMoves.join(', ')}`);
+    }
+    if (extractedFacts.hiringTrends.length > 0) {
+      factItems.push(`- 採用動向: ${extractedFacts.hiringTrends.join(', ')}`);
+    }
+    if (extractedFacts.companyDirection.length > 0) {
+      factItems.push(`- 会社の方向性: ${extractedFacts.companyDirection.join(', ')}`);
+    }
+    extractedFactsList = factItems.join('\n');
+  }
+
+  // ファクトがない場合のフォールバック指示
+  const noFactsInstruction = !hasExtractedFacts
+    ? '\n\n【ファクト不足時の対応】\n- 具体的なファクトが取得できなかったため、業界一般の課題と仮説で構成してください\n- 「〜ではないでしょうか」「〜と推察します」等の可能性表現を使用\n- 架空の数字・固有名詞・実績は絶対に生成しない\n- 「推測」「想像」「おそらく」等の曖昧ワードは本文に出さない'
+    : '';
+
+  // ファクト必須指示
+  const factsRequirement = hasExtractedFacts
+    ? '\n7. 【重要】以下の抽出ファクトから最低1つを本文の冒頭フックに含める'
+    : '';
+
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${retryInstruction}
+${modeInstruction}${retryInstruction}${noFactsInstruction}
 
 【絶対ルール】
-1. 架空の数字・社名・実績は禁止。proof_points / recent_news / facts にあるものだけ使用可能
+1. 架空の数字・社名・実績は禁止。proof_points / recent_news / extracted_facts にあるものだけ使用可能
 2. 仮説は「〜ではないでしょうか」「〜と推察します」のような可能性表現のみ使用
 3. 冒頭の儀礼的褒め言葉（「ご活躍を拝見」「感銘を受けました」等）は禁止
 4. 「業務効率化」「コスト削減」ではなく「ガバナンス強化」「経営スピード向上」「リスク低減」の視点
 5. 文字数: 350-500文字（一画面で読める長さ）
-6. CTAは軽量に（「15分だけ」「情報交換として」）
+6. CTAは軽量に（「15分だけ」「情報交換として」）${factsRequirement}
 
 【ターゲット情報】
 企業名: ${sanitizeForPrompt(companyName, 200) || '（未指定）'}
@@ -86,6 +122,9 @@ ${proofPointsList}
 
 【最新ニュース】
 ${newsList}
+
+${hasExtractedFacts ? `【抽出ファクト（Webサイトから取得）】
+${extractedFactsList}` : ''}
 
 【提案された構成】
 - タイミングの理由: ${analysis.hypotheses.timing_reason}

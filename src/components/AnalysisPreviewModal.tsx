@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import type { AnalysisResult } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
+import { FactsDisplay } from '@/components/FactsDisplay';
 
 interface AnalysisPreviewModalProps {
   isOpen: boolean;
@@ -130,6 +131,20 @@ export function AnalysisPreviewModal({
                       </div>
                     ))}
                   </div>
+                </section>
+              )}
+
+              {/* 抽出ファクト（Phase 5） */}
+              {analysisResult.extracted_facts && (
+                <section className="mb-6">
+                  <h4 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
+                    <span className="text-lg">🔍</span>
+                    Webサイトから抽出したファクト
+                  </h4>
+                  <FactsDisplay
+                    facts={analysisResult.extracted_facts}
+                    defaultExpanded={true}
+                  />
                 </section>
               )}
 

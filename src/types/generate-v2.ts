@@ -99,3 +99,23 @@ export type Quality = z.infer<typeof QualitySchema>;
 export type Variations = z.infer<typeof VariationsSchema>;
 export type GenerateV2Output = z.infer<typeof GenerateV2OutputSchema>;
 export type GenerateV2Response = z.infer<typeof GenerateV2ResponseSchema>;
+
+/**
+ * Phase 5: 詳細品質スコアスキーマ（5軸分解）
+ */
+export const DetailedQualityBreakdownSchema = z.object({
+  specificity: z.number().min(0).max(20),         // 具体性（ファクト有無）
+  empathy: z.number().min(0).max(20),             // 共感性（相手文脈）
+  ctaClarity: z.number().min(0).max(20),          // CTAの明確さ
+  fiveElementsComplete: z.number().min(0).max(20), // 5要素構造の充足
+  noNgExpressions: z.number().min(0).max(20),     // NG表現（過剰・失礼）
+});
+
+export const DetailedQualitySchema = z.object({
+  total: z.number().min(0).max(100),
+  breakdown: DetailedQualityBreakdownSchema,
+  suggestions: z.array(z.string()).max(3),
+});
+
+export type DetailedQualityBreakdown = z.infer<typeof DetailedQualityBreakdownSchema>;
+export type DetailedQuality = z.infer<typeof DetailedQualitySchema>;

@@ -48,7 +48,27 @@ export const FIELD_LABELS = {
   simpleCompanyName: '1. ターゲット企業名',
   simpleServiceDescription: '2. 自社サービス名・概要',
   simpleRequirement: '3. 伝えたい要件（任意）',
+  productStrength: '商材の強み',
+  targetChallenges: 'ターゲットの課題',
 };
+
+// CTA選択肢
+export const CTA_OPTIONS = {
+  schedule_url: {
+    label: '日程調整URLあり',
+    template: 'ご都合の良い日程をこちらからお選びください',
+  },
+  date_text: {
+    label: '候補日時をテキストで提示',
+    template: '以下の日程でご都合はいかがでしょうか。\n・{date1}\n・{date2}\n・{date3}',
+  },
+  contact_only: {
+    label: '電話またはメールのみ',
+    template: 'お電話またはメールにてお気軽にご連絡ください',
+  },
+} as const;
+
+export type CtaType = keyof typeof CTA_OPTIONS
 
 // ボタンテキスト
 export const BUTTON_TEXTS = {

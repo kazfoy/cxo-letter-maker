@@ -130,6 +130,50 @@ function buildGenerationPrompt(
 ${improvementPoints.map(p => `- ${p}`).join('\n')}`;
   }
 
+  // 品質強化ルール（CxOレター必須）
+  const qualityEnhancementRules = `
+【品質強化ルール（CxOレター必須）】
+
+■ 無根拠診断の禁止
+以下のパターンは使用禁止:
+- NG: 「貴社では〇〇が課題と推察いたします」
+- NG: 「御社では〇〇という状況が存在すると考えます」
+- NG: 「貴社におかれましても〇〇ではないでしょうか」（根拠なしの場合）
+
+代わりに「一般論型」を使用:
+- OK: 「多くの企業で論点となっている〇〇について」
+- OK: 「大企業様では〇〇が課題となりやすいと言われています」
+- OK: 「業界各社で〇〇への対応が進む中」
+
+■ フックと提案テーマの接続強化（ブリッジ構造）
+冒頭200文字以内に以下の流れを必ず含める:
+1. フック: 相手固有の情報を引用（「〇年〇月の〜発表を拝見し」「貴社の〜への取り組みから」）
+2. ブリッジ文: フックと提案テーマをつなぐ1文
+   - 「攻めの施策が増えるほど、〜が前提になる」
+   - 「このような変化の中で、〜がより重要になる」
+   - 「〜に関連して」「〜を踏まえ」
+3. 仮説: 「〜ではないでしょうか」で柔らかく提示
+
+NG例: 「オートサロン開催→内部統制が重要」（接続が飛ぶ）
+OK例: 「オートサロン開催→攻めの施策が増える→統制が効いていることが前提→内部統制が重要」
+
+■ 差別化・証拠の必須化
+以下のいずれかを必ず1つ以上含める:
+- 具体的な数値（導入社数、効果〇%削減、期間〇ヶ月など）
+- 成果カテゴリの明示（監査証跡の自動化、承認滞留の可視化など）
+- 競合との違い（既存システムとの連携方針、対応領域の範囲など）
+
+数値がない場合でも、成果カテゴリを限定して断定を避けつつ具体化:
+- OK: 「監査証跡の自動化」「証憑紐づけ漏れの抑止」「承認滞留の見える化」
+- NG: 「大幅な効率化」「様々なメリット」
+
+■ 「要確認」プレースホルダーの完全除去（完成モード）
+【要確認: 〇〇】は完成モードでは絶対禁止。
+数値が不明な場合は、成果カテゴリのみで表現:
+- NG: 「【要確認: 企業事例での削減効果】」
+- OK: 「監査対応工数の削減や承認リードタイムの短縮といった成果」
+`;
+
   // 使用可能な証拠をリスト化
   const proofPointsList = analysis.proof_points.length > 0
     ? analysis.proof_points.map(p => `- [${p.type}] ${p.content} (確度: ${p.confidence})`).join('\n')
@@ -258,7 +302,7 @@ targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${eventModeInstructions}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${hypothesisModeInstruction}${noFactsInstruction}${citationInstruction}
+${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${hypothesisModeInstruction}${noFactsInstruction}${citationInstruction}
 
 【絶対ルール】
 1. 架空の数字・社名・実績は禁止。proof_points / recent_news / extracted_facts にあるものだけ使用可能

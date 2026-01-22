@@ -111,6 +111,16 @@ const PLACEHOLDER_PATTERNS = [
 ];
 
 /**
+ * 無根拠診断パターン（全モード共通）
+ * 「推察します」を相手企業診断に使う場合に検出
+ */
+const UNFOUNDED_DIAGNOSIS_PATTERNS = [
+  /(?:貴社|御社)では.{1,30}(?:と推察|と存じ|と思われ|と考えます)/,
+  /(?:貴社|御社).{1,20}(?:が課題|が問題|にお悩み)(?:だと|である|と)(?:推察|存じ|思われ)/,
+  /(?:確信しております|間違いございません|間違いなく)/,
+];
+
+/**
  * Event招待状専用: 無根拠診断パターン
  */
 const EVENT_BASELESS_DIAGNOSIS_PATTERNS = [
@@ -380,6 +390,18 @@ export function calculateDetailedScore(
     }
   }
 
+  // フック（冒頭200文字）に固有情報がない場合の減点
+  const hookText = body.substring(0, 200);
+  const hasSpecificHook = factsForLetter?.some(f => hookText.includes(f.quoteKey)) ||
+    /\d{4}年|\d+月|\d+日|第\d+期/.test(hookText);  // 日付・期など固有情報
+
+  if (!hasSpecificHook && factsForLetter && factsForLetter.length > 0) {
+    specificity -= 5;
+    if (suggestions.length < 3) {
+      suggestions.push('冒頭に固有の日付・数字・キーワードを含め、なぜ「今」「この企業に」連絡したか明確化してください');
+    }
+  }
+
   // 具体性の最低値は0
   specificity = Math.max(0, specificity);
 
@@ -472,6 +494,15 @@ export function calculateDetailedScore(
     noNgExpressions -= telegramCount * 5;
     if (suggestions.length < 3) {
       suggestions.push('体言止めを避け、「です・ます」で文を終えてください');
+    }
+  }
+
+  // 無根拠診断検出（各-10点、上限-20点）
+  const unfoundedHits = UNFOUNDED_DIAGNOSIS_PATTERNS.filter(p => p.test(body));
+  if (unfoundedHits.length > 0) {
+    noNgExpressions -= Math.min(unfoundedHits.length * 10, 20);
+    if (suggestions.length < 3) {
+      suggestions.push('「推察します」等の無根拠診断を避け、一般論型（「多くの企業で論点となっている〜」）に置き換えてください');
     }
   }
 
@@ -766,6 +797,20 @@ export function applyBridgeQualityLimit(
     default:
       return score;
   }
+}
+
+/**
+ * 無根拠診断使用時のスコア上限設定
+ */
+export function applyUnfoundedDiagnosisLimit(
+  score: number,
+  body: string
+): { score: number; limited: boolean } {
+  const hasUnfounded = UNFOUNDED_DIAGNOSIS_PATTERNS.some(p => p.test(body));
+  if (hasUnfounded) {
+    return { score: Math.min(score, 80), limited: true };
+  }
+  return { score, limited: false };
 }
 
 /**

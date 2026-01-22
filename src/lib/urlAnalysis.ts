@@ -29,6 +29,131 @@ const SUB_ROUTE_CANDIDATES_BASE = [
 // 末尾スラッシュありなし両方を生成
 const SUB_ROUTE_CANDIDATES = SUB_ROUTE_CANDIDATES_BASE.flatMap(p => [`/${p}/`, `/${p}`]);
 const MAX_PAGES = 6;  // Phase 6: コスト保護しつつ粒度向上
+const MAX_ARTICLES_PER_LISTING = 2;  // 一覧ページから取得する記事数
+
+/**
+ * 一覧ページ判定用パターン
+ */
+const LISTING_PAGE_PATTERNS = [
+  /\/news\/?$/i,
+  /\/newsroom\/?$/i,
+  /\/topics\/?$/i,
+  /\/press\/?$/i,
+  /\/release\/?$/i,
+  /\/ir\/?$/i,
+  /\/investor\/?$/i,
+];
+
+/**
+ * 記事リンクとして無視するパターン
+ */
+const IGNORE_LINK_PATTERNS = [
+  /^#/,                    // アンカーリンク
+  /^javascript:/i,         // JavaScriptリンク
+  /^mailto:/i,             // メールリンク
+  /^tel:/i,                // 電話リンク
+  /\.(pdf|jpg|jpeg|png|gif|svg|mp4|mp3)$/i,  // ファイル直リンク
+  /\/(en|zh|ko|de|fr|es)\//i,  // 他言語ページ（日本語サイト想定）
+  /\/page\/\d+/i,          // ページネーション
+  /\/category\//i,         // カテゴリページ
+  /\/tag\//i,              // タグページ
+  /\/archive\//i,          // アーカイブページ
+];
+
+/**
+ * HTMLから記事リンクを抽出
+ * @param html ページHTML
+ * @param baseUrl ベースURL（相対リンク解決用）
+ * @returns 記事URL配列（最新順を想定）
+ */
+function extractArticleLinks(html: string, baseUrl: string): string[] {
+  const links: string[] = [];
+  const seenUrls = new Set<string>();
+
+  try {
+    const parsedBaseUrl = new URL(baseUrl);
+    const origin = parsedBaseUrl.origin;
+    const basePath = parsedBaseUrl.pathname;
+
+    // aタグからhref抽出（正規表現でシンプルに）
+    const linkMatches = html.matchAll(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>/gi);
+
+    for (const match of linkMatches) {
+      const href = match[1];
+
+      // 無視パターンにマッチしたらスキップ
+      if (IGNORE_LINK_PATTERNS.some(p => p.test(href))) {
+        continue;
+      }
+
+      // 相対URLを絶対URLに変換
+      let absoluteUrl: string;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          absoluteUrl = href;
+        } else if (href.startsWith('/')) {
+          absoluteUrl = `${origin}${href}`;
+        } else {
+          // 相対パス
+          const baseDirPath = basePath.endsWith('/') ? basePath : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+          absoluteUrl = `${origin}${baseDirPath}${href}`;
+        }
+
+        // 同一ドメインのみ
+        const linkUrl = new URL(absoluteUrl);
+        if (linkUrl.origin !== origin) {
+          continue;
+        }
+
+        // 一覧ページ自身は除外
+        if (linkUrl.pathname === basePath || linkUrl.pathname === basePath.replace(/\/$/, '')) {
+          continue;
+        }
+
+        // 一覧ページより深い階層の記事ページのみ（記事は通常サブディレクトリ）
+        const basePathClean = basePath.replace(/\/$/, '');
+        if (!linkUrl.pathname.startsWith(basePathClean + '/')) {
+          continue;
+        }
+
+        // パスが一覧ページと同じ（末尾スラッシュ違いのみ）なら除外
+        if (linkUrl.pathname.replace(/\/$/, '') === basePathClean) {
+          continue;
+        }
+
+        // 正規化（重複排除）
+        const normalized = normalizeUrl(absoluteUrl);
+        if (seenUrls.has(normalized)) {
+          continue;
+        }
+        seenUrls.add(normalized);
+
+        links.push(absoluteUrl);
+      } catch {
+        // URL解析失敗はスキップ
+        continue;
+      }
+    }
+  } catch (error) {
+    devLog.warn('Failed to extract article links:', error);
+  }
+
+  // 最初に出現したリンクが最新と想定（多くのニュースサイトの構造）
+  return links.slice(0, 10);  // 最大10件まで候補として返す
+}
+
+/**
+ * 一覧ページかどうか判定
+ */
+function isListingPage(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    const pathname = parsedUrl.pathname.toLowerCase();
+    return LISTING_PAGE_PATTERNS.some(p => p.test(pathname));
+  } catch {
+    return false;
+  }
+}
 const FETCH_TIMEOUT = 10000;
 const MAX_SIZE = 5 * 1024 * 1024;
 
@@ -116,6 +241,10 @@ interface FetchResult {
   title?: string;
 }
 
+interface FetchResultWithHtml extends FetchResult {
+  html: string;
+}
+
 /**
  * ページコンテンツを安全に取得（タイトル付き）
  */
@@ -140,6 +269,34 @@ async function fetchPageContent(url: string): Promise<FetchResult | null> {
     const title = extractTitleFromHtml(html);
     const content = extractTextFromHtml(html).substring(0, 8000);
     return { content, title };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ページコンテンツを安全に取得（HTML付き - 記事リンク抽出用）
+ */
+async function fetchPageContentWithHtml(url: string): Promise<FetchResultWithHtml | null> {
+  try {
+    const response = await safeFetch(
+      url,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+        },
+      },
+      FETCH_TIMEOUT,
+      MAX_SIZE
+    );
+
+    if (!response.ok) return null;
+    const html = await response.text();
+    const title = extractTitleFromHtml(html);
+    const content = extractTextFromHtml(html).substring(0, 8000);
+    return { content, title, html };
   } catch {
     return null;
   }
@@ -397,7 +554,60 @@ export interface FactExtractionResult {
 }
 
 /**
+ * 一覧ページから記事を取得して処理
+ */
+async function fetchArticlesFromListingPage(
+  listingUrl: string,
+  listingHtml: string,
+  sourceMap: Map<string, InformationSource>,
+  maxArticles: number = MAX_ARTICLES_PER_LISTING
+): Promise<Array<{ url: string; content: string; title?: string }>> {
+  const articleLinks = extractArticleLinks(listingHtml, listingUrl);
+  devLog.log(`Found ${articleLinks.length} article links in listing page: ${listingUrl}`);
+
+  if (articleLinks.length === 0) {
+    return [];
+  }
+
+  // 最大maxArticles件の記事を並列取得
+  const targetLinks = articleLinks.slice(0, maxArticles);
+  const articleResults = await Promise.allSettled(
+    targetLinks.map(async (articleUrl) => {
+      const result = await fetchPageContent(articleUrl);
+      if (result) {
+        devLog.log(`✓ Fetched article: ${articleUrl} (${result.content.length} chars, title: ${result.title || 'none'})`);
+      }
+      return { url: articleUrl, result };
+    })
+  );
+
+  const articles: Array<{ url: string; content: string; title?: string }> = [];
+
+  for (const settled of articleResults) {
+    if (settled.status === 'fulfilled' && settled.value.result) {
+      const { url: articleUrl, result } = settled.value;
+      const normalizedArticleUrl = normalizeUrl(articleUrl);
+
+      // 重複排除
+      if (!sourceMap.has(normalizedArticleUrl)) {
+        const articleTitle = result.title;
+        articles.push({ url: articleUrl, content: result.content, title: articleTitle });
+        sourceMap.set(normalizedArticleUrl, {
+          url: articleUrl,
+          title: articleTitle,
+          category: detectCategory(articleUrl),
+          isPrimary: false,
+        });
+      }
+    }
+  }
+
+  return articles;
+}
+
+/**
  * サブルート探索でファクトを抽出（ページ単位）
+ * 一覧ページからは個別記事も取得
  */
 export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtractionResult | null> {
   try {
@@ -406,6 +616,8 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
     // ソース追跡用Map
     const sourceMap = new Map<string, InformationSource>();
     const pageContents: Array<{ url: string; content: string; title?: string }> = [];
+    // 一覧ページのHTML保持（記事リンク抽出用）
+    const listingPagesHtml: Array<{ url: string; html: string }> = [];
 
     // トップページを取得
     const topPageResult = await fetchPageContent(baseUrl);
@@ -432,13 +644,13 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
       isPrimary: false,
     });
 
-    // サブルートを並列取得
+    // サブルートを並列取得（HTMLも保持）
     const subRouteUrls = buildSubRouteUrls(baseUrl);
     devLog.log(`Trying ${subRouteUrls.length} sub-route URLs:`, subRouteUrls.slice(0, 10));
 
     const subRouteResults = await Promise.allSettled(
       subRouteUrls.map(async (subUrl) => {
-        const result = await fetchPageContent(subUrl);
+        const result = await fetchPageContentWithHtml(subUrl);
         if (result) {
           devLog.log(`✓ Successfully fetched: ${subUrl} (${result.content.length} chars, title: ${result.title || 'none'})`);
         }
@@ -446,7 +658,7 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
       })
     );
 
-    // 成功したページを収集（MAX_PAGES件まで）
+    // 成功したページを収集
     for (const settled of subRouteResults) {
       if (pageContents.length >= MAX_PAGES) break;
 
@@ -465,18 +677,50 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
           } catch { /* ignore */ }
 
           const pageTitle = result.title || fallbackTitle;
-          pageContents.push({ url: subUrl, content: result.content, title: pageTitle });
-          sourceMap.set(normalizedSubUrl, {
-            url: subUrl,
-            title: pageTitle,
-            category: detectCategory(subUrl),
-            isPrimary: false,
-          });
+
+          // 一覧ページの場合はHTMLを保持（後で記事取得に使用）
+          if (isListingPage(subUrl)) {
+            listingPagesHtml.push({ url: subUrl, html: result.html });
+            // 一覧ページ自体はソースには追加するが、ファクト抽出対象にはしない
+            sourceMap.set(normalizedSubUrl, {
+              url: subUrl,
+              title: pageTitle,
+              category: detectCategory(subUrl),
+              isPrimary: false,
+            });
+          } else {
+            // 通常ページはファクト抽出対象に追加
+            pageContents.push({ url: subUrl, content: result.content, title: pageTitle });
+            sourceMap.set(normalizedSubUrl, {
+              url: subUrl,
+              title: pageTitle,
+              category: detectCategory(subUrl),
+              isPrimary: false,
+            });
+          }
         }
       }
     }
 
-    devLog.log(`Fetched ${pageContents.length} pages for fact extraction`);
+    // 一覧ページから個別記事を取得
+    for (const listingPage of listingPagesHtml) {
+      if (pageContents.length >= MAX_PAGES) break;
+
+      const articles = await fetchArticlesFromListingPage(
+        listingPage.url,
+        listingPage.html,
+        sourceMap,
+        Math.min(MAX_ARTICLES_PER_LISTING, MAX_PAGES - pageContents.length)
+      );
+
+      // 記事をファクト抽出対象に追加
+      for (const article of articles) {
+        if (pageContents.length >= MAX_PAGES) break;
+        pageContents.push(article);
+      }
+    }
+
+    devLog.log(`Fetched ${pageContents.length} pages for fact extraction (including ${listingPagesHtml.length} listing pages crawled for articles)`);
 
     // ページ単位でファクト抽出（並列実行）
     const pageFactPromises = pageContents.map(({ url, content, title }) =>
@@ -506,9 +750,29 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
     );
     devLog.log(`Extracted ${totalFactCount} facts from ${successfulResults.length} pages`);
 
-    // 優先順位付けしてisPrimaryを設定
-    const rawSources = Array.from(sourceMap.values());
-    const sources = prioritizeSources(rawSources);
+    // ファクトが実際に抽出されたソースのみをフィルタリング
+    const factsSourceUrls = new Set<string>();
+    const allFacts = [
+      ...mergedFacts.numbers,
+      ...mergedFacts.properNouns,
+      ...mergedFacts.recentMoves,
+      ...mergedFacts.hiringTrends,
+      ...mergedFacts.companyDirection,
+    ];
+    for (const fact of allFacts) {
+      if (typeof fact !== 'string' && fact.sourceUrl) {
+        factsSourceUrls.add(normalizeUrl(fact.sourceUrl));
+      }
+    }
+
+    // ファクトが抽出されたソースのみを優先
+    const sourcesWithFacts = Array.from(sourceMap.values()).filter(s =>
+      factsSourceUrls.has(normalizeUrl(s.url))
+    );
+
+    // ファクトがあるソースを優先、なければ全ソース
+    const sourcesToPrioritize = sourcesWithFacts.length > 0 ? sourcesWithFacts : Array.from(sourceMap.values());
+    const sources = prioritizeSources(sourcesToPrioritize);
 
     devLog.log(`Final sources (${sources.length}):`, sources.map(s => ({
       url: s.url,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { InformationSource, SourceCategory } from '@/types/analysis';
 import type { Citation } from '@/types/generate-v2';
 
@@ -22,18 +22,6 @@ const CATEGORY_LABELS: Record<SourceCategory, string> = {
   other: 'その他',
 };
 
-/**
- * カテゴリごとの活用内容（何に使われたか）
- */
-const CATEGORY_USAGE: Record<SourceCategory, string> = {
-  corporate: '企業概要・ビジョン・経営方針の把握に活用',
-  news: '最新動向・ニュースリリースの把握に活用',
-  recruit: '採用方針・組織体制の把握に活用',
-  ir: '業績・経営戦略・中期計画の把握に活用',
-  product: '製品・サービス情報の把握に活用',
-  other: '参考情報として活用',
-};
-
 /** 表示するソースの最大件数 */
 const MAX_DISPLAY_SOURCES = 3;
 
@@ -46,6 +34,36 @@ const CATEGORY_COLORS: Record<SourceCategory, string> = {
   other: 'bg-slate-50 text-slate-700 border-slate-200',
 };
 
+/**
+ * 一覧ページ判定（具体性の低いURL）
+ */
+function isListingPageUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    const pathname = parsedUrl.pathname.toLowerCase();
+    // パスの深さが2以下で、newsroom/news/ir等で終わる場合は一覧ページ
+    const pathParts = pathname.split('/').filter(Boolean);
+    if (pathParts.length <= 2) {
+      const lastPart = pathParts[pathParts.length - 1] || '';
+      if (['news', 'newsroom', 'ir', 'press', 'topics', 'release'].includes(lastPart)) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ソースとcitationを紐づけて表示用データを構築
+ */
+interface SourceWithCitations {
+  source: InformationSource;
+  citations: Citation[];
+  isUsedInLetter: boolean;
+}
+
 export function SourcesDisplay({
   sources,
   citations,
@@ -55,6 +73,75 @@ export function SourcesDisplay({
   bodyText,
 }: SourcesDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  // ソースとcitationを紐づけて表示用データを構築
+  const sourcesWithCitations = useMemo((): SourceWithCitations[] => {
+    if (!sources || sources.length === 0) return [];
+
+    // citationのsourceUrlでグループ化
+    const citationsByUrl = new Map<string, Citation[]>();
+    if (citations) {
+      for (const citation of citations) {
+        if (citation.sourceUrl) {
+          const existing = citationsByUrl.get(citation.sourceUrl) || [];
+          existing.push(citation);
+          citationsByUrl.set(citation.sourceUrl, existing);
+        }
+      }
+    }
+
+    // ソースにcitationを紐づけ
+    const result: SourceWithCitations[] = sources.map(source => ({
+      source,
+      citations: citationsByUrl.get(source.url) || [],
+      isUsedInLetter: citationsByUrl.has(source.url),
+    }));
+
+    // ソート: 1. レターで使用された 2. 一覧ページでない 3. isPrimary
+    return result.sort((a, b) => {
+      // レターで使用されたソースを優先
+      if (a.isUsedInLetter !== b.isUsedInLetter) {
+        return a.isUsedInLetter ? -1 : 1;
+      }
+      // 一覧ページでないソースを優先
+      const aIsListing = isListingPageUrl(a.source.url);
+      const bIsListing = isListingPageUrl(b.source.url);
+      if (aIsListing !== bIsListing) {
+        return aIsListing ? 1 : -1;
+      }
+      // isPrimaryを優先
+      if (a.source.isPrimary !== b.source.isPrimary) {
+        return a.source.isPrimary ? -1 : 1;
+      }
+      return 0;
+    });
+  }, [sources, citations]);
+
+  // 表示用ソース（一覧ページは除外、citationがあるものを優先）
+  const displayData = useMemo(() => {
+    // citationがあるソースを優先表示
+    const usedSources = sourcesWithCitations.filter(s => s.isUsedInLetter);
+    const unusedSources = sourcesWithCitations.filter(s => !s.isUsedInLetter);
+
+    // 一覧ページは除外（具体的な記事がある場合）
+    const specificSources = usedSources.filter(s => !isListingPageUrl(s.source.url));
+    const listingSources = usedSources.filter(s => isListingPageUrl(s.source.url));
+
+    // 具体的なソースを優先、なければ一覧ページも表示
+    let displaySources: SourceWithCitations[] = [];
+    if (specificSources.length > 0) {
+      displaySources = specificSources.slice(0, MAX_DISPLAY_SOURCES);
+    } else if (listingSources.length > 0) {
+      displaySources = listingSources.slice(0, MAX_DISPLAY_SOURCES);
+    } else {
+      // citationがない場合は通常のソースから
+      const specificUnused = unusedSources.filter(s => !isListingPageUrl(s.source.url));
+      displaySources = specificUnused.slice(0, MAX_DISPLAY_SOURCES);
+    }
+
+    const remaining = sourcesWithCitations.length - displaySources.length;
+    return { displaySources, remaining };
+  }, [sourcesWithCitations]);
 
   // 状態分岐
   // 1. URLが未入力の場合
@@ -103,14 +190,7 @@ export function SourcesDisplay({
   }
 
   // 4. sourcesあり: 通常表示
-
-  // isPrimaryを優先して並び替え、最大3件に制限
-  const sortedSources = [
-    ...sources.filter(s => s.isPrimary),
-    ...sources.filter(s => !s.isPrimary),
-  ];
-  const displaySources = sortedSources.slice(0, MAX_DISPLAY_SOURCES);
-  const remainingCount = sortedSources.length - displaySources.length;
+  const { displaySources, remaining } = displayData;
 
   return (
     <div className={`bg-white border border-slate-200 rounded-lg overflow-hidden ${className}`}>
@@ -141,122 +221,68 @@ export function SourcesDisplay({
       {/* ソース一覧（展開時） */}
       {isExpanded && (
         <div className="p-4 pt-0 space-y-4">
-          {/* 参照したページ（最大3件） */}
+          {/* 参照したページ（citationと紐づけて表示） */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm">🔗</span>
               <span className="text-xs font-semibold text-slate-600">
                 参照したページ
-                {remainingCount > 0 && (
+                {remaining > 0 && (
                   <span className="text-slate-400 font-normal ml-1">
-                    （他{remainingCount}件）
+                    （他{remaining}件）
                   </span>
                 )}
               </span>
             </div>
-            <div className="space-y-2">
-              {displaySources.map((source, i) => (
-                <SourceItem key={i} source={source} />
+            <div className="space-y-3">
+              {displaySources.map((item, i) => (
+                <SourceItemWithCitations
+                  key={i}
+                  source={item.source}
+                  citations={item.citations}
+                  bodyText={bodyText}
+                />
               ))}
             </div>
           </div>
-
-          {/* Phase 6: 本文での利用箇所 */}
-          {citations && citations.length > 0 && (
-            <div className="border-t border-slate-200 pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm">📝</span>
-                <span className="text-xs font-semibold text-slate-600">本文での利用箇所</span>
-              </div>
-              <div className="space-y-2">
-                {citations.map((citation, i) => (
-                  <CitationItem key={i} citation={citation} bodyText={bodyText} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-function SourceItem({ source }: { source: InformationSource }) {
+/**
+ * ソースとその利用箇所を表示するコンポーネント
+ */
+function SourceItemWithCitations({
+  source,
+  citations,
+  bodyText,
+}: {
+  source: InformationSource;
+  citations: Citation[];
+  bodyText?: string;
+}) {
   const categoryLabel = CATEGORY_LABELS[source.category];
   const categoryColor = CATEGORY_COLORS[source.category];
-  const categoryUsage = CATEGORY_USAGE[source.category];
 
   // URLからホスト+パスを抽出（ページ単位）
   let displayPath = source.url;
   try {
     const urlObj = new URL(source.url);
-    // ホスト + パス（クエリ除く）
     const fullPath = urlObj.hostname + urlObj.pathname;
-    // 70文字超えたら省略
-    displayPath = fullPath.length > 70
-      ? fullPath.substring(0, 67) + '...'
+    displayPath = fullPath.length > 60
+      ? fullPath.substring(0, 57) + '...'
       : fullPath;
   } catch {
     displayPath = source.url;
   }
 
-  return (
-    <a
-      href={source.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={source.url}  // hover時にフルURL表示
-      className="block p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors group"
-    >
-      <div className="flex items-start gap-3">
-        {/* カテゴリバッジ */}
-        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border flex-shrink-0 ${categoryColor}`}>
-          {categoryLabel}
-        </span>
-
-        {/* タイトル・URL・活用内容 */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
-            {source.title || displayPath}
-          </p>
-          <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
-            {displayPath}
-          </p>
-          <p className="text-xs text-indigo-600 mt-1">
-            → {categoryUsage}
-          </p>
-        </div>
-
-        {/* 外部リンクアイコン */}
-        <svg
-          className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0 mt-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-      </div>
-    </a>
-  );
-}
-
-/**
- * Phase 6: 本文使用箇所を表示するコンポーネント（位置ラベル付き）
- */
-function CitationItem({
-  citation,
-  bodyText
-}: {
-  citation: Citation;
-  bodyText?: string;
-}) {
   // 本文での位置を計算
-  const getLocationLabel = (): string | null => {
-    if (!bodyText || !citation.sentence) return null;
+  const getLocationLabel = (sentence: string): string | null => {
+    if (!bodyText || !sentence) return null;
 
-    // sentenceの冒頭20文字で検索
-    const searchText = citation.sentence.replace(/\.\.\.$/g, '').substring(0, 20);
+    const searchText = sentence.replace(/\.\.\.$/g, '').substring(0, 20);
     const index = bodyText.indexOf(searchText);
 
     if (index === -1) return null;
@@ -268,40 +294,81 @@ function CitationItem({
     return '終盤';
   };
 
-  const location = getLocationLabel();
-
-  // 引用文を50文字で切り詰め
-  const truncatedSentence = citation.sentence.length > 50
-    ? citation.sentence.substring(0, 47) + '...'
-    : citation.sentence;
-
   return (
-    <div className="flex items-start gap-2 text-sm py-2 px-3 bg-slate-50 rounded-lg">
-      {location && (
-        <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-          {location}
-        </span>
-      )}
-      <span className="text-slate-400 flex-shrink-0">・</span>
-      <div className="flex-1 min-w-0">
-        <span className="text-slate-700">「{truncatedSentence}」</span>
-        {citation.sourceUrl ? (
-          <a
-            href={citation.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 text-xs text-indigo-600 hover:underline inline-flex items-center gap-1"
-            title={citation.sourceUrl}
+    <div className="rounded-lg border border-slate-200 overflow-hidden">
+      {/* ソース情報 */}
+      <a
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={source.url}
+        className="block p-3 hover:bg-slate-50 transition-colors group"
+      >
+        <div className="flex items-start gap-3">
+          {/* カテゴリバッジ */}
+          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border flex-shrink-0 ${categoryColor}`}>
+            {categoryLabel}
+          </span>
+
+          {/* タイトル・URL */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
+              {source.title || displayPath}
+            </p>
+            <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
+              {displayPath}
+            </p>
+          </div>
+
+          {/* 外部リンクアイコン */}
+          <svg
+            className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            [出典: {citation.sourceTitle || 'リンク'}]
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-        ) : (
-          <span className="ml-2 text-xs text-slate-400">[quoteKey: {citation.quoteKey}]</span>
-        )}
-      </div>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </div>
+      </a>
+
+      {/* このソースからの引用（利用箇所） */}
+      {citations.length > 0 && (
+        <div className="border-t border-slate-100 bg-slate-50 p-3">
+          <p className="text-xs font-medium text-slate-500 mb-2">
+            レターでの使用箇所:
+          </p>
+          <div className="space-y-1.5">
+            {citations.map((citation, i) => {
+              const location = getLocationLabel(citation.sentence);
+              const truncatedSentence = citation.sentence.length > 45
+                ? citation.sentence.substring(0, 42) + '...'
+                : citation.sentence;
+
+              return (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  {location && (
+                    <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                      {location}
+                    </span>
+                  )}
+                  <span className="text-slate-600">「{truncatedSentence}」</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 利用箇所がない場合の表示 */}
+      {citations.length === 0 && (
+        <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
+          <p className="text-xs text-slate-400">
+            参考情報として取得
+          </p>
+        </div>
+      )}
     </div>
   );
 }
+

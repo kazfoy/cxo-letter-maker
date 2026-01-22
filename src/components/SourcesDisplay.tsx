@@ -22,6 +22,21 @@ const CATEGORY_LABELS: Record<SourceCategory, string> = {
   other: 'その他',
 };
 
+/**
+ * カテゴリごとの活用内容（何に使われたか）
+ */
+const CATEGORY_USAGE: Record<SourceCategory, string> = {
+  corporate: '企業概要・ビジョン・経営方針の把握に活用',
+  news: '最新動向・ニュースリリースの把握に活用',
+  recruit: '採用方針・組織体制の把握に活用',
+  ir: '業績・経営戦略・中期計画の把握に活用',
+  product: '製品・サービス情報の把握に活用',
+  other: '参考情報として活用',
+};
+
+/** 表示するソースの最大件数 */
+const MAX_DISPLAY_SOURCES = 3;
+
 const CATEGORY_COLORS: Record<SourceCategory, string> = {
   corporate: 'bg-blue-50 text-blue-700 border-blue-200',
   news: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -89,9 +104,13 @@ export function SourcesDisplay({
 
   // 4. sourcesあり: 通常表示
 
-  // 主な情報ソースとその他を分離
-  const primarySources = sources.filter(s => s.isPrimary);
-  const otherSources = sources.filter(s => !s.isPrimary);
+  // isPrimaryを優先して並び替え、最大3件に制限
+  const sortedSources = [
+    ...sources.filter(s => s.isPrimary),
+    ...sources.filter(s => !s.isPrimary),
+  ];
+  const displaySources = sortedSources.slice(0, MAX_DISPLAY_SOURCES);
+  const remainingCount = sortedSources.length - displaySources.length;
 
   return (
     <div className={`bg-white border border-slate-200 rounded-lg overflow-hidden ${className}`}>
@@ -122,35 +141,25 @@ export function SourcesDisplay({
       {/* ソース一覧（展開時） */}
       {isExpanded && (
         <div className="p-4 pt-0 space-y-4">
-          {/* 主な情報ソース */}
-          {primarySources.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm">⭐</span>
-                <span className="text-xs font-semibold text-slate-600">参照したページ</span>
-              </div>
-              <div className="space-y-2">
-                {primarySources.map((source, i) => (
-                  <SourceItem key={i} source={source} />
-                ))}
-              </div>
+          {/* 参照したページ（最大3件） */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm">🔗</span>
+              <span className="text-xs font-semibold text-slate-600">
+                参照したページ
+                {remainingCount > 0 && (
+                  <span className="text-slate-400 font-normal ml-1">
+                    （他{remainingCount}件）
+                  </span>
+                )}
+              </span>
             </div>
-          )}
-
-          {/* その他の情報ソース */}
-          {otherSources.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm">📄</span>
-                <span className="text-xs font-semibold text-slate-600">その他の情報ソース</span>
-              </div>
-              <div className="space-y-2">
-                {otherSources.map((source, i) => (
-                  <SourceItem key={i} source={source} />
-                ))}
-              </div>
+            <div className="space-y-2">
+              {displaySources.map((source, i) => (
+                <SourceItem key={i} source={source} />
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Phase 6: 本文での利用箇所 */}
           {citations && citations.length > 0 && (
@@ -175,6 +184,7 @@ export function SourcesDisplay({
 function SourceItem({ source }: { source: InformationSource }) {
   const categoryLabel = CATEGORY_LABELS[source.category];
   const categoryColor = CATEGORY_COLORS[source.category];
+  const categoryUsage = CATEGORY_USAGE[source.category];
 
   // URLからホスト+パスを抽出（ページ単位）
   let displayPath = source.url;
@@ -182,9 +192,9 @@ function SourceItem({ source }: { source: InformationSource }) {
     const urlObj = new URL(source.url);
     // ホスト + パス（クエリ除く）
     const fullPath = urlObj.hostname + urlObj.pathname;
-    // 60文字超えたら省略
-    displayPath = fullPath.length > 60
-      ? fullPath.substring(0, 57) + '...'
+    // 70文字超えたら省略
+    displayPath = fullPath.length > 70
+      ? fullPath.substring(0, 67) + '...'
       : fullPath;
   } catch {
     displayPath = source.url;
@@ -196,32 +206,37 @@ function SourceItem({ source }: { source: InformationSource }) {
       target="_blank"
       rel="noopener noreferrer"
       title={source.url}  // hover時にフルURL表示
-      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors group"
+      className="block p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors group"
     >
-      {/* カテゴリバッジ */}
-      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${categoryColor}`}>
-        {categoryLabel}
-      </span>
+      <div className="flex items-start gap-3">
+        {/* カテゴリバッジ */}
+        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border flex-shrink-0 ${categoryColor}`}>
+          {categoryLabel}
+        </span>
 
-      {/* タイトルとURL */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
-          {source.title || displayPath}
-        </p>
-        <p className="text-xs text-slate-400 truncate" title={source.url}>
-          {displayPath}
-        </p>
+        {/* タイトル・URL・活用内容 */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
+            {source.title || displayPath}
+          </p>
+          <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
+            {displayPath}
+          </p>
+          <p className="text-xs text-indigo-600 mt-1">
+            → {categoryUsage}
+          </p>
+        </div>
+
+        {/* 外部リンクアイコン */}
+        <svg
+          className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0 mt-0.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
       </div>
-
-      {/* 外部リンクアイコン */}
-      <svg
-        className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-      </svg>
     </a>
   );
 }

@@ -15,17 +15,19 @@ import {
 } from '@/types/analysis';
 import { z } from 'zod';
 
-// サブルート候補（優先度順）
-const SUB_ROUTE_CANDIDATES = [
-  '/news', '/newsroom', '/topics', '/press', '/release',  // ニュース系（最優先）
-  '/sustainability', '/esg', '/csr',                       // サステナビリティ
-  '/ir', '/investor', '/investors',                        // IR
-  '/report', '/annual-report',                             // レポート
-  '/about', '/about-us', '/company', '/corporate', '/profile',  // 企業情報
-  '/recruit', '/careers', '/jobs',                         // 採用
-  '/service', '/services', '/product', '/products', '/solution', '/solutions',  // サービス
-  '/mobility',  // 自動車業界向け
+// サブルート候補（優先度順）- 末尾スラッシュありなし両方試行
+const SUB_ROUTE_CANDIDATES_BASE = [
+  'news', 'newsroom', 'topics', 'press', 'release',  // ニュース系（最優先）
+  'sustainability', 'esg', 'csr',                     // サステナビリティ
+  'ir', 'investor', 'investors',                      // IR
+  'report', 'annual-report',                          // レポート
+  'about', 'about-us', 'company', 'corporate', 'profile',  // 企業情報
+  'recruit', 'careers', 'jobs',                       // 採用
+  'service', 'services', 'product', 'products', 'solution', 'solutions',  // サービス
+  'mobility',  // 自動車業界向け
 ];
+// 末尾スラッシュありなし両方を生成
+const SUB_ROUTE_CANDIDATES = SUB_ROUTE_CANDIDATES_BASE.flatMap(p => [`/${p}/`, `/${p}`]);
 const MAX_PAGES = 6;  // Phase 6: コスト保護しつつ粒度向上
 const FETCH_TIMEOUT = 10000;
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -98,8 +100,10 @@ async function fetchPageContent(url: string): Promise<string | null> {
       url,
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; CxOLetterMaker/1.0)',
-          Accept: 'text/html,application/xhtml+xml',
+          // ブラウザに近いUser-Agentを使用（ブロック回避）
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
         },
       },
       FETCH_TIMEOUT,
@@ -393,9 +397,14 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
 
     // サブルートを並列取得
     const subRouteUrls = buildSubRouteUrls(baseUrl);
+    devLog.log(`Trying ${subRouteUrls.length} sub-route URLs:`, subRouteUrls.slice(0, 10));
+
     const subRouteResults = await Promise.allSettled(
       subRouteUrls.map(async (subUrl) => {
         const content = await fetchPageContent(subUrl);
+        if (content) {
+          devLog.log(`✓ Successfully fetched: ${subUrl} (${content.length} chars)`);
+        }
         return { url: subUrl, content };
       })
     );
@@ -462,6 +471,13 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
     // 優先順位付けしてisPrimaryを設定
     const rawSources = Array.from(sourceMap.values());
     const sources = prioritizeSources(rawSources);
+
+    devLog.log(`Final sources (${sources.length}):`, sources.map(s => ({
+      url: s.url,
+      category: s.category,
+      title: s.title,
+      isPrimary: s.isPrimary,
+    })));
 
     return {
       facts: mergedFacts,

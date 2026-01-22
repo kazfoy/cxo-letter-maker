@@ -29,12 +29,13 @@ export interface QualityResult {
  * 検証オプション
  */
 export interface ValidateOptions {
-  mode: 'draft' | 'complete';
+  mode: 'draft' | 'complete' | 'event';
   minChars?: number;
   maxChars?: number;
   hasProofPoints?: boolean;
   hasRecentNews?: boolean;
   missingInfoHighCount?: number;
+  eventPosition?: string;  // Event mode 用
 }
 
 /**
@@ -107,6 +108,36 @@ const TELEGRAM_PATTERNS = [
 const PLACEHOLDER_PATTERNS = [
   /【要確認[:：].*?】/g,
   /\[要確認[:：].*?\]/g,
+];
+
+/**
+ * Event招待状専用: 無根拠診断パターン
+ */
+const EVENT_BASELESS_DIAGNOSIS_PATTERNS = [
+  /貴社では.{1,30}(?:推察|存じ|考えます|思われます)/,
+  /御社では.{1,30}(?:推察|存じ|考えます|思われます)/,
+  /貴社.{1,20}(?:が課題|が問題|が存在)/,
+  /御社.{1,20}(?:が課題|が問題|が存在)/,
+  /〜と(?:推察|存じ|考え(?:ます|ております))/,
+  /貴社におかれましても.{1,20}ではないでしょうか/,
+];
+
+/**
+ * Event招待状専用: 強断言パターン
+ */
+const EVENT_STRONG_ASSERTION_PATTERNS = [
+  /確信しております/,
+  /間違いございません/,
+  /間違いなく/,
+  /必ずや.{1,20}いただけ/,
+];
+
+/**
+ * Event招待状専用: CTA二重取りパターン
+ */
+const EVENT_DUAL_CTA_COMBINATIONS = [
+  { a: /資料/, b: /15分|お時間.*いただ|面談|打ち合わせ/ },
+  { a: /ご参加/, b: /お時間.*いただ|面談/ },
 ];
 
 /**
@@ -735,4 +766,102 @@ export function applyBridgeQualityLimit(
     default:
       return score;
   }
+}
+
+/**
+ * Event招待状専用: 品質スコア
+ */
+export interface EventQualityScore {
+  total: number;
+  penalties: {
+    baselessDiagnosis: number;
+    strongAssertion: number;
+    dualCta: number;
+    missingTakeaways: number;
+    missingPosition: number;
+    tooLong: number;
+  };
+  issues: string[];
+}
+
+/**
+ * Event招待状専用: 品質スコア計算
+ *
+ * @param body - レター本文
+ * @param eventPosition - イベントへの立ち位置（sponsor/speaker/case_provider）
+ * @returns Event専用品質スコア
+ */
+export function calculateEventQualityScore(
+  body: string,
+  eventPosition?: string
+): EventQualityScore {
+  const issues: string[] = [];
+  const penalties = {
+    baselessDiagnosis: 0,
+    strongAssertion: 0,
+    dualCta: 0,
+    missingTakeaways: 0,
+    missingPosition: 0,
+    tooLong: 0,
+  };
+
+  // 1. 無根拠診断検出 (-15点/件、上限-30点)
+  const baselessHits = EVENT_BASELESS_DIAGNOSIS_PATTERNS.filter(p => p.test(body));
+  if (baselessHits.length > 0) {
+    penalties.baselessDiagnosis = Math.min(baselessHits.length * 15, 30);
+    issues.push(`無根拠診断表現が${baselessHits.length}件検出。質問型に書き換えてください`);
+  }
+
+  // 2. 強断言検出 (-10点/件、上限-20点)
+  const strongHits = EVENT_STRONG_ASSERTION_PATTERNS.filter(p => p.test(body));
+  if (strongHits.length > 0) {
+    penalties.strongAssertion = Math.min(strongHits.length * 10, 20);
+    issues.push(`強断言表現が${strongHits.length}件検出されました`);
+  }
+
+  // 3. CTA二重取り検出 (-20点)
+  for (const { a, b } of EVENT_DUAL_CTA_COMBINATIONS) {
+    if (a.test(body) && b.test(body)) {
+      penalties.dualCta = 20;
+      issues.push('CTAが二重です（参加 or 資料の2択にしてください）');
+      break;
+    }
+  }
+
+  // 4. 持ち帰りベネフィット不足 (-15点)
+  const takeawayPatterns = [
+    /チェックリスト/,
+    /フレームワーク|標準プロセス|の型/,
+    /監査観点|指摘.*ポイント/,
+    /ベンチマーク|比較.*データ/,
+    /ノウハウ|手法|メソッド/,
+    /テンプレート|ひな形/,
+  ];
+  const takeawayCount = takeawayPatterns.filter(p => p.test(body)).length;
+  if (takeawayCount < 2) {
+    penalties.missingTakeaways = 15;
+    issues.push('セミナーの持ち帰りベネフィットを3点以上具体的に記載してください');
+  }
+
+  // 5. 立ち位置不明記 (-10点)
+  const positionPatterns = [/協賛/, /登壇/, /事例.*提供/, /主催/, /共催/];
+  const hasPosition = positionPatterns.some(p => p.test(body)) || Boolean(eventPosition);
+  if (!hasPosition) {
+    penalties.missingPosition = 10;
+    issues.push('イベントへの立ち位置（協賛/登壇/事例提供）を明記してください');
+  }
+
+  // 6. 文章過長 (-10点)
+  const paragraphCount = body.split(/\n\n+/).filter(p => p.trim()).length;
+  if (paragraphCount > 5 || body.length > 500) {
+    penalties.tooLong = 10;
+    issues.push('文章が長すぎます。5段落以内、450文字以内に収めてください');
+  }
+
+  const totalPenalty = Object.values(penalties).reduce((a, b) => a + b, 0);
+  return {
+    total: Math.max(0, 100 - totalPenalty),
+    penalties,
+    issues,
+  };
 }

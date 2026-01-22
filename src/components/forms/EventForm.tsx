@@ -8,7 +8,7 @@ interface EventFormProps {
   formData: LetterFormData;
   inputMode: 'step' | 'freeform';
   isAnalyzingSource: boolean;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   handleOpenMultiSourceModal: (type: 'own' | 'target') => void;
   handleAIAssist: (field: string) => void;
   handleAnalyzeEventUrl: () => void;
@@ -242,6 +242,27 @@ export const EventForm = React.memo(function EventForm({
                     placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
                     maxLength={300}
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="eventPosition" className="block text-sm font-medium text-slate-700 mb-2">
+                    イベントへの立ち位置 <span className="text-xs text-slate-500">（任意）</span>
+                  </label>
+                  <select
+                    id="eventPosition"
+                    name="eventPosition"
+                    value={formData.eventPosition || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 bg-white"
+                  >
+                    <option value="">選択してください（デフォルト: 協賛）</option>
+                    <option value="sponsor">協賛企業</option>
+                    <option value="speaker">登壇企業</option>
+                    <option value="case_provider">導入事例提供</option>
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500">
+                    招待状本文に立ち位置が明記されます
+                  </p>
                 </div>
               </div>
             </div>

@@ -16,6 +16,12 @@ export const SenderInfoSchema = z.object({
 });
 
 /**
+ * Event立ち位置の型
+ */
+export const EventPositionEnum = z.enum(['sponsor', 'speaker', 'case_provider']);
+export type EventPosition = z.infer<typeof EventPositionEnum>;
+
+/**
  * ユーザー上書きスキーマ
  */
 export const UserOverridesSchema = z.object({
@@ -25,6 +31,11 @@ export const UserOverridesSchema = z.object({
   additional_context: z.string().optional(),
   custom_proof_points: z.array(z.string()).optional(),
   target_url: z.string().optional(),
+  // Event専用フィールド
+  event_name: z.string().optional(),
+  event_datetime: z.string().optional(),
+  event_speakers: z.string().optional(),
+  event_position: EventPositionEnum.optional(),
 });
 
 /**
@@ -34,7 +45,7 @@ export const GenerateV2RequestSchema = z.object({
   analysis_result: AnalysisResultSchema,
   user_overrides: UserOverridesSchema.optional(),
   sender_info: SenderInfoSchema,
-  mode: z.enum(['draft', 'complete']),
+  mode: z.enum(['draft', 'complete', 'event']),
   output_format: z.enum(['letter', 'email']),
 });
 

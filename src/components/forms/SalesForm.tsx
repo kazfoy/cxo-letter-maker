@@ -7,7 +7,7 @@ import type { LetterFormData } from '@/types/letter';
 interface SalesFormProps {
   formData: LetterFormData;
   inputMode: 'step' | 'freeform';
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   handleOpenMultiSourceModal: (type: 'own' | 'target') => void;
   handleAIAssist: (field: string) => void;
   handleOpenStructureSuggestion: () => void;

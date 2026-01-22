@@ -40,6 +40,7 @@ export interface LetterFormData {
   eventDateTime?: string;
   eventSpeakers?: string;
   invitationReason?: string;
+  eventPosition?: 'sponsor' | 'speaker' | 'case_provider';
 
   // かんたんモード用フィールド
   simpleRequirement?: string;

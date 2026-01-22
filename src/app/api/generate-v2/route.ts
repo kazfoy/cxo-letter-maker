@@ -11,6 +11,7 @@ import { generateJson } from '@/lib/gemini';
 import {
   validateLetterOutput,
   calculateDetailedScore,
+  calculateEventQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
 import { selectFactsForLetter } from '@/lib/factSelector';
@@ -30,13 +31,77 @@ import {
 export const maxDuration = 60;
 
 /**
+ * Event招待状モード専用の追加指示を構築
+ */
+function buildEventModeInstructions(
+  overrides: UserOverrides | undefined,
+  sender: SenderInfo
+): string {
+  const eventName = overrides?.event_name || '（未指定）';
+  const eventDateTime = overrides?.event_datetime || '（未指定）';
+  const eventSpeakers = overrides?.event_speakers || '（未指定）';
+  const eventPosition = overrides?.event_position;
+
+  // 立ち位置テキスト（デフォルト: 協賛）
+  const positionText = {
+    sponsor: `弊社（${sender.company_name}）は本イベントの協賛企業として参加しております`,
+    speaker: `弊社（${sender.company_name}）は本イベントに登壇企業として参加しております`,
+    case_provider: `弊社（${sender.company_name}）は本イベントにて導入事例をご紹介させていただきます`,
+  }[eventPosition ?? 'sponsor'];
+
+  return `
+【イベント招待状モード - 絶対ルール（厳守）】
+
+■ ルールa: 無根拠診断の禁止
+以下のパターンは使用禁止:
+- NG: 「貴社では〇〇が課題と推察いたします」
+- NG: 「御社では〇〇という状況が存在すると考えます」
+- NG: 「貴社におかれましても〇〇ではないでしょうか」
+- NG: 「確信しております」「間違いございません」
+
+代わりに「質問型」を使用:
+- OK: 「多くの企業で論点となっている〇〇について、御社でも優先度が上がっているか伺えればと存じます」
+- OK: 「業界各社で〇〇への対応が進む中、御社のご状況をお聞かせいただけますでしょうか」
+
+■ ルールb: セミナー価値は"持ち帰り"を最低3点、具体で記載
+以下のような具体的なベネフィットを3つ以上明記すること:
+- チェックリスト（例: 〇〇対応の自己診断シート）
+- 標準プロセスの型（例: 〇〇導入の5ステップフレームワーク）
+- 監査観点整理（例: 〇〇監査で指摘されやすいポイント一覧）
+- ベンチマークデータ（例: 同業他社との比較指標）
+- テンプレート/ひな形（例: 〇〇用のドキュメントテンプレート）
+
+■ ルールc: 立ち位置を1行で明確化
+本文冒頭近く（最初の2段落以内）に以下を1行で明記:
+「${positionText}」
+
+■ ルールd: CTAは2択のみ（参加 or 資料）
+- OK: 「ご参加をご検討いただければ幸いです」
+- OK: 「ご都合が合わない場合は資料をお送りいたします」
+- NG: 「ぜひ一度15分お時間をいただき」← 面談要求禁止
+- NG: 「資料送付と合わせてお打ち合わせの機会を」← 二重CTA禁止
+
+■ ルールe: 文章は短め（5段落以内、300-450文字）
+- 全体を5段落以内に収める
+- 各段落は2-3文を目安
+- 総文字数: 300-450文字
+
+【イベント情報】
+イベント名: ${eventName}
+開催日時: ${eventDateTime}
+登壇者: ${eventSpeakers}
+立ち位置: ${positionText}
+`;
+}
+
+/**
  * 生成プロンプトを構築
  */
 function buildGenerationPrompt(
   analysis: AnalysisResult,
   overrides: UserOverrides | undefined,
   sender: SenderInfo,
-  mode: 'draft' | 'complete',
+  mode: 'draft' | 'complete' | 'event',
   format: 'letter' | 'email',
   factsForLetter: SelectedFact[] = [],
   improvementPoints?: string[],
@@ -46,9 +111,17 @@ function buildGenerationPrompt(
   const personName = overrides?.person_name || analysis.facts.person_name || '';
   const personPosition = overrides?.person_position || analysis.facts.person_position || '';
 
-  const modeInstruction = mode === 'draft'
-    ? '【下書きモード】情報が不足している箇所は【要確認: 〇〇】の形式でプレースホルダーを使用してください。推測で情報を埋めないでください。'
-    : '【完成モード】すべての情報を具体的に記載してください。プレースホルダー（【要確認:】、〇〇、●●など）は使用禁止です。';
+  let modeInstruction: string;
+  let eventModeInstructions = '';
+
+  if (mode === 'draft') {
+    modeInstruction = '【下書きモード】情報が不足している箇所は【要確認: 〇〇】の形式でプレースホルダーを使用してください。推測で情報を埋めないでください。';
+  } else if (mode === 'event') {
+    modeInstruction = '【イベント招待状モード】イベントへの招待状を作成してください。';
+    eventModeInstructions = buildEventModeInstructions(overrides, sender);
+  } else {
+    modeInstruction = '【完成モード】すべての情報を具体的に記載してください。プレースホルダー（【要確認:】、〇〇、●●など）は使用禁止です。';
+  }
 
   // リライト時の改善指示
   let retryInstruction = '';
@@ -185,7 +258,7 @@ targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${hypothesisModeInstruction}${noFactsInstruction}${citationInstruction}
+${modeInstruction}${eventModeInstructions}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${hypothesisModeInstruction}${noFactsInstruction}${citationInstruction}
 
 【絶対ルール】
 1. 架空の数字・社名・実績は禁止。proof_points / recent_news / extracted_facts にあるものだけ使用可能
@@ -347,24 +420,48 @@ export async function POST(request: Request) {
           });
 
           // 3. qualityGate 検証
+          // eventモードはプレースホルダー禁止なのでcomplete扱い
+          const validationMode = mode === 'event' ? 'complete' : mode;
           const validation = validateLetterOutput(result.body, proofPoints, {
-            mode,
+            mode: validationMode,
             hasProofPoints: analysis_result.proof_points.length > 0,
             hasRecentNews: analysis_result.recent_news.length > 0,
+            eventPosition: user_overrides?.event_position,
           });
 
           // 4. 詳細スコア計算（factsForLetter を使用）
-          // userInput はユーザーが入力した追加コンテキスト
-          const userInput = user_overrides?.additional_context || '';
-          const detailedScore = calculateDetailedScore(
-            result.body,
-            hasFactNumbers,
-            hasProperNouns,
-            factsForLetter,
-            hasTargetUrl,
-            userInput
-          );
-          devLog.log(`Detailed score: ${detailedScore.total}, breakdown:`, detailedScore.breakdown);
+          // eventモードはEvent専用スコア、それ以外は従来の詳細スコア
+          let detailedScore: { total: number; suggestions: string[]; breakdown?: Record<string, number> };
+
+          if (mode === 'event') {
+            const eventScore = calculateEventQualityScore(
+              result.body,
+              user_overrides?.event_position
+            );
+            detailedScore = {
+              total: eventScore.total,
+              suggestions: eventScore.issues,
+              breakdown: eventScore.penalties as unknown as Record<string, number>,
+            };
+            devLog.log(`Event quality score: ${eventScore.total}, penalties:`, eventScore.penalties);
+          } else {
+            // userInput はユーザーが入力した追加コンテキスト
+            const userInput = user_overrides?.additional_context || '';
+            const standardScore = calculateDetailedScore(
+              result.body,
+              hasFactNumbers,
+              hasProperNouns,
+              factsForLetter,
+              hasTargetUrl,
+              userInput
+            );
+            detailedScore = {
+              total: standardScore.total,
+              suggestions: standardScore.suggestions,
+              breakdown: standardScore.breakdown as unknown as Record<string, number>,
+            };
+            devLog.log(`Detailed score: ${standardScore.total}, breakdown:`, standardScore.breakdown);
+          }
 
           // 品質OK（80点以上）または最終試行
           if (detailedScore.total >= 80 || attempt === maxAttempts) {
@@ -392,7 +489,9 @@ export async function POST(request: Request) {
                   score: detailedScore.total,
                   passed: detailedScore.total >= 80 && validation.ok,
                   issues: [...validation.reasons, ...detailedScore.suggestions],
-                  evaluation_comment: `Detailed score: ${detailedScore.total}/100 (${Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ')})`,
+                  evaluation_comment: mode === 'event'
+                    ? `Event quality score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`
+                    : `Detailed score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`,
                 },
                 variations: result.variations,
                 // 追加フィールド

@@ -17,13 +17,14 @@ import { z } from 'zod';
 
 // サブルート候補（優先度順）
 const SUB_ROUTE_CANDIDATES = [
-  '/news', '/topics', '/press',           // ニュース系（最優先）
-  '/sustainability', '/esg', '/csr',      // サステナビリティ
-  '/ir', '/investor',                     // IR
-  '/report', '/annual-report',            // レポート
-  '/about', '/company', '/corporate',     // 企業情報
-  '/recruit', '/careers',                 // 採用
-  '/service', '/product', '/solution',    // サービス
+  '/news', '/newsroom', '/topics', '/press', '/release',  // ニュース系（最優先）
+  '/sustainability', '/esg', '/csr',                       // サステナビリティ
+  '/ir', '/investor', '/investors',                        // IR
+  '/report', '/annual-report',                             // レポート
+  '/about', '/about-us', '/company', '/corporate', '/profile',  // 企業情報
+  '/recruit', '/careers', '/jobs',                         // 採用
+  '/service', '/services', '/product', '/products', '/solution', '/solutions',  // サービス
+  '/mobility',  // 自動車業界向け
 ];
 const MAX_PAGES = 6;  // Phase 6: コスト保護しつつ粒度向上
 const FETCH_TIMEOUT = 10000;
@@ -58,12 +59,31 @@ export function extractTextFromHtml(html: string): string {
 
 /**
  * サブルートURLを生成
+ * 言語プレフィックス（/jp/, /en/, /ja/など）を保持
  */
 function buildSubRouteUrls(baseUrl: string): string[] {
   try {
     const parsedUrl = new URL(baseUrl);
     const origin = parsedUrl.origin;
-    return SUB_ROUTE_CANDIDATES.map(path => `${origin}${path}`);
+    const pathname = parsedUrl.pathname;
+
+    // 言語プレフィックスを検出（/jp/, /en/, /ja/, /us/, /de/ など）
+    const langPrefixMatch = pathname.match(/^\/([a-z]{2})\/?$/i) ||
+                            pathname.match(/^\/([a-z]{2})\//i);
+    const langPrefix = langPrefixMatch ? `/${langPrefixMatch[1]}` : '';
+
+    // 言語プレフィックス付きでサブルートを生成
+    const urls: string[] = [];
+    for (const path of SUB_ROUTE_CANDIDATES) {
+      // 言語プレフィックスありのパス
+      if (langPrefix) {
+        urls.push(`${origin}${langPrefix}${path}`);
+      }
+      // 言語プレフィックスなしのパス（フォールバック）
+      urls.push(`${origin}${path}`);
+    }
+
+    return urls;
   } catch {
     return [];
   }

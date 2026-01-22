@@ -68,6 +68,29 @@ const FORBIDDEN_WORDS = [
 ];
 
 /**
+ * Completeモード専用禁止ワード（推察・想定・断定診断）
+ */
+const COMPLETE_MODE_FORBIDDEN_WORDS = [
+  // 推察・想定系（CxOの防御反応を誘発）
+  '推察します',
+  '推察いたします',
+  'と推察',
+  '想定されます',
+  'と想定',
+  '存じます',
+  // 断定診断系
+  '統一されておらず',
+  'が残存',
+  '残存している',
+  'が課題となる',
+  '課題が生じて',
+  // 数値プレースホルダー
+  '〇週間',
+  '〇名',
+  '〇社',
+];
+
+/**
  * テンプレ語リスト（一般論の兆候、ユーザー入力に明示されていない限り減点）
  */
 const TEMPLATE_PHRASES = [
@@ -220,6 +243,12 @@ export function validateLetterOutput(
       if (matches && matches.length > 0) {
         reasons.push(`Completeモードでプレースホルダー「${matches[0]}」が残っています`);
         break;
+      }
+    }
+    // Completeモード専用禁止ワードチェック
+    for (const word of COMPLETE_MODE_FORBIDDEN_WORDS) {
+      if (body.includes(word)) {
+        reasons.push(`Completeモードで禁止表現「${word}」が含まれています`);
       }
     }
   }

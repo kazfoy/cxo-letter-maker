@@ -186,6 +186,35 @@ const EVENT_DUAL_CTA_COMBINATIONS = [
 ];
 
 /**
+ * Event招待状専用: 冷開拓NG挨拶
+ * 関係性がない相手に「平素より」は違和感
+ */
+const EVENT_COLD_OUTREACH_NG_GREETINGS = [
+  /平素より.*お世話/,
+  /いつも.*お世話/,
+  /日頃より.*お世話/,
+];
+
+/**
+ * Event招待状専用: 立ち位置矛盾パターン
+ * 「協賛企業として参加」+「開催」は矛盾
+ */
+const EVENT_POSITION_CONFUSION_PATTERNS = [
+  { role: /協賛企業として/, action: /開催いたします|主催/ },
+  { role: /後援として/, action: /開催いたします|主催/ },
+];
+
+/**
+ * Event招待状専用: 登壇者未確定パターン
+ */
+const EVENT_UNCONFIRMED_SPEAKER_PATTERNS = [
+  /（予定）/,
+  /\(予定\)/,
+  /（調整中）/,
+  /\(調整中\)/,
+];
+
+/**
  * ニュースアサーションパターン
  */
 const NEWS_ASSERTION_PATTERNS = [
@@ -875,6 +904,9 @@ export interface EventQualityScore {
     missingTakeaways: number;
     missingPosition: number;
     tooLong: number;
+    coldOutreachGreeting: number;
+    positionConfusion: number;
+    unconfirmedSpeaker: number;
   };
   issues: string[];
 }
@@ -898,6 +930,9 @@ export function calculateEventQualityScore(
     missingTakeaways: 0,
     missingPosition: 0,
     tooLong: 0,
+    coldOutreachGreeting: 0,
+    positionConfusion: 0,
+    unconfirmedSpeaker: 0,
   };
 
   // 1. 無根拠診断検出 (-15点/件、上限-30点)
@@ -951,6 +986,29 @@ export function calculateEventQualityScore(
   if (paragraphCount > 5 || body.length > 500) {
     penalties.tooLong = 10;
     issues.push('文章が長すぎます。5段落以内、450文字以内に収めてください');
+  }
+
+  // 7. 冷開拓NG挨拶検出 (-10点)
+  const coldGreetingHit = EVENT_COLD_OUTREACH_NG_GREETINGS.some(p => p.test(body));
+  if (coldGreetingHit) {
+    penalties.coldOutreachGreeting = 10;
+    issues.push('冷開拓では「平素より」ではなく「突然のご連絡失礼いたします」を使用してください');
+  }
+
+  // 8. 立ち位置矛盾検出 (-15点)
+  for (const { role, action } of EVENT_POSITION_CONFUSION_PATTERNS) {
+    if (role.test(body) && action.test(body)) {
+      penalties.positionConfusion = 15;
+      issues.push('立ち位置が矛盾しています（協賛なら「開催」ではなく主催者を明記）');
+      break;
+    }
+  }
+
+  // 9. 登壇者未確定検出 (-5点)
+  const unconfirmedHit = EVENT_UNCONFIRMED_SPEAKER_PATTERNS.some(p => p.test(body));
+  if (unconfirmedHit) {
+    penalties.unconfirmedSpeaker = 5;
+    issues.push('「（予定）」は信頼を削ります。役職名でぼかすか確定後に送付してください');
   }
 
   const totalPenalty = Object.values(penalties).reduce((a, b) => a + b, 0);

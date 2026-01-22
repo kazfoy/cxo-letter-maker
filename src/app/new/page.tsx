@@ -522,11 +522,21 @@ function NewLetterPageContent() {
   }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
   // V2フロー: 分析結果を使ってレター生成
-  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete') => {
+  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete' | 'event') => {
     if (!analysisResult) return;
 
     setIsGeneratingV2(true);
     setIsGenerating(true);
+
+    // eventモードの場合、formDataからイベント情報をマージ
+    const finalOverrides: UserOverrides = generateMode === 'event'
+      ? {
+          ...overrides,
+          event_name: formData.eventName || overrides.event_name,
+          event_datetime: formData.eventDateTime || overrides.event_datetime,
+          event_speakers: formData.eventSpeakers || overrides.event_speakers,
+        }
+      : overrides;
 
     try {
       const response = await fetch('/api/generate-v2', {
@@ -534,7 +544,7 @@ function NewLetterPageContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysis_result: analysisResult,
-          user_overrides: overrides,
+          user_overrides: finalOverrides,
           sender_info: {
             company_name: formData.myCompanyName,
             department: '',
@@ -1112,6 +1122,7 @@ function NewLetterPageContent() {
         onConfirm={handleGenerateV2}
         isLoading={isGeneratingV2}
         hasUrl={Boolean(resolvedTargetUrl)}
+        letterMode={mode}
       />
     </div>
   );

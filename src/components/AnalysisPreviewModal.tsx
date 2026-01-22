@@ -22,9 +22,10 @@ interface AnalysisPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   analysisResult: AnalysisResult | null;
-  onConfirm: (overrides: UserOverrides, mode: 'draft' | 'complete') => void;
+  onConfirm: (overrides: UserOverrides, mode: 'draft' | 'complete' | 'event') => void;
   isLoading: boolean;
   hasUrl: boolean;
+  letterMode?: 'sales' | 'event';  // ページレベルのモード
 }
 
 export function AnalysisPreviewModal({
@@ -34,6 +35,7 @@ export function AnalysisPreviewModal({
   onConfirm,
   isLoading,
   hasUrl,
+  letterMode = 'sales',
 }: AnalysisPreviewModalProps) {
   // Draftモード自動判定: URLなし または 情報が少ない場合
   const shouldDefaultToDraft = !hasUrl || (analysisResult?.missing_info.filter(m => m.priority === 'high').length ?? 0) > 2;
@@ -48,8 +50,10 @@ export function AnalysisPreviewModal({
   }, []);
 
   const handleConfirm = useCallback(() => {
-    onConfirm(overrides, mode);
-  }, [onConfirm, overrides, mode]);
+    // eventモードの場合は'event'を、それ以外はdraft/completeを渡す
+    const apiMode = letterMode === 'event' ? 'event' : mode;
+    onConfirm(overrides, apiMode);
+  }, [onConfirm, overrides, mode, letterMode]);
 
   if (!isOpen) return null;
 

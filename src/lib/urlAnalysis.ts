@@ -33,6 +33,26 @@ const FETCH_TIMEOUT = 10000;
 const MAX_SIZE = 5 * 1024 * 1024;
 
 /**
+ * HTMLからページタイトルを抽出
+ */
+function extractTitleFromHtml(html: string): string | undefined {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (titleMatch && titleMatch[1]) {
+    // HTMLエンティティをデコードし、余分な空白を除去
+    return titleMatch[1]
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 100); // 長すぎるタイトルは切り詰め
+  }
+  return undefined;
+}
+
+/**
  * HTMLからテキストを抽出する（シンプル実装）
  */
 export function extractTextFromHtml(html: string): string {
@@ -91,10 +111,15 @@ function buildSubRouteUrls(baseUrl: string): string[] {
   }
 }
 
+interface FetchResult {
+  content: string;
+  title?: string;
+}
+
 /**
- * ページコンテンツを安全に取得
+ * ページコンテンツを安全に取得（タイトル付き）
  */
-async function fetchPageContent(url: string): Promise<string | null> {
+async function fetchPageContent(url: string): Promise<FetchResult | null> {
   try {
     const response = await safeFetch(
       url,
@@ -112,7 +137,9 @@ async function fetchPageContent(url: string): Promise<string | null> {
 
     if (!response.ok) return null;
     const html = await response.text();
-    return extractTextFromHtml(html).substring(0, 8000);
+    const title = extractTitleFromHtml(html);
+    const content = extractTextFromHtml(html).substring(0, 8000);
+    return { content, title };
   } catch {
     return null;
   }
@@ -194,12 +221,21 @@ function normalizeUrl(url: string): string {
  */
 function detectCategory(url: string): InformationSource['category'] {
   try {
-    const pathname = new URL(url).pathname.toLowerCase();
-    if (pathname.includes('/about') || pathname.includes('/company') || pathname.includes('/corporate')) return 'corporate';
-    if (pathname.includes('/news') || pathname.includes('/press') || pathname.includes('/release')) return 'news';
-    if (pathname.includes('/recruit') || pathname.includes('/careers') || pathname.includes('/job')) return 'recruit';
-    if (pathname.includes('/ir') || pathname.includes('/investor')) return 'ir';
-    if (pathname.includes('/product') || pathname.includes('/service') || pathname.includes('/solution')) return 'product';
+    const parsedUrl = new URL(url);
+    const pathname = parsedUrl.pathname.toLowerCase();
+
+    // 言語プレフィックスを除去してからマッチング（/jp/, /en/ など）
+    const pathWithoutLang = pathname.replace(/^\/[a-z]{2}(\/|$)/i, '/');
+
+    // トップページ（/または空）の場合は corporate
+    if (pathWithoutLang === '/' || pathWithoutLang === '') return 'corporate';
+
+    if (pathWithoutLang.includes('/about') || pathWithoutLang.includes('/company') || pathWithoutLang.includes('/corporate') || pathWithoutLang.includes('/profile')) return 'corporate';
+    if (pathWithoutLang.includes('/news') || pathWithoutLang.includes('/press') || pathWithoutLang.includes('/release') || pathWithoutLang.includes('/newsroom') || pathWithoutLang.includes('/topics')) return 'news';
+    if (pathWithoutLang.includes('/recruit') || pathWithoutLang.includes('/careers') || pathWithoutLang.includes('/job')) return 'recruit';
+    if (pathWithoutLang.includes('/ir') || pathWithoutLang.includes('/investor')) return 'ir';
+    if (pathWithoutLang.includes('/product') || pathWithoutLang.includes('/service') || pathWithoutLang.includes('/solution') || pathWithoutLang.includes('/mobility')) return 'product';
+    if (pathWithoutLang.includes('/sustainability') || pathWithoutLang.includes('/esg') || pathWithoutLang.includes('/csr')) return 'corporate';
     return 'other';
   } catch {
     return 'other';
@@ -372,25 +408,26 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
     const pageContents: Array<{ url: string; content: string; title?: string }> = [];
 
     // トップページを取得
-    const topPageContent = await fetchPageContent(baseUrl);
-    if (!topPageContent || topPageContent.length < 50) {
+    const topPageResult = await fetchPageContent(baseUrl);
+    if (!topPageResult || topPageResult.content.length < 50) {
       return null;
     }
 
-    // hostnameをfallback titleとして取得
+    // タイトル優先順位: 抽出タイトル > hostname
     let hostname: string | undefined;
     try {
       hostname = new URL(baseUrl).hostname;
     } catch {
       hostname = undefined;
     }
+    const topPageTitle = topPageResult.title || hostname;
 
     // トップページを追加
     const normalizedBaseUrl = normalizeUrl(baseUrl);
-    pageContents.push({ url: baseUrl, content: topPageContent, title: hostname });
+    pageContents.push({ url: baseUrl, content: topPageResult.content, title: topPageTitle });
     sourceMap.set(normalizedBaseUrl, {
       url: baseUrl,
-      title: hostname,
+      title: topPageTitle,
       category: detectCategory(baseUrl),
       isPrimary: false,
     });
@@ -401,11 +438,11 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
 
     const subRouteResults = await Promise.allSettled(
       subRouteUrls.map(async (subUrl) => {
-        const content = await fetchPageContent(subUrl);
-        if (content) {
-          devLog.log(`✓ Successfully fetched: ${subUrl} (${content.length} chars)`);
+        const result = await fetchPageContent(subUrl);
+        if (result) {
+          devLog.log(`✓ Successfully fetched: ${subUrl} (${result.content.length} chars, title: ${result.title || 'none'})`);
         }
-        return { url: subUrl, content };
+        return { url: subUrl, result };
       })
     );
 
@@ -413,13 +450,13 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
     for (const settled of subRouteResults) {
       if (pageContents.length >= MAX_PAGES) break;
 
-      if (settled.status === 'fulfilled' && settled.value.content) {
-        const { url: subUrl, content } = settled.value;
+      if (settled.status === 'fulfilled' && settled.value.result) {
+        const { url: subUrl, result } = settled.value;
         const normalizedSubUrl = normalizeUrl(subUrl);
 
         // 重複排除
         if (!sourceMap.has(normalizedSubUrl)) {
-          // URLパスからfallback titleを生成
+          // タイトル優先順位: 抽出タイトル > URLパスから生成
           let fallbackTitle: string | undefined;
           try {
             const urlObj = new URL(subUrl);
@@ -427,10 +464,11 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
             fallbackTitle = pathParts.length > 0 ? pathParts[pathParts.length - 1] : undefined;
           } catch { /* ignore */ }
 
-          pageContents.push({ url: subUrl, content, title: fallbackTitle });
+          const pageTitle = result.title || fallbackTitle;
+          pageContents.push({ url: subUrl, content: result.content, title: pageTitle });
           sourceMap.set(normalizedSubUrl, {
             url: subUrl,
-            title: fallbackTitle,
+            title: pageTitle,
             category: detectCategory(subUrl),
             isPrimary: false,
           });

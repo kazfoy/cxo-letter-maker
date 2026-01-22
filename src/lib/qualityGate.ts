@@ -118,6 +118,18 @@ const UNFOUNDED_DIAGNOSIS_PATTERNS = [
   /(?:貴社|御社)では.{1,30}(?:と推察|と存じ|と思われ|と考えます)/,
   /(?:貴社|御社).{1,20}(?:が課題|が問題|にお悩み)(?:だと|である|と)(?:推察|存じ|思われ)/,
   /(?:確信しております|間違いございません|間違いなく)/,
+  // 断定診断パターン（相手の内部事情を決めつけ）
+  /(?:貴社|御社).{1,30}(?:統一されておらず|されていない|が残存|残っており)/,
+  /(?:貴社|御社).{1,30}(?:に課題が生じている|が生じている|を要する)/,
+  /(?:貴社|御社).{1,30}(?:といった状況|という状況|も想定されます)/,
+];
+
+/**
+ * 宛名の二重表現パターン
+ */
+const SALUTATION_REDUNDANCY_PATTERNS = [
+  /ご担当者.*?様/,  // 「ご担当者 田中様」など
+  /ご担当.*?[様殿]/,
 ];
 
 /**
@@ -502,7 +514,16 @@ export function calculateDetailedScore(
   if (unfoundedHits.length > 0) {
     noNgExpressions -= Math.min(unfoundedHits.length * 10, 20);
     if (suggestions.length < 3) {
-      suggestions.push('「推察します」等の無根拠診断を避け、一般論型（「多くの企業で論点となっている〜」）に置き換えてください');
+      suggestions.push('相手企業の状況を断定せず、一般論型（「一般に〜が論点になりやすい」）に置き換えてください');
+    }
+  }
+
+  // 宛名二重表現検出（-5点）
+  const salutationRedundancy = SALUTATION_REDUNDANCY_PATTERNS.some(p => p.test(body));
+  if (salutationRedundancy) {
+    noNgExpressions -= 5;
+    if (suggestions.length < 3) {
+      suggestions.push('宛名が二重です。「田中様」または「ご担当者様」のどちらかに統一してください');
     }
   }
 

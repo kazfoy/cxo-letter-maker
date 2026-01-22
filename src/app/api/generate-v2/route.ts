@@ -272,7 +272,7 @@ function convertToQualityGateProofPoints(analysisProofPoints: AnalysisResult['pr
   return analysisProofPoints.map(p => ({
     type: p.type,
     content: p.content,
-    source: p.source,
+    source: p.source ?? undefined,
     confidence: p.confidence,
   }));
 }
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
       const proofPoints = convertToQualityGateProofPoints(analysis_result.proof_points);
 
       // ファクト選定
-      const targetPosition = user_overrides?.person_position || analysis_result.facts.person_position;
+      const targetPosition = user_overrides?.person_position || (analysis_result.facts.person_position ?? undefined);
       const productStrength = sender_info.service_description;
       const { factsForLetter } = selectFactsForLetter(
         analysis_result.extracted_facts,

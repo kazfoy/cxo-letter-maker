@@ -11,7 +11,7 @@ import { z } from 'zod';
 export const ProofPointSchema = z.object({
   type: z.enum(['numeric', 'case_study', 'news', 'inference']),
   content: z.string().min(1),
-  source: z.string().optional(),
+  source: z.string().nullish(),
   confidence: z.enum(['high', 'medium', 'low']),
 });
 
@@ -39,8 +39,8 @@ export const SignalSchema = z.object({
 export const NewsItemSchema = z.object({
   headline: z.string(),
   summary: z.string(),
-  date: z.string().optional(),
-  source_url: z.string().optional(),
+  date: z.string().nullish(),
+  source_url: z.string().nullish(),
 });
 
 /**
@@ -66,12 +66,12 @@ export const HypothesesSchema = z.object({
  * ファクトスキーマ
  */
 export const FactsSchema = z.object({
-  company_name: z.string().optional(),
-  person_name: z.string().optional(),
-  person_position: z.string().optional(),
-  industry: z.string().optional(),
-  company_size: z.string().optional(),
-  recent_events: z.array(z.string()).optional(),
+  company_name: z.string().nullish(),
+  person_name: z.string().nullish(),
+  person_position: z.string().nullish(),
+  industry: z.string().nullish(),
+  company_size: z.string().nullish(),
+  recent_events: z.array(z.string()).nullish(),
 });
 
 /**

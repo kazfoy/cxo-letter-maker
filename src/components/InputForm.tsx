@@ -27,8 +27,16 @@ interface InputFormProps {
   onReset?: () => void;
   disabled?: boolean;
   onGenerationAttempt?: () => void | Promise<void>;
-  /** V2統一生成関数。指定されている場合、V1 APIの代わりにこの関数が呼ばれる */
+  /** V2統一生成関数（モーダルなしで一括生成） */
   onGenerateV2?: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
+  /** クイック下書き生成（salesモード用） */
+  onQuickDraft?: () => Promise<void>;
+  /** 根拠付き生成（分析→モーダル→生成、salesモード用） */
+  onAnalyzeAndGenerate?: () => Promise<void>;
+  /** クイック下書き生成中フラグ */
+  isQuickDrafting?: boolean;
+  /** 根拠付き生成中（分析中）フラグ */
+  isAnalyzing?: boolean;
 }
 
 export function InputForm({
@@ -42,6 +50,10 @@ export function InputForm({
   disabled = false,
   onGenerationAttempt,
   onGenerateV2,
+  onQuickDraft,
+  onAnalyzeAndGenerate,
+  isQuickDrafting = false,
+  isAnalyzing = false,
 }: InputFormProps) {
   const {
     // State
@@ -56,13 +68,11 @@ export function InputForm({
     generationSuccess,
     inputMode,
     structureSuggestionModalOpen,
-    inputComplexity,
     // State setters
     setAiModalOpen,
     setMultiSourceModalOpen,
     setStructureSuggestionModalOpen,
     setInputMode,
-    setInputComplexity,
     // Handlers
     handleChange,
     handleAIAssist,
@@ -86,6 +96,9 @@ export function InputForm({
   });
 
   const labels = mode === 'sales' ? FORM_LABELS.sales : FORM_LABELS.event;
+
+  // salesモード用：ボタン無効化判定
+  const isSalesButtonDisabled = disabled || isQuickDrafting || isAnalyzing || isGeneratingLocal;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
@@ -125,13 +138,11 @@ export function InputForm({
         {mode === 'sales' ? (
           <SalesForm
             formData={formData}
-            inputComplexity={inputComplexity}
             inputMode={inputMode}
             handleChange={handleChange}
             handleOpenMultiSourceModal={handleOpenMultiSourceModal}
             handleAIAssist={handleAIAssist}
             handleOpenStructureSuggestion={handleOpenStructureSuggestion}
-            setInputComplexity={setInputComplexity}
             setInputMode={setInputMode}
             setFormData={setFormData}
           />
@@ -150,54 +161,117 @@ export function InputForm({
 
 
         {/* 送信ボタンエリア */}
-        <div className="flex gap-3 flex-col sm:flex-row">
-          <button
-            type="submit"
-            disabled={isGeneratingLocal || disabled}
-            className={`flex-1 py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
-              ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-              : isGeneratingLocal
-                ? 'bg-indigo-500 text-white cursor-wait'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            aria-label={labels.submit}
-          >
-            {generationSuccess ? (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{BUTTON_TEXTS.generationComplete}</span>
-              </>
-            ) : isGeneratingLocal ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>{BUTTON_TEXTS.generating}</span>
-              </>
-            ) : (
-              <>
-                <span className="text-lg">{ICONS.submit}</span>
-                <span>{labels.submit}</span>
-              </>
-            )}
-          </button>
+        {mode === 'sales' ? (
+          /* salesモード: 2つの専用ボタン */
+          <div className="space-y-3">
+            {/* まずは下書き（クイック）ボタン */}
+            <button
+              type="button"
+              onClick={onQuickDraft}
+              disabled={isSalesButtonDisabled}
+              className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2
+                ${isQuickDrafting
+                  ? 'bg-slate-400 text-white cursor-wait'
+                  : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 focus:ring-slate-400'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isQuickDrafting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>下書き生成中...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg">✏️</span>
+                  <span>まずは下書き（クイック）</span>
+                </>
+              )}
+            </button>
 
-          {/* メール生成ボタン */}
-          <button
-            type="button"
-            onClick={handleGenerateEmail}
-            disabled={isGeneratingLocal || disabled}
-            className={`flex-1 py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 border-2
-            ${isGeneratingLocal || disabled
-                ? 'border-slate-200 text-slate-300 cursor-not-allowed'
-                : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
-              }`}
-            aria-label="メールとして生成"
-          >
-            <span className="text-lg">✉️</span>
-            <span>メールとして生成</span>
-          </button>
-        </div>
+            {/* 根拠付きで生成（分析）ボタン - メインCTA */}
+            <button
+              type="button"
+              onClick={onAnalyzeAndGenerate}
+              disabled={isSalesButtonDisabled}
+              className={`w-full py-3.5 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg
+                ${generationSuccess
+                  ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+                  : isAnalyzing
+                    ? 'bg-indigo-500 text-white cursor-wait'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-xl focus:ring-indigo-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {generationSuccess ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{BUTTON_TEXTS.generationComplete}</span>
+                </>
+              ) : isAnalyzing ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>分析中...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg">🔍</span>
+                  <span>根拠付きで生成（分析）</span>
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          /* eventモード: 従来のボタン構成 */
+          <div className="flex gap-3 flex-col sm:flex-row">
+            <button
+              type="submit"
+              disabled={isGeneratingLocal || disabled}
+              className={`flex-1 py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 ${generationSuccess
+                ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+                : isGeneratingLocal
+                  ? 'bg-indigo-500 text-white cursor-wait'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-indigo-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              aria-label={labels.submit}
+            >
+              {generationSuccess ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{BUTTON_TEXTS.generationComplete}</span>
+                </>
+              ) : isGeneratingLocal ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>{BUTTON_TEXTS.generating}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-lg">{ICONS.submit}</span>
+                  <span>{labels.submit}</span>
+                </>
+              )}
+            </button>
+
+            {/* メール生成ボタン */}
+            <button
+              type="button"
+              onClick={handleGenerateEmail}
+              disabled={isGeneratingLocal || disabled}
+              className={`flex-1 py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 border-2
+              ${isGeneratingLocal || disabled
+                  ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                  : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+                }`}
+              aria-label="メールとして生成"
+            >
+              <span className="text-lg">✉️</span>
+              <span>メールとして生成</span>
+            </button>
+          </div>
+        )}
       </form>
 
       {/* AIアシストモーダル */}

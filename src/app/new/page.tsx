@@ -75,6 +75,7 @@ function NewLetterPageContent() {
   const [urlWarning, setUrlWarning] = useState<string | null>(null);
   const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [isQuickDrafting, setIsQuickDrafting] = useState(false);
 
   // URLを抽出するユーティリティ関数
   const extractFirstUrl = useCallback((text?: string): string | undefined => {
@@ -440,6 +441,57 @@ function NewLetterPageContent() {
       return;
     }
 
+    await handleAnalyzeForV2WithFormData(formData);
+  }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
+
+  // salesモード用：クイック下書き生成（モーダルなしで一括生成）
+  const handleQuickDraft = useCallback(async () => {
+    // バリデーション：企業名またはURLのどちらか必須
+    if (!formData.companyName && !formData.targetUrl?.trim()) {
+      alert('企業名またはURLのどちらかを入力してください');
+      return;
+    }
+    // サービス概要は必須
+    if (!formData.myServiceDescription) {
+      alert('自社サービス概要を入力してください');
+      return;
+    }
+
+    // ゲスト制限チェック
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+      return;
+    }
+
+    setIsQuickDrafting(true);
+    try {
+      // V2統一生成（分析+生成を一括実行、モーダルなし）
+      await ensureAnalysisThenGenerateV2(formData, 'letter');
+    } finally {
+      setIsQuickDrafting(false);
+    }
+  }, [formData, usage, user, ensureAnalysisThenGenerateV2]);
+
+  // salesモード用：根拠付き生成（分析→モーダル→生成）
+  const handleAnalyzeAndGenerate = useCallback(async () => {
+    // バリデーション：企業名またはURLのどちらか必須
+    if (!formData.companyName && !formData.targetUrl?.trim()) {
+      alert('企業名またはURLのどちらかを入力してください');
+      return;
+    }
+    // サービス概要は必須
+    if (!formData.myServiceDescription) {
+      alert('自社サービス概要を入力してください');
+      return;
+    }
+
+    // ゲスト制限チェック
+    if (usage?.isLimitReached && !user) {
+      setShowLimitModal(true);
+      return;
+    }
+
+    // 分析→モーダル表示（モーダル内で生成ボタン押下後に生成実行）
     await handleAnalyzeForV2WithFormData(formData);
   }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
@@ -836,19 +888,21 @@ function NewLetterPageContent() {
               </button>
             </div>
 
-            {/* V2フロートグル */}
-            <div className="flex items-center gap-2">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useV2Flow}
-                  onChange={(e) => setUseV2Flow(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                <span className="ml-2 text-sm font-medium text-slate-700 hidden sm:inline">高品質モード</span>
-              </label>
-            </div>
+            {/* V2フロートグル（eventモード時のみ表示、salesは常にV2固定） */}
+            {mode === 'event' && (
+              <div className="flex items-center gap-2">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useV2Flow}
+                    onChange={(e) => setUseV2Flow(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <span className="ml-2 text-sm font-medium text-slate-700 hidden sm:inline">高品質モード</span>
+                </label>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -907,8 +961,8 @@ function NewLetterPageContent() {
 
             {/* 中央: 入力フォーム（自然に伸びる） */}
             <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} transition-all duration-300`}>
-              {/* V2モード時の分析ボタン */}
-              {useV2Flow && (
+              {/* V2モード時の分析ボタン（eventモード時のみ表示、salesは専用ボタンに統合） */}
+              {useV2Flow && mode === 'event' && (
                 <div className="mb-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
@@ -978,6 +1032,10 @@ function NewLetterPageContent() {
                 onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
                 onGenerateV2={mode === 'sales' ? ensureAnalysisThenGenerateV2 : undefined}
+                onQuickDraft={mode === 'sales' ? handleQuickDraft : undefined}
+                onAnalyzeAndGenerate={mode === 'sales' ? handleAnalyzeAndGenerate : undefined}
+                isQuickDrafting={isQuickDrafting}
+                isAnalyzing={isAnalyzing}
               />
             </div>
 

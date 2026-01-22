@@ -20,6 +20,7 @@ import type { UserOverrides, Citation } from '@/types/generate-v2';
 import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails } from '@/lib/errorUtils';
 import { normalizeLetterText } from '@/lib/textNormalize';
+import { resolveTargetUrl } from '@/lib/urlUtils';
 
 function NewLetterPageContent() {
   const { user } = useAuth();
@@ -77,14 +78,6 @@ function NewLetterPageContent() {
   const [generatedCitations, setGeneratedCitations] = useState<Citation[] | undefined>(undefined);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
-
-  // URLを抽出するユーティリティ関数
-  const extractFirstUrl = useCallback((text?: string): string | undefined => {
-    if (!text) return undefined;
-    const urlPattern = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
-    const matches = text.match(urlPattern);
-    return matches?.[0];
-  }, []);
 
   // 再分析が必要か判定
   const shouldReanalyze = useCallback((
@@ -331,9 +324,19 @@ function NewLetterPageContent() {
     setGenerationError(null);
 
     try {
-      // 1. targetUrl を解決
-      const targetUrl = inputFormData.targetUrl?.trim() || extractFirstUrl(inputFormData.freeformInput);
+      // 1. 統一されたtargetUrl解決
+      const targetUrl = resolveTargetUrl(inputFormData);
       setResolvedTargetUrl(targetUrl);
+
+      // デバッグ情報をconsoleに出力（開発時のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[V2 Analyze] targetUrl resolution:', {
+          explicitTargetUrl: inputFormData.targetUrl,
+          eventUrl: inputFormData.eventUrl,
+          freeformInput: inputFormData.freeformInput?.substring(0, 100),
+          resolvedTargetUrl: targetUrl,
+        });
+      }
 
       // 2. 分析を実行（analysisResult がない、または主要フィールドが変わった場合）
       let currentAnalysis = analysisResult;
@@ -362,7 +365,7 @@ function NewLetterPageContent() {
       setIsGenerating(false);
       setIsGeneratingV2(false);
     }
-  }, [analysisResult, shouldReanalyze, runAnalysis, executeGenerateV2WithRetry, extractFirstUrl]);
+  }, [analysisResult, shouldReanalyze, runAnalysis, executeGenerateV2WithRetry]);
 
   // V2フロー: 分析APIを呼び出してモーダルを表示（フォームデータを引数で受け取るバージョン）
   const handleAnalyzeForV2WithFormData = useCallback(async (inputFormData: LetterFormData) => {
@@ -371,14 +374,24 @@ function NewLetterPageContent() {
     _setUrlWarning(null);
 
     try {
-      // ターゲットURLを解決（入力欄優先、なければfreeformInputから抽出）
-      const targetUrl = inputFormData.targetUrl?.trim() || extractFirstUrl(inputFormData.freeformInput);
+      // 統一されたtargetUrl解決
+      const targetUrl = resolveTargetUrl(inputFormData);
       setResolvedTargetUrl(targetUrl);
+
+      // デバッグ情報をconsoleに出力（開発時のみ）
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[V2 Analyze] targetUrl resolution:', {
+          explicitTargetUrl: inputFormData.targetUrl,
+          eventUrl: inputFormData.eventUrl,
+          freeformInput: inputFormData.freeformInput?.substring(0, 100),
+          resolvedTargetUrl: targetUrl,
+        });
+      }
 
       // URL未入力時は警告を表示（ブロックはしない）
       if (!targetUrl) {
         _setUrlWarning('URLが未入力です。分析精度が低下する可能性があります。');
-        console.warn('URLが未入力です。分析精度が低下する可能性があります。');
+        console.warn('[V2 Analyze] URLが未入力です。分析精度が低下する可能性があります。');
       }
 
       // ユーザーノートを構築（フォームデータから）
@@ -429,7 +442,7 @@ function NewLetterPageContent() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [extractFirstUrl]);
+  }, []);
 
   // V2フロー: 分析APIを呼び出してモーダルを表示
   const _handleAnalyzeForV2 = useCallback(async () => {

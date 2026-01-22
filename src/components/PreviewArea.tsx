@@ -11,6 +11,7 @@ import { ProFeatureModal } from './ProFeatureModal';
 import { SourcesDisplay } from './SourcesDisplay';
 import type { LetterStatus } from '@/types/letter';
 import type { InformationSource } from '@/types/analysis';
+import type { Citation } from '@/types/generate-v2';
 import { normalizeLetterText } from '@/lib/textNormalize';
 
 // LocalStorageキー
@@ -40,6 +41,7 @@ interface PreviewAreaProps {
   onEmailChange?: (email: { subject: string; body: string }) => void;
   onSave?: () => void;
   sources?: InformationSource[];
+  citations?: Citation[];
   hasUrl?: boolean;
 }
 
@@ -57,6 +59,7 @@ export function PreviewArea({
   onEmailChange,
   onSave,
   sources,
+  citations,
   hasUrl = false,
 }: PreviewAreaProps) {
   const { user } = useAuth();
@@ -634,8 +637,10 @@ export function PreviewArea({
         <div className="mt-6">
           <SourcesDisplay
             sources={sources}
+            citations={citations}
             hasUrl={hasUrl}
             defaultExpanded={false}
+            bodyText={content}
           />
         </div>
       )}

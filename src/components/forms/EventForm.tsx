@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { EVENT_PLACEHOLDERS } from '@/lib/placeholders';
-import { FIELD_LABELS, BUTTON_TEXTS, MESSAGES, TAB_LABELS, ICONS, REQUIRED_MARK } from '@/lib/constants';
+import { FIELD_LABELS, BUTTON_TEXTS, ICONS, REQUIRED_MARK } from '@/lib/constants';
+import { Accordion } from '@/components/ui/Accordion';
 import type { LetterFormData } from '@/types/letter';
 
 interface EventFormProps {
@@ -12,406 +13,384 @@ interface EventFormProps {
   handleAIAssist: (field: string) => void;
   handleAnalyzeEventUrl: () => void;
   setInputMode: (mode: 'step' | 'freeform') => void;
+  setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 }
 
 export const EventForm = React.memo(function EventForm({
   formData,
-  inputMode,
   isAnalyzingSource,
   handleChange,
   handleOpenMultiSourceModal,
   handleAIAssist,
-  handleAnalyzeEventUrl,
-  setInputMode,
+  setFormData,
 }: EventFormProps) {
+  const [isAnalyzingEventUrl, setIsAnalyzingEventUrl] = useState(false);
+  const [eventUrlError, setEventUrlError] = useState<string | null>(null);
+
+  // イベントURL解析（blur時に自動実行）
+  const handleEventUrlBlur = useCallback(async () => {
+    const eventUrl = formData.eventUrl?.trim();
+    if (!eventUrl) return;
+
+    // 既に情報が入力されている場合はスキップ
+    if (formData.eventName && formData.eventDateTime) return;
+
+    // URL形式チェック
+    try {
+      new URL(eventUrl);
+    } catch {
+      return; // 無効なURLは無視
+    }
+
+    setIsAnalyzingEventUrl(true);
+    setEventUrlError(null);
+
+    try {
+      const response = await fetch('/api/analyze-event-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_url: eventUrl }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        // 自動補完（空のフィールドのみ）
+        setFormData(prev => ({
+          ...prev,
+          eventName: prev.eventName || data.data.eventName || '',
+          eventDateTime: prev.eventDateTime || data.data.eventDateTime || '',
+          eventSpeakers: prev.eventSpeakers || data.data.eventSpeakers || '',
+        }));
+      } else {
+        setEventUrlError(data.message || 'イベント情報を取得できませんでした');
+      }
+    } catch (error) {
+      console.error('Event URL analysis failed:', error);
+      setEventUrlError('イベント情報の取得に失敗しました。手動で入力してください。');
+    } finally {
+      setIsAnalyzingEventUrl(false);
+    }
+  }, [formData.eventUrl, formData.eventName, formData.eventDateTime, setFormData]);
+
   return (
     <>
-      {/* 自社情報 */}
-      <div className="border-b pb-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-medium text-gray-700">差出人（自社）情報</h3>
-          <button
-            type="button"
-            onClick={() => handleOpenMultiSourceModal('own')}
-            className="bg-green-50 text-green-700 border border-green-300 px-3 py-1.5 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
-            aria-label={BUTTON_TEXTS.ownHp}
-          >
-            {ICONS.ownHp} {BUTTON_TEXTS.ownHp}
-          </button>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="myCompanyName" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.myCompanyName} <span className="text-red-500">{REQUIRED_MARK}</span>
-            </label>
-            <input
-              type="text"
-              id="myCompanyName"
-              name="myCompanyName"
-              value={formData.myCompanyName}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.myCompanyName}
-            />
-          </div>
-          <div>
-            <label htmlFor="myDepartment" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.myDepartment}
-            </label>
-            <input
-              type="text"
-              id="myDepartment"
-              name="myDepartment"
-              value={formData.myDepartment || ''}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.myDepartment}
-            />
-          </div>
-          <div>
-            <label htmlFor="myName" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.myName} <span className="text-red-500">{REQUIRED_MARK}</span>
-            </label>
-            <input
-              type="text"
-              id="myName"
-              name="myName"
-              value={formData.myName}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.myName}
-            />
-          </div>
-          <div>
-            <label htmlFor="myServiceDescription" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.myServiceDescription} <span className="text-red-500">{REQUIRED_MARK}</span>
-            </label>
-            <textarea
-              id="myServiceDescription"
-              name="myServiceDescription"
-              value={formData.myServiceDescription}
-              onChange={handleChange}
-              required
-              rows={3}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.myServiceDescription}
-              maxLength={500}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ターゲット情報 */}
-      <div className="border-b pb-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-medium text-gray-700">ターゲット情報</h3>
-          <button
-            type="button"
-            onClick={() => handleOpenMultiSourceModal('target')}
-            className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
-            aria-label={BUTTON_TEXTS.targetHp}
-          >
-            {ICONS.targetHp} {BUTTON_TEXTS.targetHp}
-          </button>
+      {/* 最小入力セクション（常時表示） */}
+      <div className="space-y-4">
+        {/* 相手企業名 */}
+        <div>
+          <label htmlFor="companyName" className="block text-sm font-medium text-slate-700 mb-2">
+            相手企業名 <span className="text-red-500">{REQUIRED_MARK}</span>
+          </label>
+          <input
+            type="text"
+            id="companyName"
+            name="companyName"
+            value={formData.companyName}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            placeholder={EVENT_PLACEHOLDERS.companyName}
+          />
         </div>
 
-        {/* URL未入力時の警告バナー */}
-        {!formData.targetUrl && (
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4 flex items-start gap-3">
-            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-amber-800">相手企業URLが未入力です</p>
-              <p className="text-xs text-amber-600 mt-1">高品質なレター生成にはURLが基本必須です。URLを入力すると具体的なファクトを抽出し、説得力のあるレターを作成できます</p>
-            </div>
-          </div>
-        )}
+        {/* 相手企業URL（推奨） */}
+        <div>
+          <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
+            相手企業URL <span className="text-purple-600 text-xs font-medium">（推奨）</span>
+          </label>
+          <input
+            type="url"
+            id="targetUrl"
+            name="targetUrl"
+            value={formData.targetUrl || ''}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            placeholder="https://example.com（招待先企業のURL）"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            <span className="text-purple-600 font-medium">URLを入れると、相手企業の情報を分析</span>して説得力のある招待状を作成できます
+          </p>
+        </div>
 
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.companyName} <span className="text-red-500">{REQUIRED_MARK}</span>
-            </label>
-            <input
-              type="text"
-              id="companyName"
-              name="companyName"
-              value={formData.companyName}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.companyName}
-            />
-          </div>
-
-          {/* 相手企業URL（推奨） */}
-          <div>
-            <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-              相手企業URL <span className="text-slate-500 text-xs font-normal">（推奨）</span>
-            </label>
+        {/* イベントURL（推奨・自動解析） */}
+        <div>
+          <label htmlFor="eventUrl" className="block text-sm font-medium text-slate-700 mb-2">
+            イベントURL <span className="text-purple-600 text-xs font-medium">（推奨・自動解析）</span>
+          </label>
+          <div className="relative">
             <input
               type="url"
-              id="targetUrl"
-              name="targetUrl"
-              value={formData.targetUrl || ''}
+              id="eventUrl"
+              name="eventUrl"
+              value={formData.eventUrl || ''}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder="https://example.com"
+              onBlur={handleEventUrlBlur}
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+              placeholder={EVENT_PLACEHOLDERS.eventUrl}
             />
-            <p className="mt-1 text-xs text-slate-500">URLを入れると分析精度が上がります</p>
+            {isAnalyzingEventUrl && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+              </div>
+            )}
           </div>
+          {eventUrlError ? (
+            <p className="mt-1 text-xs text-amber-600">{eventUrlError}</p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">URLを入れるとイベント名・日時などを自動取得します</p>
+          )}
+        </div>
 
-          <div>
-            <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
-              {FIELD_LABELS.department}
+        {/* 招待の目的ひとこと（任意） */}
+        <div>
+          <label htmlFor="invitationReason" className="block text-sm font-medium text-slate-700 mb-2">
+            招待の目的ひとこと <span className="text-xs text-slate-500">（任意）</span>
+          </label>
+          <textarea
+            id="invitationReason"
+            name="invitationReason"
+            value={formData.invitationReason || ''}
+            onChange={handleChange}
+            rows={2}
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            placeholder="例: 弊社の新サービスと御社の課題がマッチすると考え、ご招待したい"
+            maxLength={300}
+          />
+        </div>
+
+        {/* 自社サービス概要 */}
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <label htmlFor="myServiceDescription" className="block text-sm font-medium text-gray-700">
+              自社サービス概要 <span className="text-red-500">{REQUIRED_MARK}</span>
             </label>
-            <input
-              type="text"
-              id="department"
-              name="department"
-              value={formData.department || ''}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-              placeholder={EVENT_PLACEHOLDERS.department}
-            />
+            <button
+              type="button"
+              onClick={() => handleOpenMultiSourceModal('own')}
+              className="bg-green-50 text-green-700 border border-green-300 px-3 py-1 rounded-md hover:bg-green-100 transition-colors text-xs font-medium"
+              aria-label={BUTTON_TEXTS.ownHpShort}
+            >
+              {ICONS.ownHp} {BUTTON_TEXTS.ownHpShort}
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="position" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.position}
-              </label>
-              <input
-                type="text"
-                id="position"
-                name="position"
-                value={formData.position}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.position}
-              />
-            </div>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.name}
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.name}
-              />
-            </div>
-          </div>
+          <textarea
+            id="myServiceDescription"
+            name="myServiceDescription"
+            value={formData.myServiceDescription}
+            onChange={handleChange}
+            rows={3}
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            placeholder={EVENT_PLACEHOLDERS.myServiceDescription}
+            maxLength={300}
+          />
         </div>
       </div>
 
-      {/* イベント情報セクション */}
-      <div className="border-b pb-4">
-        <h3 className="font-medium text-gray-700 mb-3">イベント情報</h3>
+      {/* 詳細入力セクション（アコーディオン） */}
+      <div className="mt-6">
+        <Accordion title="詳細を編集（イベント情報・差出人・宛先詳細）" defaultExpanded={false}>
+          <div className="space-y-6">
+            {/* イベント詳細情報 */}
+            <div className="border-b pb-4">
+              <h3 className="font-medium text-gray-700 mb-3">イベント情報</h3>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="eventName" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.eventName}
+                  </label>
+                  <input
+                    type="text"
+                    id="eventName"
+                    name="eventName"
+                    value={formData.eventName || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.eventName}
+                  />
+                </div>
 
-        {/* タブUI */}
-        <div className="flex gap-2 border-b border-gray-200 mb-4">
-          <button
-            type="button"
-            onClick={() => setInputMode('step')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
-              ? 'text-purple-600 border-b-2 border-purple-600'
-              : 'text-gray-500 hover:text-gray-700'
-              }`}
-          >
-            {TAB_LABELS.stepInputDetailed}
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('freeform')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
-              ? 'text-purple-600 border-b-2 border-purple-600'
-              : 'text-gray-500 hover:text-gray-700'
-              }`}
-          >
-            {TAB_LABELS.freeformInput}
-          </button>
-        </div>
+                <div>
+                  <label htmlFor="eventDateTime" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.eventDateTime}
+                  </label>
+                  <input
+                    type="text"
+                    id="eventDateTime"
+                    name="eventDateTime"
+                    value={formData.eventDateTime || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.eventDateTime}
+                  />
+                </div>
 
-        {/* ステップ入力モード */}
-        {inputMode === 'step' && (
-          <div className="space-y-3">
-            <div>
-              <label htmlFor="eventUrl" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.eventUrl}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  id="eventUrl"
-                  name="eventUrl"
-                  value={formData.eventUrl || ''}
-                  onChange={handleChange}
-                  className="flex-1 px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                  placeholder={EVENT_PLACEHOLDERS.eventUrl}
-                />
-                <button
-                  type="button"
-                  onClick={handleAnalyzeEventUrl}
-                  disabled={!formData.eventUrl || isAnalyzingSource}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
-                >
-                  {isAnalyzingSource ? BUTTON_TEXTS.analyzing : BUTTON_TEXTS.autoAnalyze}
-                </button>
+                <div>
+                  <label htmlFor="eventSpeakers" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.eventSpeakers}
+                  </label>
+                  <textarea
+                    id="eventSpeakers"
+                    name="eventSpeakers"
+                    value={formData.eventSpeakers || ''}
+                    onChange={handleChange}
+                    rows={2}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
+                    maxLength={300}
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="eventName" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.eventName} <span className="text-red-500">{REQUIRED_MARK}</span>
-              </label>
-              <input
-                type="text"
-                id="eventName"
-                name="eventName"
-                value={formData.eventName || ''}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.eventName}
-              />
+            {/* 差出人情報 */}
+            <div className="border-b pb-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium text-gray-700">差出人（自社）情報</h3>
+                <button
+                  type="button"
+                  onClick={() => handleOpenMultiSourceModal('own')}
+                  className="bg-green-50 text-green-700 border border-green-300 px-3 py-1.5 rounded-md hover:bg-green-100 transition-colors text-sm font-medium"
+                  aria-label={BUTTON_TEXTS.ownHp}
+                >
+                  {ICONS.ownHp} {BUTTON_TEXTS.ownHp}
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="myCompanyName" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.myCompanyName}
+                  </label>
+                  <input
+                    type="text"
+                    id="myCompanyName"
+                    name="myCompanyName"
+                    value={formData.myCompanyName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.myCompanyName}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="myDepartment" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.myDepartment}
+                  </label>
+                  <input
+                    type="text"
+                    id="myDepartment"
+                    name="myDepartment"
+                    value={formData.myDepartment || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.myDepartment}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="myName" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.myName}
+                  </label>
+                  <input
+                    type="text"
+                    id="myName"
+                    name="myName"
+                    value={formData.myName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.myName}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="eventDateTime" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.eventDateTime} <span className="text-red-500">{REQUIRED_MARK}</span>
-              </label>
-              <input
-                type="text"
-                id="eventDateTime"
-                name="eventDateTime"
-                value={formData.eventDateTime || ''}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.eventDateTime}
-              />
+            {/* ターゲット詳細情報 */}
+            <div className="border-b pb-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium text-gray-700">宛先詳細情報</h3>
+                <button
+                  type="button"
+                  onClick={() => handleOpenMultiSourceModal('target')}
+                  className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+                  aria-label={BUTTON_TEXTS.targetHp}
+                >
+                  {ICONS.targetHp} {BUTTON_TEXTS.targetHp}
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="department" className="block text-sm font-medium text-slate-700 mb-2">
+                    {FIELD_LABELS.department}
+                  </label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={formData.department || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={EVENT_PLACEHOLDERS.department}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="position" className="block text-sm font-medium text-slate-700 mb-2">
+                      {FIELD_LABELS.position}
+                    </label>
+                    <input
+                      type="text"
+                      id="position"
+                      name="position"
+                      value={formData.position}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      placeholder={EVENT_PLACEHOLDERS.position}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
+                      宛名 <span className="text-xs text-slate-500">（未入力時は「ご担当者様」）</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      placeholder={EVENT_PLACEHOLDERS.name}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="eventSpeakers" className="block text-sm font-medium text-slate-700 mb-2">
-                {FIELD_LABELS.eventSpeakers}
-              </label>
-              <textarea
-                id="eventSpeakers"
-                name="eventSpeakers"
-                value={formData.eventSpeakers || ''}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
-                maxLength={300}
-              />
-            </div>
-
+            {/* 招待理由詳細（AIアシスト付き） */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label htmlFor="invitationReason" className="block text-sm font-medium text-gray-700">
-                  {FIELD_LABELS.invitationReason} <span className="text-red-500">{REQUIRED_MARK}</span>
+                <label htmlFor="invitationReasonDetail" className="block text-sm font-medium text-gray-700">
+                  招待理由（詳細）
                 </label>
                 <button
                   type="button"
                   onClick={() => handleAIAssist('invitationReason')}
-                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  disabled={isAnalyzingSource}
+                  className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 disabled:opacity-50"
                   aria-label={BUTTON_TEXTS.aiAssist}
                 >
                   {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
                 </button>
               </div>
               <textarea
-                id="invitationReason"
+                id="invitationReasonDetail"
                 name="invitationReason"
                 value={formData.invitationReason || ''}
                 onChange={handleChange}
-                required
-                rows={3}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.invitationReason}
                 maxLength={500}
               />
             </div>
           </div>
-        )}
-
-        {/* まとめて入力モード */}
-        {inputMode === 'freeform' && (
-          <div className="space-y-4">
-            <div className="bg-purple-50 border border-purple-200 rounded-md p-4 mb-4">
-              <p className="text-sm text-purple-800">{MESSAGES.info.eventFreeformMode}</p>
-            </div>
-
-            <div>
-              <label htmlFor="eventUrlFreeform" className="block text-sm font-medium text-slate-700 mb-2">
-                1. {FIELD_LABELS.eventUrl} <span className="text-red-500">{REQUIRED_MARK}</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  id="eventUrlFreeform"
-                  name="eventUrl"
-                  value={formData.eventUrl || ''}
-                  onChange={handleChange}
-                  required={inputMode === 'freeform'}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
-                  placeholder={EVENT_PLACEHOLDERS.eventUrlFreeform}
-                />
-                <button
-                  type="button"
-                  onClick={handleAnalyzeEventUrl}
-                  disabled={!formData.eventUrl || isAnalyzingSource}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
-                >
-                  {isAnalyzingSource ? BUTTON_TEXTS.analyzing : BUTTON_TEXTS.autoAnalyze}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">{MESSAGES.info.eventUrlHelp}</p>
-            </div>
-
-            <div>
-              <label htmlFor="companyNameFreeform" className="block text-sm font-medium text-slate-700 mb-2">
-                2. ターゲット企業名 <span className="text-red-500">{REQUIRED_MARK}</span>
-              </label>
-              <input
-                type="text"
-                id="companyNameFreeform"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required={inputMode === 'freeform'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.companyNameFreeform}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="invitationMemo" className="block text-sm font-medium text-slate-700 mb-2">
-                3. 誘いたい理由・メモ（任意）
-              </label>
-              <textarea
-                id="invitationMemo"
-                name="invitationReason"
-                value={formData.invitationReason || ''}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-500"
-                placeholder={EVENT_PLACEHOLDERS.invitationMemo}
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-500 mt-1">{MESSAGES.info.invitationMemoHelp}</p>
-            </div>
-          </div>
-        )}
+        </Accordion>
       </div>
     </>
   );

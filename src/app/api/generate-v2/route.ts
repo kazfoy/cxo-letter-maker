@@ -174,7 +174,12 @@ targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey
     ? `\n\n【citations出力ルール】
 - bodyの中でfactsForLetterを引用した文ごとにcitationを出力
 - sentenceは引用を含む1文（最大50文字、省略は「...」）
-- quoteKeyはfactsForLetterのquoteKeyと一致させる`
+- quoteKeyはfactsForLetterのquoteKeyと一致させる
+
+【重要：本文内citation禁止（厳守）】
+- body本文に「[citation:...]」「【citation:...】」「[出典:...]」「(citation:...)」などのマーカーは絶対に入れないこと
+- 出典表示はcitationsフィールドのみで行い、body本文は読者がそのまま読める自然な文章にすること
+- 違反するとリライト対象になります`
     : '';
 
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
@@ -365,13 +370,17 @@ export async function POST(request: Request) {
           if (detailedScore.total >= 80 || attempt === maxAttempts) {
             devLog.log(`Returning result (score: ${detailedScore.total}, attempt: ${attempt})`);
 
-            // Phase 6: citationsを整形（sourceUrlをfactsForLetterから引き継ぐ）
-            const citations: Citation[] = (result.citations || []).map(c => ({
-              sentence: c.sentence,
-              quoteKey: c.quoteKey,
-              sourceUrl: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceUrl || c.sourceUrl,
-              sourceTitle: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceTitle || c.sourceTitle,
-            }));
+            // Phase 6: citationsを整形（sourceUrlをfactsForLetterから必ず補完）
+            const citations: Citation[] = (result.citations || []).map(c => {
+              const matchingFact = factsForLetter.find(f => f.quoteKey === c.quoteKey);
+              return {
+                sentence: c.sentence,
+                quoteKey: c.quoteKey,
+                // sourceUrlは必ずfactsForLetterから取得（空ならmatchingFactから補完）
+                sourceUrl: c.sourceUrl || matchingFact?.sourceUrl || undefined,
+                sourceTitle: c.sourceTitle || matchingFact?.sourceTitle || undefined,
+              };
+            });
 
             return NextResponse.json({
               success: true,
@@ -416,13 +425,16 @@ export async function POST(request: Request) {
             // 最終試行も失敗した場合
             if (bestResult) {
               // 前の試行の結果があれば返却
-              // Phase 6: citationsを整形
-              const citations: Citation[] = (bestResult.citations || []).map(c => ({
-                sentence: c.sentence,
-                quoteKey: c.quoteKey,
-                sourceUrl: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceUrl || c.sourceUrl,
-                sourceTitle: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceTitle || c.sourceTitle,
-              }));
+              // Phase 6: citationsを整形（sourceUrlをfactsForLetterから必ず補完）
+              const citations: Citation[] = (bestResult.citations || []).map(c => {
+                const matchingFact = factsForLetter.find(f => f.quoteKey === c.quoteKey);
+                return {
+                  sentence: c.sentence,
+                  quoteKey: c.quoteKey,
+                  sourceUrl: c.sourceUrl || matchingFact?.sourceUrl || undefined,
+                  sourceTitle: c.sourceTitle || matchingFact?.sourceTitle || undefined,
+                };
+              });
 
               return NextResponse.json({
                 success: true,

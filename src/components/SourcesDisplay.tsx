@@ -10,6 +10,7 @@ interface SourcesDisplayProps {
   hasUrl: boolean;
   defaultExpanded?: boolean;
   className?: string;
+  bodyText?: string;  // Phase 6: 本文（citation位置計算用）
 }
 
 const CATEGORY_LABELS: Record<SourceCategory, string> = {
@@ -36,6 +37,7 @@ export function SourcesDisplay({
   hasUrl,
   defaultExpanded = false,
   className = '',
+  bodyText,
 }: SourcesDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -159,7 +161,7 @@ export function SourcesDisplay({
               </div>
               <div className="space-y-2">
                 {citations.map((citation, i) => (
-                  <CitationItem key={i} citation={citation} />
+                  <CitationItem key={i} citation={citation} bodyText={bodyText} />
                 ))}
               </div>
             </div>
@@ -174,12 +176,18 @@ function SourceItem({ source }: { source: InformationSource }) {
   const categoryLabel = CATEGORY_LABELS[source.category];
   const categoryColor = CATEGORY_COLORS[source.category];
 
-  // URLからドメインを取得
-  let domain = '';
+  // URLからホスト+パスを抽出（ページ単位）
+  let displayPath = source.url;
   try {
-    domain = new URL(source.url).hostname;
+    const urlObj = new URL(source.url);
+    // ホスト + パス（クエリ除く）
+    const fullPath = urlObj.hostname + urlObj.pathname;
+    // 60文字超えたら省略
+    displayPath = fullPath.length > 60
+      ? fullPath.substring(0, 57) + '...'
+      : fullPath;
   } catch {
-    domain = source.url;
+    displayPath = source.url;
   }
 
   return (
@@ -187,6 +195,7 @@ function SourceItem({ source }: { source: InformationSource }) {
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
+      title={source.url}  // hover時にフルURL表示
       className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors group"
     >
       {/* カテゴリバッジ */}
@@ -197,10 +206,10 @@ function SourceItem({ source }: { source: InformationSource }) {
       {/* タイトルとURL */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
-          {source.title || domain}
+          {source.title || displayPath}
         </p>
-        <p className="text-xs text-slate-400 truncate">
-          {source.url}
+        <p className="text-xs text-slate-400 truncate" title={source.url}>
+          {displayPath}
         </p>
       </div>
 
@@ -218,9 +227,34 @@ function SourceItem({ source }: { source: InformationSource }) {
 }
 
 /**
- * Phase 6: 本文使用箇所を表示するコンポーネント
+ * Phase 6: 本文使用箇所を表示するコンポーネント（位置ラベル付き）
  */
-function CitationItem({ citation }: { citation: Citation }) {
+function CitationItem({
+  citation,
+  bodyText
+}: {
+  citation: Citation;
+  bodyText?: string;
+}) {
+  // 本文での位置を計算
+  const getLocationLabel = (): string | null => {
+    if (!bodyText || !citation.sentence) return null;
+
+    // sentenceの冒頭20文字で検索
+    const searchText = citation.sentence.replace(/\.\.\.$/g, '').substring(0, 20);
+    const index = bodyText.indexOf(searchText);
+
+    if (index === -1) return null;
+
+    const ratio = index / bodyText.length;
+    if (ratio < 0.2) return '冒頭';
+    if (ratio < 0.5) return '前半';
+    if (ratio < 0.8) return '中盤';
+    return '終盤';
+  };
+
+  const location = getLocationLabel();
+
   // 引用文を50文字で切り詰め
   const truncatedSentence = citation.sentence.length > 50
     ? citation.sentence.substring(0, 47) + '...'
@@ -228,6 +262,11 @@ function CitationItem({ citation }: { citation: Citation }) {
 
   return (
     <div className="flex items-start gap-2 text-sm py-2 px-3 bg-slate-50 rounded-lg">
+      {location && (
+        <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+          {location}
+        </span>
+      )}
       <span className="text-slate-400 flex-shrink-0">・</span>
       <div className="flex-1 min-w-0">
         <span className="text-slate-700">「{truncatedSentence}」</span>
@@ -237,6 +276,7 @@ function CitationItem({ citation }: { citation: Citation }) {
             target="_blank"
             rel="noopener noreferrer"
             className="ml-2 text-xs text-indigo-600 hover:underline inline-flex items-center gap-1"
+            title={citation.sourceUrl}
           >
             [出典: {citation.sourceTitle || 'リンク'}]
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

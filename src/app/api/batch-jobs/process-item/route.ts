@@ -4,6 +4,7 @@ import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { normalizeLetterText } from '@/lib/textNormalize';
 
 const ProcessItemSchema = z.object({
     batchId: z.string().uuid(),
@@ -198,7 +199,7 @@ ${specificInstruction}
 
                 const result = await generateText({ model, prompt });
                 const generatedText = cleanAIResponse(result.text.trim());
-                let contentToSave = generatedText;
+                let contentToSave = normalizeLetterText(generatedText);  // Phase 6: citation除去を含む正規化
                 let emailData = null;
 
                 if (config.output_format === 'email') {

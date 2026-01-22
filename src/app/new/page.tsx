@@ -16,7 +16,7 @@ import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
 import type { InformationSource } from '@/types/analysis';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import type { AnalysisResult } from '@/types/analysis';
-import type { UserOverrides } from '@/types/generate-v2';
+import type { UserOverrides, Citation } from '@/types/generate-v2';
 import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails } from '@/lib/errorUtils';
 import { normalizeLetterText } from '@/lib/textNormalize';
@@ -72,8 +72,9 @@ function NewLetterPageContent() {
   const [isGeneratingV2, setIsGeneratingV2] = useState(false);
   const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
   const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
-  const [urlWarning, setUrlWarning] = useState<string | null>(null);
+  const [_urlWarning, _setUrlWarning] = useState<string | null>(null);
   const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
+  const [generatedCitations, setGeneratedCitations] = useState<Citation[] | undefined>(undefined);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
 
@@ -274,9 +275,12 @@ function NewLetterPageContent() {
           setActiveVariation('standard');
         }
 
-        // ソースを保存
+        // ソースとcitationsを保存
         if (data.data.sources) {
           setGeneratedSources(data.data.sources);
+        }
+        if (data.data.citations) {
+          setGeneratedCitations(data.data.citations);
         }
 
         // 履歴に保存
@@ -428,7 +432,7 @@ function NewLetterPageContent() {
   }, [extractFirstUrl]);
 
   // V2フロー: 分析APIを呼び出してモーダルを表示
-  const handleAnalyzeForV2 = useCallback(async () => {
+  const _handleAnalyzeForV2 = useCallback(async () => {
     // 送り手情報の入力必須チェック
     if (!formData.myCompanyName || !formData.myName || !formData.myServiceDescription) {
       alert('送り手情報（会社名・氏名・サービス説明）を入力してください');
@@ -445,10 +449,11 @@ function NewLetterPageContent() {
   }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
   // salesモード用：クイック下書き生成（モーダルなしで一括生成）
+  // 2レーン統合：クイック下書き生成（sales/event共通）
   const handleQuickDraft = useCallback(async () => {
-    // バリデーション：企業名またはURLのどちらか必須
+    // バリデーション：企業名必須（eventはイベントURLも推奨だが必須ではない）
     if (!formData.companyName && !formData.targetUrl?.trim()) {
-      alert('企業名またはURLのどちらかを入力してください');
+      alert('相手企業名またはURLを入力してください');
       return;
     }
     // サービス概要は必須
@@ -472,11 +477,11 @@ function NewLetterPageContent() {
     }
   }, [formData, usage, user, ensureAnalysisThenGenerateV2]);
 
-  // salesモード用：根拠付き生成（分析→モーダル→生成）
+  // 2レーン統合：根拠付き生成（分析→モーダル→生成、sales/event共通）
   const handleAnalyzeAndGenerate = useCallback(async () => {
-    // バリデーション：企業名またはURLのどちらか必須
+    // バリデーション：企業名必須
     if (!formData.companyName && !formData.targetUrl?.trim()) {
-      alert('企業名またはURLのどちらかを入力してください');
+      alert('相手企業名またはURLを入力してください');
       return;
     }
     // サービス概要は必須
@@ -773,6 +778,7 @@ function NewLetterPageContent() {
     setVariations(undefined);
     setEmailData(undefined);
     setGeneratedSources(undefined);
+    setGeneratedCitations(undefined);
   };
 
   const handleSampleExperience = async () => {
@@ -961,47 +967,6 @@ function NewLetterPageContent() {
 
             {/* 中央: 入力フォーム（自然に伸びる） */}
             <div className={`${isSidebarOpen ? 'md:col-span-5' : 'md:col-span-6'} transition-all duration-300`}>
-              {/* V2モード時の分析ボタン（eventモード時のみ表示、salesは専用ボタンに統合） */}
-              {useV2Flow && mode === 'event' && (
-                <div className="mb-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
-                  <div className="flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-indigo-600 text-lg">✨</span>
-                      <div>
-                        <p className="text-sm font-medium text-indigo-900">高品質モードが有効です</p>
-                        <p className="text-xs text-indigo-600">入力情報を分析し、品質チェック付きで生成します</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleAnalyzeForV2}
-                      disabled={isAnalyzing || isGeneratingV2 || (!user && usage?.isLimitReached)}
-                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>分析中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>🔍</span>
-                          <span>分析してレター生成</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  {/* URL未入力警告 */}
-                  {urlWarning && (
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2">
-                      <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <span className="text-sm text-amber-800">{urlWarning}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* 生成エラー表示 */}
               {generationError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -1031,9 +996,9 @@ function NewLetterPageContent() {
                 onSampleFill={handleSampleExperience}
                 onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
-                onGenerateV2={mode === 'sales' ? ensureAnalysisThenGenerateV2 : undefined}
-                onQuickDraft={mode === 'sales' ? handleQuickDraft : undefined}
-                onAnalyzeAndGenerate={mode === 'sales' ? handleAnalyzeAndGenerate : undefined}
+                onGenerateV2={ensureAnalysisThenGenerateV2}
+                onQuickDraft={handleQuickDraft}
+                onAnalyzeAndGenerate={handleAnalyzeAndGenerate}
                 isQuickDrafting={isQuickDrafting}
                 isAnalyzing={isAnalyzing}
               />
@@ -1075,6 +1040,7 @@ function NewLetterPageContent() {
                 }}
                 onSave={handleSaveOnly}
                 sources={generatedSources}
+                citations={generatedCitations}
                 hasUrl={Boolean(resolvedTargetUrl || formData.targetUrl)}
               />
             </div>

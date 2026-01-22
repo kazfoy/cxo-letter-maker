@@ -1689,6 +1689,7 @@ export function BulkGenerator() {
                                             sources={item.sources}
                                             hasUrl={!!item.row[mapping.url]}
                                             className="mt-4"
+                                            bodyText={item.content}
                                         />
                                     </>
                                 ) : item.status === 'error' ? (

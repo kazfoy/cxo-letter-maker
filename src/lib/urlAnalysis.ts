@@ -390,10 +390,18 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
 
         // 重複排除
         if (!sourceMap.has(normalizedSubUrl)) {
-          pageContents.push({ url: subUrl, content });
+          // URLパスからfallback titleを生成
+          let fallbackTitle: string | undefined;
+          try {
+            const urlObj = new URL(subUrl);
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+            fallbackTitle = pathParts.length > 0 ? pathParts[pathParts.length - 1] : undefined;
+          } catch { /* ignore */ }
+
+          pageContents.push({ url: subUrl, content, title: fallbackTitle });
           sourceMap.set(normalizedSubUrl, {
             url: subUrl,
-            title: undefined,
+            title: fallbackTitle,
             category: detectCategory(subUrl),
             isPrimary: false,
           });

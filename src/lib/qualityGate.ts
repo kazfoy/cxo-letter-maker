@@ -495,6 +495,21 @@ export function calculateDetailedScore(
     }
   }
 
+  // 8. 本文citation混入検出（Phase 6強化）
+  const CITATION_IN_BODY_PATTERNS = [
+    /\[citation[:：][^\]]*\]/gi,
+    /【citation[:：][^】]*】/gi,
+    /\[出典[:：][^\]]*\]/gi,
+    /【出典[:：][^】]*】/gi,
+    /\(citation[:：][^)]*\)/gi,
+  ];
+
+  const hasCitationInBody = CITATION_IN_BODY_PATTERNS.some(p => p.test(body));
+  if (hasCitationInBody) {
+    total = Math.min(total, 75);
+    issues.push('本文に[citation:...]マーカーが混入しています（除去が必要）');
+  }
+
   return {
     total,
     breakdown: {

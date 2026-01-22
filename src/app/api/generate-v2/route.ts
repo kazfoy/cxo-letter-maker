@@ -436,8 +436,10 @@ export async function POST(request: Request) {
       devLog.log(`Selected ${factsForLetter.length} facts for letter`);
 
       // targetUrl あり && factsForLetter 空 → 422 URL_FACTS_EMPTY
+      // ただしEventモードはイベント情報があれば生成可能
       const hasTargetUrl = Boolean(user_overrides?.target_url || analysis_result.target_url);
-      if (hasTargetUrl && factsForLetter.length === 0) {
+      const hasEventInfo = mode === 'event' && Boolean(user_overrides?.event_name);
+      if (hasTargetUrl && factsForLetter.length === 0 && !hasEventInfo) {
         return NextResponse.json({
           success: false,
           error: 'URL_FACTS_EMPTY',

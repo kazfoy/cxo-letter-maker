@@ -19,6 +19,7 @@ import type { AnalysisResult } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
 import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails } from '@/lib/errorUtils';
+import { normalizeLetterText } from '@/lib/textNormalize';
 
 function NewLetterPageContent() {
   const { user } = useAuth();
@@ -240,11 +241,15 @@ function NewLetterPageContent() {
         setEmailData(undefined);
 
         // 本文をセット
-        setGeneratedLetter(data.data.body);
+        setGeneratedLetter(normalizeLetterText(data.data.body));
 
         // バリエーションがあればセット
         if (data.data.variations) {
-          setVariations(data.data.variations);
+          setVariations({
+            standard: normalizeLetterText(data.data.variations.standard),
+            emotional: normalizeLetterText(data.data.variations.emotional),
+            consultative: normalizeLetterText(data.data.variations.consultative),
+          });
           setActiveVariation('standard');
         }
 
@@ -314,7 +319,7 @@ function NewLetterPageContent() {
 
         // Restore generated content
         if (data.content) {
-          setGeneratedLetter(data.content);
+          setGeneratedLetter(normalizeLetterText(data.content));
         }
 
         // Restore mode
@@ -347,22 +352,30 @@ function NewLetterPageContent() {
     let contentToSave = '';
 
     if (response.email) {
-      setEmailData(response.email);
+      const normalizedEmail = {
+        subject: response.email.subject,
+        body: normalizeLetterText(response.email.body),
+      };
+      setEmailData(normalizedEmail);
       // メールモードの場合は本文を保存するのが一般的だが、履歴には件名も含めたいかもしれない。
       // 一旦、本文をメインコンテンツとして保存し、詳細はJSONなどに保存すべきだが、
       // 既存の履歴DB構造(content: text)に合わせるため、"件名: ...\n\n本文..." の形式で保存するか、
       // あるいはメール本文のみ保存するか。
       // ここではわかりやすく結合して保存する。
-      contentToSave = `件名: ${response.email.subject}\n\n${response.email.body}`;
+      contentToSave = `件名: ${normalizedEmail.subject}\n\n${normalizedEmail.body}`;
       setGeneratedLetter(contentToSave); // プレビュー用には使わないが、一応セット
     } else {
-      const letterText = response.letter || '';
+      const letterText = normalizeLetterText(response.letter);
       setGeneratedLetter(letterText);
       contentToSave = letterText;
 
       // バリエーションがあれば保存
       if (response.variations) {
-        setVariations(response.variations);
+        setVariations({
+          standard: normalizeLetterText(response.variations.standard),
+          emotional: normalizeLetterText(response.variations.emotional),
+          consultative: normalizeLetterText(response.variations.consultative),
+        });
         setActiveVariation('standard'); // 生成後は標準をセット
       }
     }

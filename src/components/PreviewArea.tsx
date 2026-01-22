@@ -11,6 +11,7 @@ import { ProFeatureModal } from './ProFeatureModal';
 import { SourcesDisplay } from './SourcesDisplay';
 import type { LetterStatus } from '@/types/letter';
 import type { InformationSource } from '@/types/analysis';
+import { normalizeLetterText } from '@/lib/textNormalize';
 
 // LocalStorageキー
 const EDIT_USAGE_KEY = 'guest_edit_usage';
@@ -136,7 +137,7 @@ export function PreviewArea({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(normalizeLetterText(content));
       showNotification('クリップボードにコピーしました！', 'success');
     } catch (error) {
       console.error('コピーエラー:', error);
@@ -163,7 +164,7 @@ export function PreviewArea({
     }
 
     try {
-      const paragraphs = content.split('\n').map(
+      const paragraphs = normalizeLetterText(content).split('\n').map(
         (line) =>
           new Paragraph({
             children: [new TextRun(line)],
@@ -592,7 +593,7 @@ export function PreviewArea({
               <button
                 onClick={() => {
                   // メールコピー (件名 + 本文)
-                  const fullText = `件名: ${emailData.subject}\n\n${emailData.body}`;
+                  const fullText = `件名: ${emailData.subject}\n\n${normalizeLetterText(emailData.body)}`;
                   navigator.clipboard.writeText(fullText);
                   showNotification('件名と本文をコピーしました', 'success');
                 }}

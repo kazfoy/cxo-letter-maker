@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CTA_OPTIONS, type CtaType } from '@/lib/constants';
 import type { AnalysisResult, InformationSource } from '@/types/analysis';
 import { SourcesDisplay } from './SourcesDisplay';
+import { normalizeLetterText } from '@/lib/textNormalize';
 
 /**
  * APIレスポンスの参照揺れを吸収
@@ -516,9 +517,9 @@ export function BulkGenerator() {
             }
 
             // コンテンツを抽出
-            let content = genData.data.body;
+            let content = normalizeLetterText(genData.data.body);
             if (params.outputFormat === 'email' && genData.data.subjects && genData.data.subjects.length > 0) {
-                content = `件名: ${genData.data.subjects[0]}\n\n${genData.data.body}`;
+                content = `件名: ${genData.data.subjects[0]}\n\n${content}`;
             }
 
             return { success: true, content, sources };
@@ -657,7 +658,7 @@ export function BulkGenerator() {
                     }
 
                     // Extract content
-                    const contentToSave = v2Result.content;
+                    const contentToSave = normalizeLetterText(v2Result.content);
                     const emailContent = mediaType === 'mail' ? { subject: '', body: contentToSave } : null;
 
                     // Save to Supabase letters table
@@ -977,7 +978,7 @@ export function BulkGenerator() {
                     throw new Error(v2Result.error || '生成に失敗しました');
                 }
 
-                const contentToShow = v2Result.content;
+                const contentToShow = normalizeLetterText(v2Result.content);
 
                 setPreviewItems(prev => {
                     const next = [...prev];

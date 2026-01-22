@@ -395,12 +395,20 @@ function NewLetterPageContent() {
       }
 
       // ユーザーノートを構築（フォームデータから）
+      // Event モード固有フィールドも含める（値があれば自動的に含まれる）
       const userNotes = [
         inputFormData.companyName && `企業名: ${inputFormData.companyName}`,
+        inputFormData.department && `部署: ${inputFormData.department}`,
         inputFormData.name && `担当者: ${inputFormData.name}`,
         inputFormData.position && `役職: ${inputFormData.position}`,
         inputFormData.background && `背景・経緯: ${inputFormData.background}`,
         inputFormData.problem && `課題: ${inputFormData.problem}`,
+        // Event モード固有フィールド
+        inputFormData.invitationReason && `招待理由: ${inputFormData.invitationReason}`,
+        inputFormData.eventName && `イベント名: ${inputFormData.eventName}`,
+        inputFormData.eventDateTime && `イベント日時: ${inputFormData.eventDateTime}`,
+        inputFormData.eventSpeakers && `登壇者: ${inputFormData.eventSpeakers}`,
+        inputFormData.eventUrl && `イベントURL: ${inputFormData.eventUrl}`,
         inputFormData.freeformInput && `追加情報: ${inputFormData.freeformInput}`,
       ].filter(Boolean).join('\n');
 

@@ -23,8 +23,34 @@ export const maxDuration = 60;
 
 /**
  * 安全なデフォルト分析結果を生成
+ * @param errorMessage エラーメッセージ
+ * @param options.hasTargetUrl target_url が渡されている場合は true
+ * @param options.hasUserNotes user_notes が渡されている場合は true
  */
-function createSafeDefaultResult(errorMessage: string): AnalysisResult {
+function createSafeDefaultResult(
+  errorMessage: string,
+  options?: { hasTargetUrl?: boolean; hasUserNotes?: boolean }
+): AnalysisResult {
+  const missingInfo: Array<{ field: string; priority: 'high' | 'medium' | 'low'; suggestion: string }> = [];
+
+  // target_url が渡されていない場合のみ missing_info に追加
+  if (!options?.hasTargetUrl) {
+    missingInfo.push({
+      field: 'target_url',
+      priority: 'high',
+      suggestion: 'ターゲット企業のURLを入力してください',
+    });
+  }
+
+  // user_notes が渡されていない場合のみ missing_info に追加
+  if (!options?.hasUserNotes) {
+    missingInfo.push({
+      field: 'user_notes',
+      priority: 'high',
+      suggestion: '企業の課題や背景情報を入力してください',
+    });
+  }
+
   return {
     facts: {},
     signals: [],
@@ -36,18 +62,7 @@ function createSafeDefaultResult(errorMessage: string): AnalysisResult {
       value_proposition: '情報不足のため特定できません',
       cta_suggestion: '15分だけ情報交換させていただけますか',
     },
-    missing_info: [
-      {
-        field: 'target_url',
-        priority: 'high',
-        suggestion: 'ターゲット企業のURLを入力してください',
-      },
-      {
-        field: 'user_notes',
-        priority: 'high',
-        suggestion: '企業の課題や背景情報を入力してください',
-      },
-    ],
+    missing_info: missingInfo,
     risk_flags: [
       {
         type: 'missing_info',
@@ -132,7 +147,10 @@ export async function POST(request: Request) {
         devLog.warn('No input content provided');
         return NextResponse.json({
           success: true,
-          data: createSafeDefaultResult('入力情報がありません'),
+          data: createSafeDefaultResult('入力情報がありません', {
+            hasTargetUrl: !!target_url,
+            hasUserNotes: !!user_notes,
+          }),
         });
       }
 
@@ -233,7 +251,10 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
         // AI分析が失敗しても安全なデフォルトを返す
         return NextResponse.json({
           success: true,
-          data: createSafeDefaultResult('AI分析に失敗しました。入力内容を確認してください。'),
+          data: createSafeDefaultResult('AI分析に失敗しました。入力内容を確認してください。', {
+            hasTargetUrl: !!target_url,
+            hasUserNotes: !!user_notes,
+          }),
         });
       }
     },

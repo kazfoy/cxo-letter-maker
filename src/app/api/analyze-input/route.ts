@@ -212,6 +212,11 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
           result.sources = extractedSources;
         }
 
+        // target_url を追加（V2生成でhasTargetUrl判定に使用）
+        if (target_url) {
+          result.target_url = target_url;
+        }
+
         devLog.log('Analysis completed successfully');
         return NextResponse.json({
           success: true,

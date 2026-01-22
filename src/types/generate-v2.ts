@@ -24,6 +24,7 @@ export const UserOverridesSchema = z.object({
   person_position: z.string().optional(),
   additional_context: z.string().optional(),
   custom_proof_points: z.array(z.string()).optional(),
+  target_url: z.string().optional(),
 });
 
 /**

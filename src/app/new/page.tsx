@@ -74,14 +74,30 @@ function NewLetterPageContent() {
   const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
   const [urlWarning, setUrlWarning] = useState<string | null>(null);
   const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // URLを抽出するユーティリティ関数
-  const extractFirstUrl = (text?: string): string | undefined => {
+  const extractFirstUrl = useCallback((text?: string): string | undefined => {
     if (!text) return undefined;
     const urlPattern = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
     const matches = text.match(urlPattern);
     return matches?.[0];
-  };
+  }, []);
+
+  // 再分析が必要か判定
+  const shouldReanalyze = useCallback((
+    prevAnalysis: AnalysisResult,
+    inputFormData: LetterFormData,
+    targetUrl: string | undefined
+  ): boolean => {
+    // 以下いずれかが変わったら再分析
+    return (
+      prevAnalysis.facts?.company_name !== inputFormData.companyName ||
+      prevAnalysis.target_url !== targetUrl ||
+      prevAnalysis.facts?.person_name !== inputFormData.name ||
+      prevAnalysis.facts?.person_position !== inputFormData.position
+    );
+  }, []);
 
   // Load profile data and auto-populate form
   useEffect(() => {
@@ -113,6 +129,235 @@ function NewLetterPageContent() {
       setShowLimitModal(true);
     }
   }, [usage, user]);
+
+  // V2フロー: 分析を実行して結果を返す（内部用）
+  const runAnalysis = useCallback(async (inputFormData: LetterFormData, targetUrl: string | undefined): Promise<AnalysisResult | null> => {
+    try {
+      // ユーザーノートを構築
+      const userNotes = [
+        inputFormData.companyName && `企業名: ${inputFormData.companyName}`,
+        inputFormData.name && `担当者: ${inputFormData.name}`,
+        inputFormData.position && `役職: ${inputFormData.position}`,
+        inputFormData.background && `背景・経緯: ${inputFormData.background}`,
+        inputFormData.problem && `課題: ${inputFormData.problem}`,
+        inputFormData.freeformInput && `追加情報: ${inputFormData.freeformInput}`,
+      ].filter(Boolean).join('\n');
+
+      const response = await fetch('/api/analyze-input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_url: targetUrl || undefined,
+          user_notes: userNotes || undefined,
+          sender_info: inputFormData.myCompanyName ? {
+            company_name: inputFormData.myCompanyName,
+            service_description: inputFormData.myServiceDescription || '',
+          } : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `分析に失敗しました (${response.status})`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        return data.data;
+      }
+      throw new Error(data.error || '分析結果の取得に失敗しました');
+    } catch (error) {
+      console.error('分析エラー:', error);
+      return null;
+    }
+  }, []);
+
+  // V2フロー: 生成を実行（リトライ対応）
+  const executeGenerateV2WithRetry = useCallback(async (
+    currentAnalysis: AnalysisResult,
+    inputFormData: LetterFormData,
+    outputFormat: 'letter' | 'email',
+    targetUrl: string | undefined,
+    retryCount: number = 0
+  ): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/generate-v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_result: currentAnalysis,
+          user_overrides: {
+            company_name: inputFormData.companyName,
+            person_name: inputFormData.name,
+            person_position: inputFormData.position,
+            additional_context: inputFormData.freeformInput,
+            target_url: targetUrl,
+          },
+          sender_info: {
+            company_name: inputFormData.myCompanyName,
+            department: '',
+            name: inputFormData.myName,
+            service_description: inputFormData.myServiceDescription,
+          },
+          mode: 'complete',
+          output_format: outputFormat,
+        }),
+      });
+
+      // 422 URL_FACTS_EMPTY の場合、再分析してリトライ
+      if (response.status === 422 && retryCount < 1) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.error === 'URL_FACTS_EMPTY') {
+          console.log('URL_FACTS_EMPTY: 再分析を実行');
+          const reanalyzedResult = await runAnalysis(inputFormData, targetUrl);
+          if (reanalyzedResult) {
+            setAnalysisResult(reanalyzedResult);
+            return await executeGenerateV2WithRetry(
+              reanalyzedResult,
+              inputFormData,
+              outputFormat,
+              targetUrl,
+              retryCount + 1
+            );
+          }
+          // 再分析失敗
+          setGenerationError('URLから根拠を抽出できませんでした。別のURLを試してください。');
+          return false;
+        }
+      }
+
+      if (response.status === 429) {
+        setShowLimitModal(true);
+        refetchGuestUsage();
+        return false;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // 422 でリトライ済みの場合
+        if (response.status === 422 && errorData.error === 'URL_FACTS_EMPTY') {
+          setGenerationError('URLから根拠を抽出できませんでした。別のURLを試してください。');
+          return false;
+        }
+        throw new Error(errorData.error || `生成に失敗しました (${response.status})`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        // リセット
+        setVariations(undefined);
+        setEmailData(undefined);
+        setGenerationError(null);
+
+        if (outputFormat === 'email') {
+          // メール形式
+          const normalizedEmail = {
+            subject: data.data.subjects?.[0] || '件名',
+            body: normalizeLetterText(data.data.body),
+          };
+          setEmailData(normalizedEmail);
+          setGeneratedLetter(`件名: ${normalizedEmail.subject}\n\n${normalizedEmail.body}`);
+        } else {
+          // 手紙形式
+          setGeneratedLetter(normalizeLetterText(data.data.body));
+        }
+
+        // バリエーションがあればセット
+        if (data.data.variations) {
+          setVariations({
+            standard: normalizeLetterText(data.data.variations.standard),
+            emotional: normalizeLetterText(data.data.variations.emotional),
+            consultative: normalizeLetterText(data.data.variations.consultative),
+          });
+          setActiveVariation('standard');
+        }
+
+        // ソースを保存
+        if (data.data.sources) {
+          setGeneratedSources(data.data.sources);
+        }
+
+        // 履歴に保存
+        const contentToSave = data.data.body;
+        if (user) {
+          const savedLetter = await saveToHistory(inputFormData, contentToSave, mode);
+          if (savedLetter) {
+            setCurrentLetterId(savedLetter.id);
+            setCurrentLetterStatus(savedLetter.status);
+          }
+        } else {
+          const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+          const savedLetter = saveToGuestHistory(inputFormData, contentToSave, mode);
+          setCurrentLetterId(savedLetter.id);
+          setCurrentLetterStatus(savedLetter.status);
+          window.dispatchEvent(new Event('guest-history-updated'));
+        }
+
+        // ゲスト利用回数を更新
+        if (!user) {
+          increment();
+        }
+
+        // 品質スコアが低い場合は警告
+        if (data.data.quality && !data.data.quality.passed) {
+          console.warn('品質スコアが基準を下回りました:', data.data.quality);
+        }
+
+        return true;
+      } else {
+        throw new Error(data.error || '生成結果の取得に失敗しました');
+      }
+    } catch (error) {
+      const errorDetails = getErrorDetails(error);
+      console.error('V2生成エラー:', errorDetails);
+      setGenerationError(`生成に失敗しました: ${errorDetails.message}`);
+      return false;
+    }
+  }, [user, mode, increment, refetchGuestUsage, runAnalysis]);
+
+  // V2統一生成関数（salesモード用）
+  const ensureAnalysisThenGenerateV2 = useCallback(async (
+    inputFormData: LetterFormData,
+    outputFormat: 'letter' | 'email'
+  ) => {
+    setIsGenerating(true);
+    setIsGeneratingV2(true);
+    setGenerationError(null);
+
+    try {
+      // 1. targetUrl を解決
+      const targetUrl = inputFormData.targetUrl?.trim() || extractFirstUrl(inputFormData.freeformInput);
+      setResolvedTargetUrl(targetUrl);
+
+      // 2. 分析を実行（analysisResult がない、または主要フィールドが変わった場合）
+      let currentAnalysis = analysisResult;
+      if (!currentAnalysis || shouldReanalyze(currentAnalysis, inputFormData, targetUrl)) {
+        setIsAnalyzing(true);
+        const result = await runAnalysis(inputFormData, targetUrl);
+        setIsAnalyzing(false);
+
+        if (!result) {
+          setGenerationError('分析に失敗しました。入力内容を確認してください。');
+          return;
+        }
+        currentAnalysis = result;
+        setAnalysisResult(result);
+
+        // sourcesを分析結果から保存
+        if (result.sources) {
+          setGeneratedSources(result.sources);
+        }
+      }
+
+      // 3. 生成を実行（リトライ対応）
+      await executeGenerateV2WithRetry(currentAnalysis, inputFormData, outputFormat, targetUrl);
+
+    } finally {
+      setIsGenerating(false);
+      setIsGeneratingV2(false);
+    }
+  }, [analysisResult, shouldReanalyze, runAnalysis, executeGenerateV2WithRetry, extractFirstUrl]);
 
   // V2フロー: 分析APIを呼び出してモーダルを表示（フォームデータを引数で受け取るバージョン）
   const handleAnalyzeForV2WithFormData = useCallback(async (inputFormData: LetterFormData) => {
@@ -179,7 +424,7 @@ function NewLetterPageContent() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, []);
+  }, [extractFirstUrl]);
 
   // V2フロー: 分析APIを呼び出してモーダルを表示
   const handleAnalyzeForV2 = useCallback(async () => {
@@ -703,6 +948,26 @@ function NewLetterPageContent() {
                 </div>
               )}
 
+              {/* 生成エラー表示 */}
+              {generationError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-red-800">{generationError}</span>
+                    <button
+                      onClick={() => setGenerationError(null)}
+                      className="ml-auto text-red-500 hover:text-red-700"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <InputForm
                 mode={mode}
                 onGenerate={handleGenerate}
@@ -712,6 +977,7 @@ function NewLetterPageContent() {
                 onSampleFill={handleSampleExperience}
                 onReset={handleResetOnly}
                 disabled={!user && usage?.isLimitReached}
+                onGenerateV2={mode === 'sales' ? ensureAnalysisThenGenerateV2 : undefined}
               />
             </div>
 

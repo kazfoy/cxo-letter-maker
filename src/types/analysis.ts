@@ -141,6 +141,8 @@ export const AnalysisResultSchema = z.object({
   extracted_facts: ExtractedFactsSchema.optional(),
   // Phase 5: 情報ソース（参照元URL一覧）
   sources: z.array(InformationSourceSchema).optional(),
+  // 分析対象のURL
+  target_url: z.string().optional(),
 });
 
 // 型エクスポート

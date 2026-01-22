@@ -97,13 +97,21 @@ ${improvementPoints.map(p => `- ${p}`).join('\n')}`;
   // 選定ファクトの必須引用指示
   let factsForLetterInstruction = '';
   if (factsForLetter.length > 0) {
-    const factsList = factsForLetter.map(f => `- [${f.category}] ${f.content}`).join('\n');
+    const factsList = factsForLetter.map(f => `- [${f.category}] ${f.quoteKey}: ${f.content}`).join('\n');
     factsForLetterInstruction = `\n\n【必須引用ファクト（フックで必ず1つ以上使用）】
 ${factsList}
 
-【一般論禁止ルール】
-以下の表現は、相手固有のファクトに紐付く場合のみ使用可能:
-- 「多くの企業では」「一般的に」「近年では」`;
+【一般論禁止ルール（厳守）】
+以下の表現は使用禁止:
+- 「CASE」「MaaS」「100年に一度の変革」
+- 「急務」「喫緊」「待ったなし」
+- 「多くの企業では」「一般的に」「近年では」「業界では」
+- 「DX推進」「デジタル変革」（具体的な取り組み引用なしの場合）
+
+違反した場合、品質スコアを強制的に80未満にし、リライトを要求します。
+
+【冒頭ファクト引用ルール】
+targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey を必ず1つ以上含めること。`;
   }
 
   // ファクトがない場合のフォールバック指示
@@ -237,6 +245,16 @@ export async function POST(request: Request) {
 
       devLog.log(`Selected ${factsForLetter.length} facts for letter`);
 
+      // targetUrl あり && factsForLetter 空 → 422 URL_FACTS_EMPTY
+      const hasTargetUrl = Boolean(user_overrides?.target_url || analysis_result.target_url);
+      if (hasTargetUrl && factsForLetter.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'URL_FACTS_EMPTY',
+          message: 'URLからファクトを抽出できませんでした。再分析または別URLを試してください。',
+        }, { status: 422 });
+      }
+
       // ファクトの数値/固有名詞有無を判定
       const hasFactNumbers = factsForLetter.some(f => f.category === 'numbers') ||
         (analysis_result.extracted_facts?.numbers?.length ?? 0) > 0;
@@ -273,11 +291,15 @@ export async function POST(request: Request) {
           });
 
           // 4. 詳細スコア計算（factsForLetter を使用）
+          // userInput はユーザーが入力した追加コンテキスト
+          const userInput = user_overrides?.additional_context || '';
           const detailedScore = calculateDetailedScore(
             result.body,
             hasFactNumbers,
             hasProperNouns,
-            factsForLetter
+            factsForLetter,
+            hasTargetUrl,
+            userInput
           );
           devLog.log(`Detailed score: ${detailedScore.total}, breakdown:`, detailedScore.breakdown);
 

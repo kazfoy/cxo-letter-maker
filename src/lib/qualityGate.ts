@@ -66,6 +66,20 @@ const FORBIDDEN_WORDS = [
 ];
 
 /**
+ * テンプレ語リスト（一般論の兆候、ユーザー入力に明示されていない限り減点）
+ */
+const TEMPLATE_PHRASES = [
+  'CASE',
+  '急務',
+  '喫緊',
+  '待ったなし',
+  '100年に一度',
+  'MaaS',
+  'DX推進',
+  'デジタル変革',
+];
+
+/**
  * 電報調検出パターン（体言止め）
  * 文末が名詞や形容詞の連体形で終わる電報的表現を検出
  */
@@ -279,13 +293,17 @@ export interface DetailedQualityScore {
  * @param hasFactNumbers - 数値ファクトがあるかどうか
  * @param hasProperNouns - 固有名詞があるかどうか
  * @param factsForLetter - 選定されたファクト（quoteKeyによる引用チェック用）
+ * @param hasTargetUrl - targetURLが指定されているか（ファクト引用必須化の判定用）
+ * @param userInput - ユーザー入力（テンプレ語許可の判定用）
  * @returns 詳細品質スコア
  */
 export function calculateDetailedScore(
   body: string,
   hasFactNumbers: boolean = false,
   hasProperNouns: boolean = false,
-  factsForLetter?: SelectedFact[]
+  factsForLetter?: SelectedFact[],
+  hasTargetUrl: boolean = false,
+  userInput?: string
 ): DetailedQualityScore {
   const suggestions: string[] = [];
 
@@ -447,7 +465,34 @@ export function calculateDetailedScore(
   noNgExpressions = Math.max(0, noNgExpressions);
 
   // 合計スコア
-  const total = specificity + empathy + ctaClarity + fiveElementsComplete + noNgExpressions;
+  let total = specificity + empathy + ctaClarity + fiveElementsComplete + noNgExpressions;
+  const issues: string[] = [];
+
+  // 6. テンプレ語検出（ユーザー入力に明示されていない限り減点）
+  const templateHits = TEMPLATE_PHRASES.filter(phrase => body.includes(phrase));
+  const templateWithoutUserEvidence = templateHits.filter(phrase => {
+    // ユーザー入力に含まれている場合は許可
+    const allowedByUser = userInput?.includes(phrase);
+    return !allowedByUser;
+  });
+
+  if (templateWithoutUserEvidence.length > 0) {
+    total = Math.min(total, 75);
+    issues.push(`テンプレ語使用: ${templateWithoutUserEvidence.join(', ')}`);
+  }
+
+  // 7. targetUrl あり時の冒頭ファクト引用必須化（quoteKey ベース）
+  if (hasTargetUrl && factsForLetter && factsForLetter.length > 0) {
+    const opening = body.slice(0, 200);
+    const hasQuoteKeyInOpening = factsForLetter.some(f =>
+      f.quoteKey && opening.includes(f.quoteKey)
+    );
+
+    if (!hasQuoteKeyInOpening) {
+      total = Math.min(total, 75);
+      issues.push('冒頭にファクト引用（quoteKey）がありません');
+    }
+  }
 
   return {
     total,
@@ -458,6 +503,6 @@ export function calculateDetailedScore(
       fiveElementsComplete,
       noNgExpressions,
     },
-    suggestions: suggestions.slice(0, 3),
+    suggestions: [...suggestions.slice(0, 3), ...issues],
   };
 }

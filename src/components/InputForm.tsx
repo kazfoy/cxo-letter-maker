@@ -27,6 +27,8 @@ interface InputFormProps {
   onReset?: () => void;
   disabled?: boolean;
   onGenerationAttempt?: () => void | Promise<void>;
+  /** V2統一生成関数。指定されている場合、V1 APIの代わりにこの関数が呼ばれる */
+  onGenerateV2?: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
 }
 
 export function InputForm({
@@ -39,6 +41,7 @@ export function InputForm({
   onReset,
   disabled = false,
   onGenerationAttempt,
+  onGenerateV2,
 }: InputFormProps) {
   const {
     // State
@@ -79,6 +82,7 @@ export function InputForm({
     onGenerate,
     setIsGenerating,
     onGenerationAttempt,
+    onGenerateV2,
   });
 
   const labels = mode === 'sales' ? FORM_LABELS.sales : FORM_LABELS.event;

@@ -12,6 +12,8 @@ interface UseInputFormProps {
   onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   onGenerationAttempt?: () => void | Promise<void>; // Called after every generation attempt (success or failure)
+  /** V2統一生成関数。指定されている場合、V1 APIの代わりにこの関数が呼ばれる */
+  onGenerateV2?: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
 }
 
 export function useInputForm({
@@ -21,6 +23,7 @@ export function useInputForm({
   onGenerate,
   setIsGenerating,
   onGenerationAttempt,
+  onGenerateV2,
 }: UseInputFormProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
@@ -314,6 +317,25 @@ export function useInputForm({
 
   // 共通生成ロジック
   const executeGeneration = useCallback(async (outputFormat: 'letter' | 'email') => {
+    // V2統一関数が指定されている場合はそちらを使用
+    if (onGenerateV2) {
+      setIsGeneratingLocal(true);
+      setGenerationSuccess(false);
+      try {
+        await onGenerateV2(formData, outputFormat);
+        setGenerationSuccess(true);
+        setTimeout(() => setGenerationSuccess(false), 2000);
+      } catch (error) {
+        const errorDetails = getErrorDetails(error);
+        console.error('[ERROR] V2生成エラー:', errorDetails);
+        showError('生成に失敗しました。', 'もう一度お試しください。');
+      } finally {
+        setIsGeneratingLocal(false);
+      }
+      return;
+    }
+
+    // V1 API（フォールバック: eventモードなど）
     setIsGenerating(true);
     setIsGeneratingLocal(true);
     setGenerationSuccess(false);
@@ -370,7 +392,7 @@ export function useInputForm({
         await onGenerationAttempt();
       }
     }
-  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError, onGenerationAttempt]);
+  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError, onGenerationAttempt, onGenerateV2]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();

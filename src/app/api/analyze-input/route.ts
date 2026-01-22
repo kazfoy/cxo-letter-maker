@@ -204,6 +204,12 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
           ];
         }
 
+        // target_url が渡されている場合は missing_info から除外
+        // LLM が不要に target_url を missing_info に含める場合の対策
+        if (target_url && result.missing_info) {
+          result.missing_info = result.missing_info.filter(m => m.field !== 'target_url');
+        }
+
         // Phase 5: 抽出ファクトとソースを追加
         if (extractedFacts) {
           result.extracted_facts = extractedFacts;

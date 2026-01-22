@@ -30,7 +30,11 @@ export const EventForm = React.memo(function EventForm({
   // イベントURL解析（blur時に自動実行）
   const handleEventUrlBlur = useCallback(async () => {
     const eventUrl = formData.eventUrl?.trim();
-    if (!eventUrl) return;
+
+    // 空、またはプレースホルダーURLはスキップ
+    if (!eventUrl || eventUrl.includes('example.com')) {
+      return;
+    }
 
     // 既に情報が入力されている場合はスキップ
     if (formData.eventName && formData.eventDateTime) return;

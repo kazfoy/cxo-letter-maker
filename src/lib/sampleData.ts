@@ -71,10 +71,10 @@ export const SAMPLE_EVENT_DATA = {
   name: '田中様',
   targetUrl: 'https://global.toyota/jp/',
 
-  // イベント情報
-  eventUrl: 'https://example.com/dx-summit-2025',
-  eventName: '製造業DX実践サミット 2025春',
-  eventDateTime: '2025年3月20日（木）13:00-18:00 / 東京国際フォーラム ホールB7',
-  eventSpeakers: '基調講演：佐藤一郎氏（東京大学 教授）、パネルディスカッション：大手製造業3社のDX責任者',
-  invitationReason: '御社のグローバル製造DXへの取り組みは業界で注目されており、参加企業の皆様にとって非常に学びになると考えております。',
+  // イベント情報（内蔵サンプル - eventUrlは空で自動解析を走らせない）
+  eventUrl: '',
+  eventName: '製造業向け 間接業務DXとガバナンス強化セミナー',
+  eventDateTime: '2026年3月20日（金）13:00-15:00 / オンライン',
+  eventSpeakers: '製造業の経営企画責任者 / 内部監査責任者（予定）',
+  invitationReason: 'グループ会社を跨ぐ申請・承認・証憑のばらつきを整理し、統制とスピードの両立を議論いただきたく、ご招待申し上げます。当日はグループ統制と証憑管理、承認プロセス標準化、監査工数の削減、運用定着をテーマにディスカッションを予定しております。',
 };

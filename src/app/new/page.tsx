@@ -368,7 +368,7 @@ function NewLetterPageContent() {
   const handleAnalyzeForV2WithFormData = useCallback(async (inputFormData: LetterFormData) => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    setUrlWarning(null);
+    _setUrlWarning(null);
 
     try {
       // ターゲットURLを解決（入力欄優先、なければfreeformInputから抽出）
@@ -377,7 +377,7 @@ function NewLetterPageContent() {
 
       // URL未入力時は警告を表示（ブロックはしない）
       if (!targetUrl) {
-        setUrlWarning('URLが未入力です。分析精度が低下する可能性があります。');
+        _setUrlWarning('URLが未入力です。分析精度が低下する可能性があります。');
         console.warn('URLが未入力です。分析精度が低下する可能性があります。');
       }
 

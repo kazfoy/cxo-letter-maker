@@ -1,12 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { ExtractedFacts } from '@/types/analysis';
+import type { ExtractedFacts, ExtractedFactItem } from '@/types/analysis';
 
 interface FactsDisplayProps {
   facts: ExtractedFacts;
   className?: string;
   defaultExpanded?: boolean;
+}
+
+/**
+ * ファクトアイテムからコンテンツ文字列を取得するヘルパー
+ */
+function getFactContent(item: string | ExtractedFactItem): string {
+  if (typeof item === 'string') {
+    return item;
+  }
+  return item.content;
 }
 
 const CATEGORY_CONFIG: Record<keyof ExtractedFacts, { label: string; icon: string; color: string }> = {
@@ -101,14 +111,17 @@ export function FactsDisplay({ facts, className = '', defaultExpanded = false }:
                   <span className="text-xs text-slate-400">({items.length})</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {items.map((item, i) => (
-                    <span
-                      key={i}
-                      className={`inline-block px-2.5 py-1 rounded-md text-xs border ${config.color}`}
-                    >
-                      {item}
-                    </span>
-                  ))}
+                  {items.map((item, i) => {
+                    const content = getFactContent(item);
+                    return (
+                      <span
+                        key={i}
+                        className={`inline-block px-2.5 py-1 rounded-md text-xs border ${config.color}`}
+                      >
+                        {content}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -142,15 +155,18 @@ export function FactsCompact({ facts, className = '' }: { facts: ExtractedFacts;
       <span className="text-xs text-slate-500">
         ファクト {totalFactCount}件:
       </span>
-      {allFacts.map((fact, i) => (
-        <span
-          key={i}
-          className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs truncate max-w-32"
-          title={fact}
-        >
-          {fact}
-        </span>
-      ))}
+      {allFacts.map((fact, i) => {
+        const content = getFactContent(fact);
+        return (
+          <span
+            key={i}
+            className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs truncate max-w-32"
+            title={content}
+          >
+            {content}
+          </span>
+        );
+      })}
       {totalFactCount > 3 && (
         <span className="text-xs text-slate-400">+{totalFactCount - 3}</span>
       )}

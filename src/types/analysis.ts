@@ -75,14 +75,61 @@ export const FactsSchema = z.object({
 });
 
 /**
+ * 情報ソースカテゴリスキーマ
+ * (ExtractedFactItemSchema, SelectedFactSchema より先に定義)
+ */
+export const SourceCategorySchema = z.enum([
+  'corporate',  // 企業情報 (/about, /company)
+  'news',       // ニュース (/news, /press)
+  'recruit',    // 採用 (/recruit, /careers)
+  'ir',         // IR情報
+  'product',    // 製品・サービス
+  'other'       // その他
+]);
+
+export type SourceCategory = z.infer<typeof SourceCategorySchema>;
+
+/**
+ * トピックタグスキーマ（ファクト分類用）
+ */
+export const TopicTagSchema = z.enum([
+  'governance',        // ガバナンス・内部統制
+  'compliance',        // コンプライアンス
+  'supply_chain',      // サプライチェーン
+  'finance_ops',       // 財務・経理
+  'digital_transformation', // DX
+  'sustainability',    // ESG・サステナビリティ
+  'global_expansion',  // グローバル展開
+  'hr_organization',   // 人事・組織
+  'risk_management',   // リスク管理
+  'growth_strategy',   // 成長戦略
+  'other'
+]);
+
+export type TopicTag = z.infer<typeof TopicTagSchema>;
+
+/**
+ * 個別ファクトアイテム（sourceUrl付き）
+ */
+export const ExtractedFactItemSchema = z.object({
+  content: z.string(),
+  sourceUrl: z.string().optional(),
+  sourceTitle: z.string().optional(),
+  sourceCategory: SourceCategorySchema.optional(),
+});
+
+export type ExtractedFactItem = z.infer<typeof ExtractedFactItemSchema>;
+
+/**
  * Phase 5: 抽出ファクトスキーマ（サブルート探索から取得）
+ * 後方互換性のため、string | ExtractedFactItem の union を許容
  */
 export const ExtractedFactsSchema = z.object({
-  numbers: z.array(z.string()),        // 数字（人数、拠点数、年数、売上など）
-  properNouns: z.array(z.string()),    // 固有名詞（製品名、拠点名、サービス名）
-  recentMoves: z.array(z.string()),    // 最近の動き（提携、新商品等）
-  hiringTrends: z.array(z.string()),   // 採用動向
-  companyDirection: z.array(z.string()), // 会社の方向性（ビジョン、重点領域）
+  numbers: z.array(z.union([z.string(), ExtractedFactItemSchema])),        // 数字（人数、拠点数、年数、売上など）
+  properNouns: z.array(z.union([z.string(), ExtractedFactItemSchema])),    // 固有名詞（製品名、拠点名、サービス名）
+  recentMoves: z.array(z.union([z.string(), ExtractedFactItemSchema])),    // 最近の動き（提携、新商品等）
+  hiringTrends: z.array(z.union([z.string(), ExtractedFactItemSchema])),   // 採用動向
+  companyDirection: z.array(z.union([z.string(), ExtractedFactItemSchema])), // 会社の方向性（ビジョン、重点領域）
 });
 
 export type ExtractedFacts = z.infer<typeof ExtractedFactsSchema>;
@@ -96,23 +143,18 @@ export const SelectedFactSchema = z.object({
   relevanceScore: z.number().min(0).max(100),
   reason: z.string(),
   quoteKey: z.string(),  // 本文引用チェック用キー
+  // Phase 6: ストーリー整合性・鮮度・ソース粒度改善
+  topicTags: z.array(TopicTagSchema).default([]),
+  bridgeReason: z.string().optional(),  // ファクト→提案テーマへの接続理由
+  confidence: z.number().min(0).max(100).default(50),  // ブリッジ信頼度
+  publishedAt: z.string().optional(),  // 抽出された日付文字列
+  isMidTermPlan: z.boolean().default(false),  // 中期経営計画フラグ
+  sourceUrl: z.string().optional(),  // ページ単位の出典URL
+  sourceTitle: z.string().optional(),  // 出典ページタイトル
+  sourceCategory: SourceCategorySchema.optional(),  // 出典カテゴリ
 });
 
 export type SelectedFact = z.infer<typeof SelectedFactSchema>;
-
-/**
- * 情報ソースカテゴリスキーマ
- */
-export const SourceCategorySchema = z.enum([
-  'corporate',  // 企業情報 (/about, /company)
-  'news',       // ニュース (/news, /press)
-  'recruit',    // 採用 (/recruit, /careers)
-  'ir',         // IR情報
-  'product',    // 製品・サービス
-  'other'       // その他
-]);
-
-export type SourceCategory = z.infer<typeof SourceCategorySchema>;
 
 /**
  * 情報ソーススキーマ

@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import type { InformationSource, SourceCategory } from '@/types/analysis';
+import type { Citation } from '@/types/generate-v2';
 
 interface SourcesDisplayProps {
   sources?: InformationSource[];
+  citations?: Citation[];  // Phase 6: 本文使用箇所
   hasUrl: boolean;
   defaultExpanded?: boolean;
   className?: string;
@@ -30,6 +32,7 @@ const CATEGORY_COLORS: Record<SourceCategory, string> = {
 
 export function SourcesDisplay({
   sources,
+  citations,
   hasUrl,
   defaultExpanded = false,
   className = '',
@@ -122,7 +125,7 @@ export function SourcesDisplay({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-sm">⭐</span>
-                <span className="text-xs font-semibold text-slate-600">主な情報ソース</span>
+                <span className="text-xs font-semibold text-slate-600">参照したページ</span>
               </div>
               <div className="space-y-2">
                 {primarySources.map((source, i) => (
@@ -142,6 +145,21 @@ export function SourcesDisplay({
               <div className="space-y-2">
                 {otherSources.map((source, i) => (
                   <SourceItem key={i} source={source} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Phase 6: 本文での利用箇所 */}
+          {citations && citations.length > 0 && (
+            <div className="border-t border-slate-200 pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm">📝</span>
+                <span className="text-xs font-semibold text-slate-600">本文での利用箇所</span>
+              </div>
+              <div className="space-y-2">
+                {citations.map((citation, i) => (
+                  <CitationItem key={i} citation={citation} />
                 ))}
               </div>
             </div>
@@ -196,5 +214,39 @@ function SourceItem({ source }: { source: InformationSource }) {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
       </svg>
     </a>
+  );
+}
+
+/**
+ * Phase 6: 本文使用箇所を表示するコンポーネント
+ */
+function CitationItem({ citation }: { citation: Citation }) {
+  // 引用文を50文字で切り詰め
+  const truncatedSentence = citation.sentence.length > 50
+    ? citation.sentence.substring(0, 47) + '...'
+    : citation.sentence;
+
+  return (
+    <div className="flex items-start gap-2 text-sm py-2 px-3 bg-slate-50 rounded-lg">
+      <span className="text-slate-400 flex-shrink-0">・</span>
+      <div className="flex-1 min-w-0">
+        <span className="text-slate-700">「{truncatedSentence}」</span>
+        {citation.sourceUrl ? (
+          <a
+            href={citation.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 text-xs text-indigo-600 hover:underline inline-flex items-center gap-1"
+          >
+            [出典: {citation.sourceTitle || 'リンク'}]
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        ) : (
+          <span className="ml-2 text-xs text-slate-400">[quoteKey: {citation.quoteKey}]</span>
+        )}
+      </div>
+    </div>
   );
 }

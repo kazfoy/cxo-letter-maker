@@ -66,6 +66,18 @@ export const VariationsSchema = z.object({
 });
 
 /**
+ * Citation（本文使用箇所）スキーマ
+ */
+export const CitationSchema = z.object({
+  sentence: z.string(),           // 本文の対象文（短く、最大50文字）
+  quoteKey: z.string(),           // factsForLetter の quoteKey
+  sourceUrl: z.string().optional(),
+  sourceTitle: z.string().optional(),
+});
+
+export type Citation = z.infer<typeof CitationSchema>;
+
+/**
  * 生成レスポンススキーマ（AI出力用）
  */
 export const GenerateV2OutputSchema = z.object({
@@ -73,6 +85,7 @@ export const GenerateV2OutputSchema = z.object({
   body: z.string(),
   rationale: z.array(RationaleSchema).min(1).max(3),
   variations: VariationsSchema.optional(),
+  citations: z.array(CitationSchema).optional(),  // Phase 6: 本文での引用箇所
 });
 
 /**

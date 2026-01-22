@@ -24,6 +24,7 @@ import {
   type UserOverrides,
   type GenerateV2Output,
   type Quality,
+  type Citation,
 } from '@/types/generate-v2';
 
 export const maxDuration = 60;
@@ -38,7 +39,8 @@ function buildGenerationPrompt(
   mode: 'draft' | 'complete',
   format: 'letter' | 'email',
   factsForLetter: SelectedFact[] = [],
-  improvementPoints?: string[]
+  improvementPoints?: string[],
+  hasTargetUrl: boolean = false
 ): string {
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
   const personName = overrides?.person_name || analysis.facts.person_name || '';
@@ -76,28 +78,52 @@ ${improvementPoints.map(p => `- ${p}`).join('\n')}`;
   let extractedFactsList = '';
   if (hasExtractedFacts) {
     const factItems: string[] = [];
+    // 新形式（ExtractedFactItem）に対応
+    const formatFactArray = (arr: Array<string | { content: string }>) =>
+      arr.map(f => typeof f === 'string' ? f : f.content).join(', ');
+
     if (extractedFacts.numbers.length > 0) {
-      factItems.push(`- 数値情報: ${extractedFacts.numbers.join(', ')}`);
+      factItems.push(`- 数値情報: ${formatFactArray(extractedFacts.numbers)}`);
     }
     if (extractedFacts.properNouns.length > 0) {
-      factItems.push(`- 固有名詞: ${extractedFacts.properNouns.join(', ')}`);
+      factItems.push(`- 固有名詞: ${formatFactArray(extractedFacts.properNouns)}`);
     }
     if (extractedFacts.recentMoves.length > 0) {
-      factItems.push(`- 最近の動き: ${extractedFacts.recentMoves.join(', ')}`);
+      factItems.push(`- 最近の動き: ${formatFactArray(extractedFacts.recentMoves)}`);
     }
     if (extractedFacts.hiringTrends.length > 0) {
-      factItems.push(`- 採用動向: ${extractedFacts.hiringTrends.join(', ')}`);
+      factItems.push(`- 採用動向: ${formatFactArray(extractedFacts.hiringTrends)}`);
     }
     if (extractedFacts.companyDirection.length > 0) {
-      factItems.push(`- 会社の方向性: ${extractedFacts.companyDirection.join(', ')}`);
+      factItems.push(`- 会社の方向性: ${formatFactArray(extractedFacts.companyDirection)}`);
     }
     extractedFactsList = factItems.join('\n');
   }
 
-  // 選定ファクトの必須引用指示
+  // Phase 6: ブリッジ構造指示（ファクトがある場合）
+  let bridgeInstruction = '';
+  if (factsForLetter.length > 0) {
+    const bridgeReasons = factsForLetter
+      .filter(f => f.bridgeReason)
+      .map(f => `- ${f.quoteKey}: ${f.bridgeReason}`)
+      .join('\n');
+
+    bridgeInstruction = `\n\n【ブリッジ構造（必須）】
+冒頭200文字以内に以下の流れを必ず含めること：
+1. フック: ファクト引用（「貴社が〜」「〜を拝見し」）
+2. ブリッジ文: ファクトと提案テーマをつなぐ1文
+3. 仮説: 「〜ではないでしょうか」で提示
+
+参考ブリッジ理由:
+${bridgeReasons || '（ブリッジ理由なし）'}`;
+  }
+
+  // 選定ファクトの必須引用指示（Phase 6強化版）
   let factsForLetterInstruction = '';
   if (factsForLetter.length > 0) {
-    const factsList = factsForLetter.map(f => `- [${f.category}] ${f.quoteKey}: ${f.content}`).join('\n');
+    const factsList = factsForLetter.map(f =>
+      `- [${f.category}] ${f.quoteKey}: ${f.content}${f.sourceUrl ? ` (出典: ${f.sourceUrl})` : ''}`
+    ).join('\n');
     factsForLetterInstruction = `\n\n【必須引用ファクト（フックで必ず1つ以上使用）】
 ${factsList}
 
@@ -114,6 +140,23 @@ ${factsList}
 targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey を必ず1つ以上含めること。`;
   }
 
+  // Phase 6: エビデンス必須ルール
+  const evidenceRule = `\n\n【エビデンス必須ルール】
+1. 数字: factsForLetter / proof_points に存在するもののみ使用可能
+2. 企業事例: proof_points type=case_study に存在するもののみ使用可能
+3. 断定禁止: 「〜が課題です」→「〜ではないでしょうか」の仮説形式に
+4. ニュース: recent_news が空なら時事ネタ禁止`;
+
+  // Phase 6: 仮説モード（URL未指定 or ファクト空の場合）
+  let hypothesisModeInstruction = '';
+  if (!hasTargetUrl || factsForLetter.length === 0) {
+    hypothesisModeInstruction = `\n\n【仮説モード】（URL未指定またはファクト空のため適用）
+- 具体的な数字・固有名詞は使用禁止（「〇〇」等のプレースホルダーも不可）
+- すべての課題・状況は「〜ではないでしょうか」「〜と推察します」で終える
+- 「御社では〜が課題です」のような断定は禁止
+- 業界一般の傾向を根拠にする場合は「〜業界では〜という傾向があると聞きます」の形式`;
+  }
+
   // ファクトがない場合のフォールバック指示
   const noFactsInstruction = !hasExtractedFacts && factsForLetter.length === 0
     ? '\n\n【ファクト不足時の対応】\n- 具体的なファクトが取得できなかったため、業界一般の課題と仮説で構成してください\n- 「〜ではないでしょうか」「〜と推察します」等の可能性表現を使用\n- 架空の数字・固有名詞・実績は絶対に生成しない\n- 「推測」「想像」「おそらく」等の曖昧ワードは本文に出さない'
@@ -126,10 +169,18 @@ targetUrl がある場合、冒頭200文字以内に factsForLetter の quoteKey
     ? `${companyName} ${personPosition || 'ご担当者'}様`
     : '';
 
+  // Phase 6: citations出力指示
+  const citationInstruction = factsForLetter.length > 0
+    ? `\n\n【citations出力ルール】
+- bodyの中でfactsForLetterを引用した文ごとにcitationを出力
+- sentenceは引用を含む1文（最大50文字、省略は「...」）
+- quoteKeyはfactsForLetterのquoteKeyと一致させる`
+    : '';
+
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${retryInstruction}${factsForLetterInstruction}${noFactsInstruction}
+${modeInstruction}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${hypothesisModeInstruction}${noFactsInstruction}${citationInstruction}
 
 【絶対ルール】
 1. 架空の数字・社名・実績は禁止。proof_points / recent_news / extracted_facts にあるものだけ使用可能
@@ -199,7 +250,13 @@ ${overrides?.additional_context ? `【追加コンテキスト】\n${sanitizeFor
     "standard": "王道パターン（業界トレンド仮説リード）",
     "emotional": "熱意パターン（具体的成功事例リード）",
     "consultative": "課題解決パターン（リスク・規制観点リード）"
-  }
+  }${factsForLetter.length > 0 ? `,
+  "citations": [
+    {
+      "sentence": "〜を拝見しました...",
+      "quoteKey": "factsForLetterのquoteKey"
+    }
+  ]` : ''}
 }`;
 }
 
@@ -273,7 +330,8 @@ export async function POST(request: Request) {
             mode,
             output_format,
             factsForLetter,
-            attempt > 1 ? improvementPoints : undefined
+            attempt > 1 ? improvementPoints : undefined,
+            hasTargetUrl
           );
 
           // 2. 生成
@@ -306,6 +364,15 @@ export async function POST(request: Request) {
           // 品質OK（80点以上）または最終試行
           if (detailedScore.total >= 80 || attempt === maxAttempts) {
             devLog.log(`Returning result (score: ${detailedScore.total}, attempt: ${attempt})`);
+
+            // Phase 6: citationsを整形（sourceUrlをfactsForLetterから引き継ぐ）
+            const citations: Citation[] = (result.citations || []).map(c => ({
+              sentence: c.sentence,
+              quoteKey: c.quoteKey,
+              sourceUrl: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceUrl || c.sourceUrl,
+              sourceTitle: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceTitle || c.sourceTitle,
+            }));
+
             return NextResponse.json({
               success: true,
               data: {
@@ -322,6 +389,7 @@ export async function POST(request: Request) {
                 // 追加フィールド
                 sources: analysis_result.sources || [],
                 factsForLetter: factsForLetter,
+                citations,  // Phase 6: citations追加
               },
             });
           }
@@ -348,6 +416,14 @@ export async function POST(request: Request) {
             // 最終試行も失敗した場合
             if (bestResult) {
               // 前の試行の結果があれば返却
+              // Phase 6: citationsを整形
+              const citations: Citation[] = (bestResult.citations || []).map(c => ({
+                sentence: c.sentence,
+                quoteKey: c.quoteKey,
+                sourceUrl: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceUrl || c.sourceUrl,
+                sourceTitle: factsForLetter.find(f => f.quoteKey === c.quoteKey)?.sourceTitle || c.sourceTitle,
+              }));
+
               return NextResponse.json({
                 success: true,
                 data: {
@@ -358,6 +434,7 @@ export async function POST(request: Request) {
                   variations: bestResult.variations,
                   sources: analysis_result.sources || [],
                   factsForLetter: factsForLetter,
+                  citations,  // Phase 6: citations追加
                 },
               });
             }

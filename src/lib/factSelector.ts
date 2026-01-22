@@ -2,9 +2,16 @@
  * ファクト選定ロジック
  *
  * 抽出された全ファクトから、レター生成に最適な2-3個を選定
+ * Phase 6: ストーリー整合性・鮮度フィルタ・ブリッジ理由生成
  */
 
-import type { ExtractedFacts, SelectedFact } from '@/types/analysis';
+import type {
+  ExtractedFacts,
+  ExtractedFactItem,
+  SelectedFact,
+  TopicTag,
+  SourceCategory,
+} from '@/types/analysis';
 
 // NGキーワード（レターに不適切なファクト）
 const NG_KEYWORDS = [
@@ -51,6 +58,202 @@ const CXO_KEYWORDS = [
   'リスク',
   '内部統制',
 ];
+
+// Phase 6: トピックタグのキーワードマッピング
+const TOPIC_TAG_KEYWORDS: Record<TopicTag, string[]> = {
+  governance: ['ガバナンス', '内部統制', '取締役会', '監査', '統制'],
+  compliance: ['コンプライアンス', '法令遵守', '規制', '適正', '不正防止'],
+  supply_chain: ['サプライチェーン', '調達', '物流', 'SCM', '供給'],
+  finance_ops: ['財務', '経理', '会計', '決算', '予算', '連結'],
+  digital_transformation: ['DX', 'デジタル', 'IT', 'AI', 'クラウド', '自動化', 'RPA'],
+  sustainability: ['サステナビリティ', 'ESG', 'カーボンニュートラル', '脱炭素', '環境', 'SDGs'],
+  global_expansion: ['グローバル', '海外', '国際', '進出', '越境'],
+  hr_organization: ['人事', '組織', '採用', '人材', 'タレント', '働き方'],
+  risk_management: ['リスク', 'BCP', '危機管理', 'セキュリティ', '情報管理'],
+  growth_strategy: ['成長', 'M&A', '新規事業', '投資', '戦略'],
+  other: [],
+};
+
+/**
+ * ファクトアイテムを正規化（string | ExtractedFactItem を統一形式に）
+ */
+function normalizeFactItem(
+  item: string | ExtractedFactItem,
+  fallbackSourceUrl?: string
+): {
+  content: string;
+  sourceUrl?: string;
+  sourceTitle?: string;
+  sourceCategory?: SourceCategory;
+} {
+  if (typeof item === 'string') {
+    return { content: item, sourceUrl: fallbackSourceUrl };
+  }
+  return {
+    content: item.content,
+    sourceUrl: item.sourceUrl || fallbackSourceUrl,
+    sourceTitle: item.sourceTitle,
+    sourceCategory: item.sourceCategory,
+  };
+}
+
+/**
+ * ファクト内容から日付を抽出
+ */
+function parseDateFromFact(content: string): { date: Date | null; isUndated: boolean } {
+  // パターン: 2024年4月, 2024/4, 2024-04, 令和6年
+  const patterns = [
+    /(\d{4})年(\d{1,2})月/,   // 2024年4月
+    /(\d{4})\/(\d{1,2})/,     // 2024/4
+    /(\d{4})-(\d{1,2})/,      // 2024-04
+    /(\d{4})年/,               // 2024年（月なし）
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = match[2] ? parseInt(match[2], 10) - 1 : 0; // JS monthは0-indexed
+      if (year >= 2000 && year <= 2100) {
+        return { date: new Date(year, month, 1), isUndated: false };
+      }
+    }
+  }
+
+  // 令和パターン
+  const reiwaMach = content.match(/令和(\d+)年/);
+  if (reiwaMach) {
+    const year = 2018 + parseInt(reiwaMach[1], 10);
+    return { date: new Date(year, 0, 1), isUndated: false };
+  }
+
+  return { date: null, isUndated: true };
+}
+
+/**
+ * 中期経営計画かどうかを判定
+ */
+function isMidTermPlan(content: string): boolean {
+  const markers = ['[中計]', '中期経営計画', '中期計画', '長期ビジョン', '経営計画'];
+  return markers.some(marker => content.includes(marker));
+}
+
+/**
+ * トピックタグを割り当て
+ */
+function assignTopicTags(content: string): TopicTag[] {
+  const tags: TopicTag[] = [];
+  const contentLower = content.toLowerCase();
+
+  for (const [tag, keywords] of Object.entries(TOPIC_TAG_KEYWORDS) as [TopicTag, string[]][]) {
+    if (tag === 'other') continue;
+    if (keywords.some(kw => contentLower.includes(kw.toLowerCase()))) {
+      tags.push(tag);
+    }
+  }
+
+  if (tags.length === 0) {
+    tags.push('other');
+  }
+
+  return tags;
+}
+
+/**
+ * ブリッジ理由を生成（ファクト→提案テーマへの接続説明）
+ */
+function generateBridgeReason(
+  content: string,
+  topicTags: TopicTag[],
+  proposalTheme?: string
+): string {
+  // トピックタグに基づくデフォルトのブリッジ理由
+  const tagReasons: Partial<Record<TopicTag, string>> = {
+    governance: '経営体制の強化に関連',
+    compliance: 'コンプライアンス体制の整備に関連',
+    supply_chain: 'サプライチェーン最適化に関連',
+    finance_ops: '財務・経理業務の効率化に関連',
+    digital_transformation: 'デジタル変革の推進に関連',
+    sustainability: 'サステナビリティ経営に関連',
+    global_expansion: 'グローバル展開の課題に関連',
+    hr_organization: '組織・人材戦略に関連',
+    risk_management: 'リスク管理体制の強化に関連',
+    growth_strategy: '成長戦略の実現に関連',
+  };
+
+  // 提案テーマがある場合はそれに基づく理由を生成
+  if (proposalTheme) {
+    return `「${content.substring(0, 30)}...」の取り組みは、${proposalTheme}に貢献可能`;
+  }
+
+  // トピックタグに基づく理由
+  const primaryTag = topicTags[0];
+  if (primaryTag && tagReasons[primaryTag]) {
+    return tagReasons[primaryTag]!;
+  }
+
+  return '経営課題の解決に関連';
+}
+
+/**
+ * ブリッジ信頼度を計算
+ */
+function calculateBridgeConfidence(
+  content: string,
+  topicTags: TopicTag[],
+  proposalTheme?: string
+): number {
+  let confidence = 50; // ベース
+
+  // トピックタグが明確（other以外）なら+15
+  if (topicTags.length > 0 && topicTags[0] !== 'other') {
+    confidence += 15;
+  }
+
+  // 複数のタグがあれば+10（関連性が高い）
+  if (topicTags.length >= 2) {
+    confidence += 10;
+  }
+
+  // 提案テーマとの一致があれば+20
+  if (proposalTheme) {
+    const themeLower = proposalTheme.toLowerCase();
+    const contentLower = content.toLowerCase();
+    if (contentLower.includes(themeLower) || themeLower.includes(contentLower.substring(0, 20))) {
+      confidence += 20;
+    }
+  }
+
+  // 具体的な数字を含む場合+10
+  if (/[\d,]+[%％万億件社名]/.test(content)) {
+    confidence += 10;
+  }
+
+  return Math.min(100, confidence);
+}
+
+/**
+ * 鮮度フィルタ（1年超の古いファクトを除外、中計は例外）
+ */
+function filterByFreshness<T extends {
+  isMidTermPlan: boolean;
+  date: Date | null;
+}>(
+  facts: T[],
+  maxAgeDays: number = 365
+): T[] {
+  const cutoff = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+
+  return facts.filter(fact => {
+    // 中計は常に許可
+    if (fact.isMidTermPlan) return true;
+
+    // 日付がある場合、cutoffより新しいもののみ許可
+    if (fact.date && fact.date < cutoff) return false;
+
+    return true;
+  });
+}
 
 /**
  * quoteKeyを生成
@@ -233,19 +436,35 @@ export interface FactSelectionResult {
  * @param targetPosition - ターゲットの役職
  * @param productStrength - 商材の強み
  * @param targetChallenges - ターゲットの課題
+ * @param proposalTheme - 提案テーマ（ブリッジ理由生成用）
+ * @param confidenceThreshold - 信頼度閾値（デフォルト60）
  * @returns 選定されたファクトと却下されたファクト
  */
 export function selectFactsForLetter(
   extractedFacts: ExtractedFacts | undefined,
   targetPosition?: string,
   productStrength?: string,
-  targetChallenges?: string
+  targetChallenges?: string,
+  proposalTheme?: string,
+  confidenceThreshold: number = 60
 ): FactSelectionResult {
   if (!extractedFacts) {
     return { factsForLetter: [], rejectedFacts: [] };
   }
 
-  const allFacts: SelectedFact[] = [];
+  // 中間データ構造（正規化＋日付解析＋中計判定）
+  interface NormalizedFact {
+    content: string;
+    category: SelectedFact['category'];
+    sourceUrl?: string;
+    sourceTitle?: string;
+    sourceCategory?: SourceCategory;
+    date: Date | null;
+    isUndated: boolean;
+    isMidTermPlan: boolean;
+  }
+
+  const normalizedFacts: NormalizedFact[] = [];
 
   // 全カテゴリからファクトを収集
   const categories: Array<{ key: keyof ExtractedFacts; category: SelectedFact['category'] }> = [
@@ -258,40 +477,101 @@ export function selectFactsForLetter(
 
   for (const { key, category } of categories) {
     const facts = extractedFacts[key] || [];
-    for (const content of facts) {
+    for (const item of facts) {
+      // 正規化
+      const normalized = normalizeFactItem(item);
+      const { content, sourceUrl, sourceTitle, sourceCategory } = normalized;
+
       // NGキーワードチェック
       if (containsNgKeyword(content)) {
         continue;
       }
 
-      const { score, reason } = calculateRelevanceScore(
-        content,
-        category,
-        targetPosition,
-        productStrength,
-        targetChallenges
-      );
+      // 日付解析
+      const { date, isUndated } = parseDateFromFact(content);
 
-      allFacts.push({
+      // 中計判定
+      const midTermPlan = isMidTermPlan(content);
+
+      normalizedFacts.push({
         content,
         category,
-        relevanceScore: score,
-        reason,
-        quoteKey: generateQuoteKey(content, category),
+        sourceUrl,
+        sourceTitle,
+        sourceCategory,
+        date,
+        isUndated,
+        isMidTermPlan: midTermPlan,
       });
     }
+  }
+
+  // 鮮度フィルタ（1年超の古いファクトを除外、中計は例外）
+  const freshFacts = filterByFreshness(normalizedFacts);
+
+  // スコアリング＆SelectedFact変換
+  const allFacts: SelectedFact[] = [];
+
+  for (const fact of freshFacts) {
+    const { content, category, sourceUrl, sourceTitle, sourceCategory, date, isUndated, isMidTermPlan: midTermPlan } = fact;
+
+    // 基本スコア計算
+    let { score, reason } = calculateRelevanceScore(
+      content,
+      category,
+      targetPosition,
+      productStrength,
+      targetChallenges
+    );
+
+    // 日付不明のrecentMovesは優先度-15
+    if (category === 'recentMoves' && isUndated) {
+      score -= 15;
+      reason += ' / 日付不明により減点';
+    }
+
+    // トピックタグ割り当て
+    const topicTags = assignTopicTags(content);
+
+    // ブリッジ理由生成
+    const bridgeReason = generateBridgeReason(content, topicTags, proposalTheme);
+
+    // ブリッジ信頼度計算
+    const confidence = calculateBridgeConfidence(content, topicTags, proposalTheme);
+
+    // 日付文字列（あれば）
+    const publishedAt = date ? `${date.getFullYear()}年${date.getMonth() + 1}月` : undefined;
+
+    allFacts.push({
+      content,
+      category,
+      relevanceScore: Math.max(0, score),
+      reason,
+      quoteKey: generateQuoteKey(content, category),
+      topicTags,
+      bridgeReason,
+      confidence,
+      publishedAt,
+      isMidTermPlan: midTermPlan,
+      sourceUrl,
+      sourceTitle,
+      sourceCategory,
+    });
   }
 
   // スコア順にソート
   allFacts.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-  // 上位3件を選定（ただし、異なるカテゴリから選ぶことを優先）
+  // 信頼度閾値によるフィルタリング
+  const confidentFacts = allFacts.filter(f => f.confidence >= confidenceThreshold);
+
+  // 上位3件を選定（信頼度閾値を満たすもの優先、異なるカテゴリから選ぶことを優先）
   const factsForLetter: SelectedFact[] = [];
   const rejectedFacts: SelectedFact[] = [];
   const usedCategories = new Set<SelectedFact['category']>();
 
-  // 1. 各カテゴリから最高スコアのファクトを1つずつ選ぶ（最大3件）
-  for (const fact of allFacts) {
+  // 1. 信頼度閾値を満たすファクトから、各カテゴリで最高スコアを1つずつ選ぶ
+  for (const fact of confidentFacts) {
     if (factsForLetter.length >= 3) break;
 
     if (!usedCategories.has(fact.category)) {
@@ -300,8 +580,8 @@ export function selectFactsForLetter(
     }
   }
 
-  // 2. まだ3件未満なら、スコア順に追加
-  for (const fact of allFacts) {
+  // 2. まだ3件未満なら、信頼度閾値を満たすファクトからスコア順に追加
+  for (const fact of confidentFacts) {
     if (factsForLetter.length >= 3) break;
 
     if (!factsForLetter.includes(fact)) {
@@ -309,7 +589,18 @@ export function selectFactsForLetter(
     }
   }
 
-  // 3. 残りは却下リストへ
+  // 3. それでも3件未満なら、全ファクトからスコア順に追加（信頼度は低いが使う）
+  if (factsForLetter.length < 3) {
+    for (const fact of allFacts) {
+      if (factsForLetter.length >= 3) break;
+
+      if (!factsForLetter.includes(fact)) {
+        factsForLetter.push(fact);
+      }
+    }
+  }
+
+  // 4. 残りは却下リストへ
   for (const fact of allFacts) {
     if (!factsForLetter.includes(fact)) {
       rejectedFacts.push(fact);

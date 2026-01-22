@@ -5,6 +5,7 @@
  */
 
 import type { SelectedFact } from '@/types/analysis';
+import type { Citation } from '@/types/generate-v2';
 
 /**
  * 証拠ポイントの型
@@ -505,4 +506,218 @@ export function calculateDetailedScore(
     },
     suggestions: [...suggestions.slice(0, 3), ...issues],
   };
+}
+
+/**
+ * Phase 6: ブリッジ構造検出
+ *
+ * 冒頭200文字以内に「フック→ブリッジ→仮説」の流れがあるかチェック
+ */
+export interface BridgeDetectionResult {
+  hasBridge: boolean;
+  bridgeQuality: 'strong' | 'weak' | 'missing';
+  details: {
+    hasHook: boolean;     // ファクト引用あり
+    hasBridgeText: boolean; // 接続文あり
+    hasHypothesis: boolean; // 仮説表現あり
+  };
+}
+
+export function detectBridgeStructure(
+  body: string,
+  factsForLetter: SelectedFact[]
+): BridgeDetectionResult {
+  const opening = body.slice(0, 200);
+
+  // フック検出（ファクト引用）
+  const hasHook = factsForLetter.length > 0 &&
+    factsForLetter.some(f => opening.includes(f.quoteKey));
+
+  // ブリッジ文検出（接続表現）
+  const bridgePatterns = [
+    /拝見し/,
+    /伺い/,
+    /お聞きし/,
+    /ご注力/,
+    /お取り組み/,
+    /に関連して/,
+    /に際して/,
+    /を踏まえ/,
+  ];
+  const hasBridgeText = bridgePatterns.some(p => p.test(opening));
+
+  // 仮説表現検出
+  const hypothesisPatterns = [
+    /ではないでしょうか/,
+    /と推察/,
+    /かと存じます/,
+    /のではないかと/,
+    /かもしれません/,
+  ];
+  const hasHypothesis = hypothesisPatterns.some(p => p.test(opening));
+
+  // 品質判定
+  let bridgeQuality: 'strong' | 'weak' | 'missing';
+  if (hasHook && hasBridgeText && hasHypothesis) {
+    bridgeQuality = 'strong';
+  } else if (hasHook || (hasBridgeText && hasHypothesis)) {
+    bridgeQuality = 'weak';
+  } else {
+    bridgeQuality = 'missing';
+  }
+
+  return {
+    hasBridge: bridgeQuality !== 'missing',
+    bridgeQuality,
+    details: {
+      hasHook,
+      hasBridgeText,
+      hasHypothesis,
+    },
+  };
+}
+
+/**
+ * Phase 6: 根拠なき断定検出
+ *
+ * body内で、factsForLetter/proofPointsに無い数字や断定表現を検出
+ */
+export interface BaselessAssertionResult {
+  issues: string[];
+  penalty: number;
+}
+
+export function detectBaselessAssertions(
+  body: string,
+  factsForLetter: SelectedFact[],
+  proofPoints: ProofPoint[],
+  hasTargetUrl: boolean
+): BaselessAssertionResult {
+  const issues: string[] = [];
+  let penalty = 0;
+
+  // 1. 数値断定検出（factsForLetterに無い数字）
+  const numbersInBody = body.match(/\d+[%％万億件社名時間日週月年拠点]/g) || [];
+  const allowedNumbers = new Set<string>();
+
+  // factsForLetterから許可された数字を収集
+  for (const fact of factsForLetter) {
+    const nums = fact.content.match(/\d+/g) || [];
+    nums.forEach(n => allowedNumbers.add(n));
+  }
+
+  // proofPointsからも許可された数字を収集
+  for (const pp of proofPoints) {
+    const nums = pp.content.match(/\d+/g) || [];
+    nums.forEach(n => allowedNumbers.add(n));
+  }
+
+  // 許可されていない数字を検出
+  for (const num of numbersInBody) {
+    const digitMatch = num.match(/\d+/);
+    if (digitMatch && !allowedNumbers.has(digitMatch[0])) {
+      // ただし、15分、30分などのCTA用数字は除外
+      if (!['15', '30', '20', '10'].includes(digitMatch[0])) {
+        issues.push(`根拠なき数値: ${num}`);
+        penalty += 10;
+      }
+    }
+  }
+
+  // 2. 決めつけ表現検出
+  const assertivePatterns = [
+    { pattern: /御社では.{1,20}が課題です/, penalty: 7, desc: '決めつけ表現' },
+    { pattern: /貴社では.{1,20}が問題/, penalty: 7, desc: '決めつけ表現' },
+    { pattern: /明らかに.{1,20}です/, penalty: 5, desc: '過剰断定' },
+    { pattern: /間違いなく/, penalty: 5, desc: '過剰断定' },
+    { pattern: /確実に.{1,20}です/, penalty: 5, desc: '過剰断定' },
+  ];
+
+  for (const { pattern, penalty: p, desc } of assertivePatterns) {
+    if (pattern.test(body)) {
+      issues.push(desc);
+      penalty += p;
+    }
+  }
+
+  // 3. 根拠なきニュース引用（recent_newsが空の場合は別途チェック済みなのでここでは追加のみ）
+  // URLありでファクトがあるのに、ファクトに無いニュースを言及している場合
+  if (hasTargetUrl && factsForLetter.length > 0) {
+    const newsPatterns = [
+      /先日.{1,30}発表/,
+      /報道によると/,
+      /〜と発表/,
+    ];
+    for (const pattern of newsPatterns) {
+      if (pattern.test(body)) {
+        // factsForLetterに該当するニュースがあるかチェック
+        const hasMatchingFact = factsForLetter.some(f =>
+          f.category === 'recentMoves' && body.includes(f.quoteKey)
+        );
+        if (!hasMatchingFact) {
+          issues.push('根拠なきニュース引用');
+          penalty += 10;
+          break;
+        }
+      }
+    }
+  }
+
+  return { issues, penalty };
+}
+
+/**
+ * Phase 6: ソース出典検証
+ *
+ * factsForLetterにsourceUrlが付いているか、citationsが適切かチェック
+ */
+export interface SourceAttributionResult {
+  issues: string[];
+  penalty: number;
+}
+
+export function validateSourceAttribution(
+  factsForLetter: SelectedFact[],
+  citations: Citation[],
+  hasTargetUrl: boolean
+): SourceAttributionResult {
+  if (!hasTargetUrl) {
+    return { issues: [], penalty: 0 };
+  }
+
+  const issues: string[] = [];
+  let penalty = 0;
+
+  // 1. factsForLetterにsourceUrlが無い場合
+  const factsWithoutSource = factsForLetter.filter(f => !f.sourceUrl);
+  if (factsWithoutSource.length > 0) {
+    issues.push(`${factsWithoutSource.length}件のファクトに出典URLがありません`);
+    penalty += factsWithoutSource.length * 3;
+  }
+
+  // 2. citationsが空の場合（factを使ったのにcitation無し）
+  if (factsForLetter.length > 0 && citations.length === 0) {
+    issues.push('本文でのファクト使用箇所が特定されていません');
+    penalty += 5;
+  }
+
+  return { issues, penalty };
+}
+
+/**
+ * Phase 6: ブリッジ品質によるスコア上限設定
+ */
+export function applyBridgeQualityLimit(
+  score: number,
+  bridgeQuality: 'strong' | 'weak' | 'missing'
+): number {
+  switch (bridgeQuality) {
+    case 'missing':
+      return Math.min(score, 75);
+    case 'weak':
+      return Math.min(score, 85);
+    case 'strong':
+    default:
+      return score;
+  }
 }

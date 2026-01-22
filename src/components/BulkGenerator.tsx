@@ -582,7 +582,7 @@ export function BulkGenerator() {
         let failureCount = 0;
 
         try {
-            // Sequential Loop - Call /api/generate for each item
+            // Sequential Loop - V2 flow (analyze-input + generate-v2) for each item
             for (let i = 0; i < validItems.length; i++) {
                 // Check Cancellation
                 if (cancelRef.current) break;

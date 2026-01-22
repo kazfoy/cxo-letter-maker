@@ -175,6 +175,21 @@ const EVENT_STRONG_ASSERTION_PATTERNS = [
   /間違いございません/,
   /間違いなく/,
   /必ずや.{1,20}いただけ/,
+  /貢献できる/,
+  /実現できる/,
+  /達成できる/,
+];
+
+/**
+ * Event招待状専用: 抽象的な価値表現
+ * 具体的な持ち帰り3点を促すために検出
+ */
+const EVENT_ABSTRACT_VALUE_PATTERNS = [
+  /最新事例やノウハウ/,
+  /事例やノウハウ/,
+  /様々な事例/,
+  /豊富な事例/,
+  /有益な情報/,
 ];
 
 /**
@@ -907,6 +922,8 @@ export interface EventQualityScore {
     coldOutreachGreeting: number;
     positionConfusion: number;
     unconfirmedSpeaker: number;
+    missingSelfIntro: number;
+    abstractValue: number;
   };
   issues: string[];
 }
@@ -933,6 +950,8 @@ export function calculateEventQualityScore(
     coldOutreachGreeting: 0,
     positionConfusion: 0,
     unconfirmedSpeaker: 0,
+    missingSelfIntro: 0,
+    abstractValue: 0,
   };
 
   // 1. 無根拠診断検出 (-15点/件、上限-30点)
@@ -1009,6 +1028,22 @@ export function calculateEventQualityScore(
   if (unconfirmedHit) {
     penalties.unconfirmedSpeaker = 5;
     issues.push('「（予定）」は信頼を削ります。役職名でぼかすか確定後に送付してください');
+  }
+
+  // 10. 自己紹介欠落検出 (-10点)
+  // 「突然のご連絡」の後に会社名・名前がない場合
+  const hasColdGreeting = /突然のご連絡/.test(body);
+  const hasSelfIntro = /です。|と申します|の[^\s]+です/.test(body.substring(0, 100));
+  if (hasColdGreeting && !hasSelfIntro) {
+    penalties.missingSelfIntro = 10;
+    issues.push('「突然のご連絡」の後に会社名・名前を名乗ってください（例: 株式会社〇〇の〇〇です）');
+  }
+
+  // 11. 抽象的な価値表現検出 (-5点)
+  const abstractHit = EVENT_ABSTRACT_VALUE_PATTERNS.some(p => p.test(body));
+  if (abstractHit) {
+    penalties.abstractValue = 5;
+    issues.push('「最新事例やノウハウ」は抽象的です。具体的な持ち帰り3点を明記してください');
   }
 
   const totalPenalty = Object.values(penalties).reduce((a, b) => a + b, 0);

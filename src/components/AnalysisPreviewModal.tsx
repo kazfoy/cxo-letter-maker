@@ -80,6 +80,18 @@ export function AnalysisPreviewModal({
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {analysisResult ? (
             <>
+              {/* 仮説モード警告バナー（URLブロック時） */}
+              {(() => {
+                const blockedFlag = analysisResult.risk_flags?.find(
+                  (f) => f.message.includes('ブロック') || f.message.includes('仮説モード')
+                );
+                return blockedFlag ? (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    <span className="mr-1">&#9888;&#65039;</span> {blockedFlag.message}
+                  </div>
+                ) : null;
+              })()}
+
               {/* 抽出された情報 */}
               <section className="mb-6">
                 <h4 className="font-medium text-slate-900 mb-3 flex items-center gap-2">

@@ -23,8 +23,13 @@ interface LetterRow {
 
 /**
  * Convert database row to LetterHistory format
+ * inputs jsonb 内の _sources/_citations を抽出して復元する（暫定方式）
  */
 function rowToHistory(row: LetterRow): LetterHistory {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawInputs = row.inputs as any;
+  const { _sources, _citations, ...cleanInputs } = rawInputs || {};
+
   return {
     id: row.id,
     createdAt: row.created_at,
@@ -34,9 +39,11 @@ function rowToHistory(row: LetterRow): LetterHistory {
     isPinned: row.is_pinned,
     mode: row.mode,
     status: row.status,
-    inputs: row.inputs,
+    inputs: cleanInputs as LetterHistory['inputs'],
     batchId: row.batch_id,
     emailContent: row.email_content,
+    ...(Array.isArray(_sources) && _sources.length > 0 ? { sources: _sources } : {}),
+    ...(Array.isArray(_citations) && _citations.length > 0 ? { citations: _citations } : {}),
   };
 }
 
@@ -275,11 +282,14 @@ export async function getActiveBatchJobs(): Promise<Array<{
 
 /**
  * Save a new letter to history
+ * sources/citations は inputs jsonb 内に _sources/_citations として暫定保存
+ * TODO: DB に専用カラム (sources jsonb, citations jsonb) を追加後、分離する
  */
 export async function saveToHistory(
   inputs: LetterHistory['inputs'],
   content: string,
-  mode?: 'sales' | 'event'
+  mode?: 'sales' | 'event',
+  options?: { sources?: LetterHistory['sources']; citations?: LetterHistory['citations'] }
 ): Promise<LetterHistory | null> {
   try {
     const supabase = createClient();
@@ -289,6 +299,13 @@ export async function saveToHistory(
       throw new Error('ログインが必要です');
     }
 
+    // sources/citations を inputs jsonb に埋め込む（暫定）
+    const inputsWithMeta = {
+      ...inputs,
+      ...(options?.sources && options.sources.length > 0 ? { _sources: options.sources } : {}),
+      ...(options?.citations && options.citations.length > 0 ? { _citations: options.citations } : {}),
+    };
+
     const newLetter = {
       user_id: user.id,
       target_company: inputs.companyName,
@@ -297,7 +314,7 @@ export async function saveToHistory(
       is_pinned: false,
       mode: mode || 'sales',
       status: 'generated' as LetterStatus,
-      inputs,
+      inputs: inputsWithMeta,
     };
 
     const { data, error } = await supabase

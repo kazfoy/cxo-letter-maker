@@ -13,6 +13,7 @@ import { createClient } from '@/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CTA_OPTIONS, type CtaType } from '@/lib/constants';
 import type { AnalysisResult, InformationSource } from '@/types/analysis';
+import type { Citation } from '@/types/generate-v2';
 import { SourcesDisplay } from './SourcesDisplay';
 import { normalizeLetterText } from '@/lib/textNormalize';
 
@@ -452,7 +453,7 @@ export function BulkGenerator() {
         senderName: string;
         senderService: string;
         outputFormat: 'letter' | 'email';
-    }): Promise<{ success: boolean; content?: string; error?: string; sources?: InformationSource[] }> => {
+    }): Promise<{ success: boolean; content?: string; error?: string; sources?: InformationSource[]; citations?: Citation[] }> => {
         try {
             // Step 1: analyze-input API
             const userNotes = [
@@ -522,7 +523,9 @@ export function BulkGenerator() {
                 content = `件名: ${genData.data.subjects[0]}\n\n${content}`;
             }
 
-            return { success: true, content, sources };
+            const citations: Citation[] | undefined = genData.data.citations;
+
+            return { success: true, content, sources, citations };
         } catch (error) {
             console.error('[V2 Flow Error]', error);
             return {
@@ -671,13 +674,15 @@ export function BulkGenerator() {
                         batch_id: batchId,
                         status: 'generated',
                         mode: generationMode,
-                        model_name: 'gemini-2.0-flash-exp (V2)',
+                        model_name: 'gemini-2.5-flash (V2)',
                         inputs: {
                             companyName: row[mapping.companyName] || '',
                             name: fullName,
                             position: mapping.position ? row[mapping.position] : '',
                             department: mapping.recipientDepartment ? row[mapping.recipientDepartment] : '',
                             background: mapping.background ? row[mapping.background] : '',
+                            ...(v2Result.sources && v2Result.sources.length > 0 ? { _sources: v2Result.sources } : {}),
+                            ...(v2Result.citations && v2Result.citations.length > 0 ? { _citations: v2Result.citations } : {}),
                         }
                     });
 

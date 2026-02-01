@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 
 export const maxDuration = 60;
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
         const safeBackground = sanitizeForPrompt(background || '', 5000);
 
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash');
+        const model = google(MODEL_DEFAULT);
 
         const prompt = `あなたはCxO向けセールスレターの構成案を提案する専門家です。
 

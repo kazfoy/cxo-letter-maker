@@ -12,7 +12,7 @@ import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
-import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
+import { SAMPLE_DATA, SAMPLE_EVENT_DATA, getRandomSampleCompany } from '@/lib/sampleData';
 import type { InformationSource } from '@/types/analysis';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import type { AnalysisResult } from '@/types/analysis';
@@ -78,6 +78,7 @@ function NewLetterPageContent() {
   const [generatedCitations, setGeneratedCitations] = useState<Citation[] | undefined>(undefined);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
+  const [isSampleCooldown, setIsSampleCooldown] = useState(false);
 
   // 再分析が必要か判定
   const shouldReanalyze = useCallback((
@@ -276,10 +277,13 @@ function NewLetterPageContent() {
           setGeneratedCitations(data.data.citations);
         }
 
-        // 履歴に保存
+        // 履歴に保存（sources/citations も含む）
         const contentToSave = data.data.body;
         if (user) {
-          const savedLetter = await saveToHistory(inputFormData, contentToSave, mode);
+          const savedLetter = await saveToHistory(inputFormData, contentToSave, mode, {
+            sources: data.data.sources,
+            citations: data.data.citations,
+          });
           if (savedLetter) {
             setCurrentLetterId(savedLetter.id);
             setCurrentLetterStatus(savedLetter.status);
@@ -586,10 +590,13 @@ function NewLetterPageContent() {
           setActiveVariation('standard');
         }
 
-        // 履歴に保存
+        // 履歴に保存（sources/citations も含む）
         const contentToSave = data.data.body;
         if (user) {
-          const savedLetter = await saveToHistory(formData, contentToSave, mode);
+          const savedLetter = await saveToHistory(formData, contentToSave, mode, {
+            sources: data.data.sources,
+            citations: data.data.citations,
+          });
           if (savedLetter) {
             setCurrentLetterId(savedLetter.id);
             setCurrentLetterStatus(savedLetter.status);
@@ -745,12 +752,18 @@ function NewLetterPageContent() {
     setGeneratedLetter(history.content);
     setCurrentLetterId(history.id);
     setCurrentLetterStatus(history.status);
+    // sources/citations を復元（履歴に保存されている場合）
+    setGeneratedSources(history.sources);
+    setGeneratedCitations(history.citations);
   };
 
   const handleSaveOnly = async () => {
     if (user) {
-      // 履歴に保存 (Supabase)
-      const savedLetter = await saveToHistory(formData, generatedLetter, mode);
+      // 履歴に保存 (Supabase) - sources/citations も含む
+      const savedLetter = await saveToHistory(formData, generatedLetter, mode, {
+        sources: generatedSources,
+        citations: generatedCitations,
+      });
       if (savedLetter) {
         setCurrentLetterId(savedLetter.id);
         setCurrentLetterStatus(savedLetter.status);
@@ -813,14 +826,19 @@ function NewLetterPageContent() {
   };
 
   const handleSampleExperience = async () => {
+    // 連打防止（2秒クールダウン）
+    if (isSampleCooldown) return;
+
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
       setShowLimitModal(true);
       return;
     }
 
-    // URLの決定（ユーザー入力優先）
-    const currentUrl = formData.targetUrl?.trim();
+    setIsSampleCooldown(true);
+
+    // ランダム会社を取得（Sales/Event共通）
+    const randomCompany = getRandomSampleCompany();
 
     // モードに応じてフォームデータを構築
     let sampleFormData: LetterFormData;
@@ -831,11 +849,11 @@ function NewLetterPageContent() {
         myCompanyName: eventSample.myCompanyName,
         myName: eventSample.myName,
         myServiceDescription: eventSample.myServiceDescription,
-        companyName: eventSample.companyName,
+        companyName: randomCompany.companyName,
         department: eventSample.department,
         position: eventSample.position,
         name: eventSample.name,
-        targetUrl: currentUrl || eventSample.targetUrl || '',
+        targetUrl: randomCompany.targetUrl,
         background: '',
         problem: '',
         solution: '',
@@ -850,17 +868,17 @@ function NewLetterPageContent() {
         simpleRequirement: '',
       };
     } else {
-      // salesモード: 実在企業サンプル（トヨタ自動車）
+      // salesモード: ランダムな実在企業サンプル
       const salesSample = SAMPLE_DATA;
       sampleFormData = {
         myCompanyName: salesSample.myCompanyName,
         myName: salesSample.myName,
         myServiceDescription: salesSample.myServiceDescription,
-        companyName: salesSample.companyName,
+        companyName: randomCompany.companyName,
         department: salesSample.department,
         position: salesSample.position,
         name: salesSample.name,
-        targetUrl: currentUrl || salesSample.targetUrl || '',
+        targetUrl: randomCompany.targetUrl,
         background: salesSample.background,
         problem: salesSample.problem,
         solution: salesSample.solution,
@@ -879,8 +897,13 @@ function NewLetterPageContent() {
     // フォームにデータをセット
     setFormData(sampleFormData);
 
-    // サンプルは常にV2フロー（分析→モーダル→生成）を使用
-    await handleAnalyzeForV2WithFormData(sampleFormData);
+    try {
+      // サンプルは常にV2フロー（分析→モーダル→生成）を使用
+      await handleAnalyzeForV2WithFormData(sampleFormData);
+    } finally {
+      // 2秒後にクールダウン解除
+      setTimeout(() => setIsSampleCooldown(false), 2000);
+    }
   };
 
   return (

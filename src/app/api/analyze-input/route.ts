@@ -7,10 +7,11 @@
 import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
 import { generateJson } from '@/lib/gemini';
-import { safeFetch } from '@/lib/url-validator';
+import { safeFetch, UrlAccessError } from '@/lib/url-validator';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 import { extractFactsFromUrl, extractTextFromHtml } from '@/lib/urlAnalysis';
+import { getCachedAnalysis, setCachedAnalysis, type CachedUrlData } from '@/lib/url-cache';
 import {
   AnalyzeInputRequestSchema,
   AnalysisResultSchema,
@@ -87,48 +88,72 @@ export async function POST(request: Request) {
       let extractedFacts: ExtractedFacts | null = null;
       let extractedSources: InformationSource[] = [];
 
-      // 1. URL解析
+      // 1. URL解析（キャッシュ対応）
       if (target_url) {
-        try {
-          devLog.log('Fetching URL:', target_url);
-          const response = await safeFetch(
-            target_url,
-            {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                Accept: 'text/html,application/xhtml+xml',
+        // キャッシュ確認
+        const cached = getCachedAnalysis<CachedUrlData>(target_url);
+        if (cached) {
+          // キャッシュヒット - 外部アクセスなし
+          extractedContent = cached.extractedContent;
+          extractedFacts = cached.extractedFacts;
+          extractedSources = cached.extractedSources;
+        } else {
+          // キャッシュミス - 従来のfetch処理
+          try {
+            devLog.log('Fetching URL:', target_url);
+            const response = await safeFetch(
+              target_url,
+              {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  Accept: 'text/html,application/xhtml+xml',
+                },
               },
-            },
-            15000, // 15秒タイムアウト
-            5 * 1024 * 1024 // 5MB制限
-          );
+              15000, // 15秒タイムアウト
+              5 * 1024 * 1024 // 5MB制限
+            );
 
-          const html = await response.text();
-          const mainText = extractTextFromHtml(html).substring(0, 8000);
+            const html = await response.text();
+            const mainText = extractTextFromHtml(html).substring(0, 8000);
 
-          if (mainText.length > 100) {
-            extractedContent += `【URL情報】\n${mainText}\n\n`;
-          } else {
+            if (mainText.length > 100) {
+              extractedContent += `【URL情報】\n${mainText}\n\n`;
+            } else {
+              riskFlags.push({
+                type: 'missing_info',
+                message: 'URLからテキストを十分に取得できませんでした',
+                severity: 'medium',
+              });
+            }
+
+            // Phase 5: サブルート探索でファクト抽出（並列実行）
+            const factResult = await extractFactsFromUrl(target_url);
+            if (factResult) {
+              extractedFacts = factResult.facts;
+              extractedSources = factResult.sources;
+            }
+
+            // 成功時はキャッシュに保存
+            setCachedAnalysis<CachedUrlData>(target_url, {
+              extractedContent,
+              extractedFacts,
+              extractedSources,
+            });
+          } catch (error) {
+            // UrlAccessError（403/401）の場合は仮説モードで継続
+            const isBlocked = error instanceof UrlAccessError && error.isBlocked;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+            devLog.warn('URL extraction failed:', error);
             riskFlags.push({
               type: 'missing_info',
-              message: 'URLからテキストを十分に取得できませんでした',
-              severity: 'medium',
+              message: isBlocked
+                ? 'URLがブロックされたため仮説モードで生成します'
+                : `URL解析失敗: ${errorMessage}`,
+              severity: isBlocked ? 'medium' : 'high',
             });
+            // 処理は継続（returnしない）
           }
-
-          // Phase 5: サブルート探索でファクト抽出（並列実行）
-          const factResult = await extractFactsFromUrl(target_url);
-          if (factResult) {
-            extractedFacts = factResult.facts;
-            extractedSources = factResult.sources;
-          }
-        } catch (error) {
-          devLog.warn('URL extraction failed:', error);
-          riskFlags.push({
-            type: 'missing_info',
-            message: `URL解析失敗: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            severity: 'high',
-          });
         }
       }
 
@@ -260,7 +285,7 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
     },
     {
       requireAuth: false,
-      rateLimit: { windowMs: 60000, maxRequests: 10 },
+      rateLimit: { windowMs: 60000, maxRequests: 5 },
     }
   );
 }

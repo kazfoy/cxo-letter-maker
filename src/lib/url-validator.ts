@@ -4,6 +4,20 @@
  */
 
 /**
+ * URLアクセスエラー（403/401等のブロック検出用）
+ */
+export class UrlAccessError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly isBlocked: boolean = false
+  ) {
+    super(message);
+    this.name = 'UrlAccessError';
+  }
+}
+
+/**
  * IPアドレスがプライベートIPまたはローカルIPかどうかをチェック
  * @param ip IPアドレス文字列
  * @returns プライベートIPまたはローカルIPの場合true
@@ -232,7 +246,16 @@ export async function safeFetch(
     throw error;
   }
 
-  // 4. レスポンスサイズチェック
+  // 4. HTTPステータスチェック（403/401はブロックとして扱う）
+  if (response.status === 403 || response.status === 401) {
+    throw new UrlAccessError(
+      `URLへのアクセスがブロックされました (${response.status})`,
+      response.status,
+      true
+    );
+  }
+
+  // 5. レスポンスサイズチェック
   const sizeCheck = await checkResponseSize(response, maxSizeBytes);
   if (!sizeCheck.valid) {
     throw new Error(sizeCheck.error);

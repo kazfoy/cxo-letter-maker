@@ -5,6 +5,8 @@
  * プランの制限値や価格を変更する際は、このファイルのみを修正すること
  */
 
+import { MODEL_DEFAULT } from '@/lib/gemini';
+
 export type PlanType = 'free' | 'pro' | 'premium';
 
 export interface PlanConfig {
@@ -33,7 +35,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     label: 'Free',
     dailyBatchLimit: 0,
     price: 0,
-    modelId: 'gemini-2.0-flash',
+    modelId: MODEL_DEFAULT,
     description: '個人利用向けの無料プラン',
     features: [
       '手紙の個別生成（無制限）',
@@ -46,13 +48,13 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     dailyBatchLimit: 100,
     price: 980,
     stripePriceId: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
-    modelId: 'gemini-2.0-flash',
+    modelId: MODEL_DEFAULT,
     description: '本格的な営業活動に最適なプラン',
     features: [
       '手紙の個別生成（無制限）',
       'CSV一括生成（100件/日）',
       '全履歴の無制限保存',
-      '最新AI（Gemini 2.0）による高度な生成',
+      '最新AI（Gemini 2.5）による高度な生成',
       '優先メールサポート',
     ],
   },
@@ -61,13 +63,13 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     dailyBatchLimit: 1000,
     price: 9800,
     stripePriceId: process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
-    modelId: 'gemini-3-flash',
+    modelId: MODEL_DEFAULT, // TODO: Premium専用モデル（gemini-3系）が利用可能になり次第差し替え
     description: '大規模な営業活動を行う法人向けプラン',
     features: [
       '手紙の個別生成（無制限）',
       'CSV一括生成（1,000件/日）',
       '全履歴の無制限保存',
-      '業界最先端のAI（Gemini 3）を活用',
+      '最新AI（Gemini 2.5）による高度な生成',
       '優先メールサポート（最優先対応）',
     ],
   },

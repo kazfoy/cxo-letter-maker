@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 
 export const maxDuration = 60;
 
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
 
         // Gemini APIで情報を抽出
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash');
+        const model = google(MODEL_DEFAULT);
 
         let extractPrompt: string;
 

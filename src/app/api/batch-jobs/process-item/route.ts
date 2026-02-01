@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { normalizeLetterText } from '@/lib/textNormalize';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 
 const ProcessItemSchema = z.object({
     batchId: z.string().uuid(),
@@ -194,7 +195,7 @@ ${specificInstruction}
                 // NOTE: Ideal to check plan limit here too, but client loop makes it hard to fetch plan every time.
                 // We will rely on frontend pre-check or occasional failures?
                 // For robustness, let's just use flash.
-                const modelId = 'gemini-2.0-flash';
+                const modelId = MODEL_DEFAULT;
                 const model = google(modelId);
 
                 const result = await generateText({ model, prompt });

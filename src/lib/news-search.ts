@@ -1,6 +1,7 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 
 type NewsSearchItem = {
   title?: string;
@@ -120,7 +121,7 @@ export async function searchNewsFacts(companyName: string): Promise<string> {
     .substring(0, 4000);
 
   const google = getGoogleProvider();
-  const model = google('gemini-2.0-flash');
+  const model = google(MODEL_DEFAULT);
 
   const safeCompanyName = sanitizeForPrompt(companyName, 200);
   const safeCandidates = sanitizeForPrompt(candidatesText, 4000);

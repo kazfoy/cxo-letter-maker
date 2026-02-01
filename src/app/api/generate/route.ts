@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT, MODEL_FALLBACK } from '@/lib/gemini';
 import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { createClient } from '@/utils/supabase/server';
@@ -120,10 +121,10 @@ const GenerateSchema = z.object({
 });
 
 // ... (generateWithFallback - unchanged)
-async function generateWithFallback(prompt: string, primaryModelName: string = 'gemini-2.0-flash') {
+async function generateWithFallback(prompt: string, primaryModelName: string = MODEL_DEFAULT) {
   const google = getGoogleProvider();
   const primaryModel = google(primaryModelName);
-  const fallbackModel = google('gemini-2.0-flash');
+  const fallbackModel = google(MODEL_FALLBACK);
 
   try {
     const result = await generateText({
@@ -136,7 +137,7 @@ async function generateWithFallback(prompt: string, primaryModelName: string = '
     console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
       message: errorDetails.message,
     });
-    devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to gemini-2.0-flash...`, error);
+    devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to ${MODEL_FALLBACK}...`, error);
     try {
       const result = await generateText({
         model: fallbackModel,
@@ -265,7 +266,7 @@ export async function POST(request: Request) {
           output_format: output_format,
         };
 
-        const primaryModelName = data.model === 'pro' ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
+        const primaryModelName = data.model === 'pro' ? MODEL_DEFAULT : MODEL_DEFAULT;
 
         let prompt = '';
 

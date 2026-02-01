@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 
 export const maxDuration = 60;
 
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
 
         // Gemini Pro を使用（品質改善）
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash-exp');
+        const model = google(MODEL_DEFAULT);
 
         const improvePrompt = `あなたは一流のビジネスライターです。
 以下の営業手紙を、より説得力があり、経営層の心に響く内容に改善してください。

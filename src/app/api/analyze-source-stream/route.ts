@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import * as cheerio from 'cheerio';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT } from '@/lib/gemini';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
 export const maxDuration = 60;
@@ -314,7 +315,7 @@ export async function POST(request: Request) {
 
         // Gemini APIで情報を抽出
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash');
+        const model = google(MODEL_DEFAULT);
 
         let extractPrompt: string;
 

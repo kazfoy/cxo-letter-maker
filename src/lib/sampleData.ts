@@ -78,3 +78,34 @@ export const SAMPLE_EVENT_DATA = {
   eventSpeakers: '製造業の経営企画責任者 / 内部監査責任者（予定）',
   invitationReason: 'グループ会社を跨ぐ申請・承認・証憑のばらつきを整理し、統制とスピードの両立を議論いただきたく、ご招待申し上げます。当日はグループ統制と証憑管理、承認プロセス標準化、監査工数の削減、運用定着をテーマにディスカッションを予定しております。',
 };
+
+/**
+ * サンプル会社候補（業界分散）
+ */
+export const SAMPLE_COMPANY_CANDIDATES = [
+  { companyName: '楽天グループ株式会社', targetUrl: 'https://corp.rakuten.co.jp/', industryLabel: 'internet' },
+  { companyName: '株式会社ファーストリテイリング', targetUrl: 'https://www.fastretailing.com/jp/', industryLabel: 'retail_apparel' },
+  { companyName: '味の素株式会社', targetUrl: 'https://www.ajinomoto.co.jp/', industryLabel: 'food_manufacturing' },
+  { companyName: '株式会社MonotaRO', targetUrl: 'https://corp.monotaro.com/', industryLabel: 'b2b_ec' },
+  { companyName: '株式会社サイバーエージェント', targetUrl: 'https://www.cyberagent.co.jp/', industryLabel: 'it_media_ads' },
+  { companyName: '日本航空株式会社', targetUrl: 'https://www.jal.co.jp/jp/ja/', industryLabel: 'airline' },
+] as const;
+
+/**
+ * 連続して同じ会社が選ばれるのを防ぐためのキャッシュ
+ */
+let lastSampleCompanyName: string | null = null;
+
+/**
+ * サンプル会社をランダムに取得
+ * 連続して同じ会社が選ばれにくいよう、直前の会社を避けるリトライを行う
+ */
+export function getRandomSampleCompany() {
+  const maxRetries = 2;
+  let selected = SAMPLE_COMPANY_CANDIDATES[Math.floor(Math.random() * SAMPLE_COMPANY_CANDIDATES.length)];
+  for (let i = 0; i < maxRetries && selected.companyName === lastSampleCompanyName; i++) {
+    selected = SAMPLE_COMPANY_CANDIDATES[Math.floor(Math.random() * SAMPLE_COMPANY_CANDIDATES.length)];
+  }
+  lastSampleCompanyName = selected.companyName;
+  return selected;
+}

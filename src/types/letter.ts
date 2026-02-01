@@ -2,6 +2,9 @@
  * レター関連の型定義
  */
 
+import type { InformationSource } from './analysis';
+import type { Citation } from './generate-v2';
+
 // レターのモード（セールスレター or イベント招待状）
 export type LetterMode = 'sales' | 'event';
 
@@ -66,6 +69,10 @@ export interface LetterHistory {
   inputs: LetterFormData;
   batchId?: string;
   emailContent?: { subject: string; body: string };
+  /** V2生成の情報ソース（暫定: inputs jsonb 内に _sources として保存） */
+  sources?: InformationSource[];
+  /** V2生成のcitation（暫定: inputs jsonb 内に _citations として保存） */
+  citations?: Citation[];
 }
 
 // AI提案データ構造

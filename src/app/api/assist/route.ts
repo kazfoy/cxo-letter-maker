@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
+import { MODEL_DEFAULT, extractJsonFromResponse } from '@/lib/gemini';
 
 export const maxDuration = 60;
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
         const safeEventSpeakers = sanitizeForPrompt(eventSpeakers || '', 1000);
 
         const google = getGoogleProvider();
-        const model = google('gemini-2.0-flash-exp');
+        const model = google(MODEL_DEFAULT);
 
         let assistPrompt = '';
 
@@ -233,18 +234,21 @@ JSON形式で3つの候補を返してください：
         });
         const responseText = result.text;
 
-        // JSONを抽出（```json で囲まれている場合があるため）
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('Invalid JSON response');
-        }
+        // JSON抽出（gemini.ts の共通クリーナーを使用）
+        const AssistResponseSchema = z.object({
+          suggestions: z.array(z.string()).min(1).max(5),
+        });
 
-        // JSON.parseを安全に実行
         let parsed;
         try {
-          parsed = JSON.parse(jsonMatch[0]);
+          const jsonString = extractJsonFromResponse(responseText);
+          parsed = AssistResponseSchema.parse(JSON.parse(jsonString));
         } catch (parseError) {
-          devLog.error('JSON parse error:', parseError);
+          devLog.error(`[assist] JSONパース失敗 (model=${MODEL_DEFAULT}):`, {
+            error: parseError instanceof Error ? parseError.message : String(parseError),
+            promptHead: assistPrompt.substring(0, 200),
+            responseHead: responseText.substring(0, 200),
+          });
           return NextResponse.json(
             { error: 'レスポンスの解析に失敗しました' },
             { status: 500 }

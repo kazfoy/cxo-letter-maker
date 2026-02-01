@@ -11,6 +11,12 @@ import { generateText } from 'ai';
 import { z } from 'zod';
 import { devLog } from './logger';
 
+// ─── モデル定数（一元管理） ───
+/** デフォルトモデル（テキスト生成・JSON生成共通） */
+export const MODEL_DEFAULT = 'gemini-2.5-flash';
+/** フォールバックモデル（プライマリ失敗時に使用） */
+export const MODEL_FALLBACK = 'gemini-2.5-flash';
+
 // Provider type
 type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
 
@@ -40,7 +46,7 @@ export function getGoogleProvider(): GoogleProvider {
  * generateJson のオプション
  */
 export interface GenerateJsonOptions<T extends z.ZodType> {
-  /** 使用するモデル名（デフォルト: gemini-2.0-flash） */
+  /** 使用するモデル名（デフォルト: MODEL_DEFAULT） */
   modelName?: string;
   /** プロンプト */
   prompt: string;
@@ -55,7 +61,7 @@ export interface GenerateJsonOptions<T extends z.ZodType> {
  * - ```json ... ``` ブロックを除去
  * - 最初の { から最後の } までを抽出
  */
-function extractJsonFromResponse(text: string): string {
+export function extractJsonFromResponse(text: string): string {
   // Remove markdown code blocks
   const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
 
@@ -83,7 +89,7 @@ export async function generateJson<T extends z.ZodType>(
   options: GenerateJsonOptions<T>
 ): Promise<z.infer<T>> {
   const {
-    modelName = 'gemini-2.0-flash',
+    modelName = MODEL_DEFAULT,
     prompt,
     schema,
     maxRetries = 1
@@ -119,7 +125,11 @@ export async function generateJson<T extends z.ZodType>(
 
     } catch (error) {
       lastError = error as Error;
-      devLog.warn(`[generateJson] Attempt ${attempt + 1} failed:`, lastError.message);
+      devLog.warn(`[generateJson] Attempt ${attempt + 1} failed (model=${modelName}):`, {
+        error: lastError.message,
+        responseLength: 'text' in (error as Record<string, unknown>) ? String((error as Record<string, unknown>).text).length : 'N/A',
+        promptHead: prompt.substring(0, 120),
+      });
 
       if (attempt >= maxRetries) {
         break;
@@ -127,21 +137,21 @@ export async function generateJson<T extends z.ZodType>(
     }
   }
 
-  throw lastError || new Error('generateJson failed after retries');
+  throw lastError || new Error(`generateJson failed after ${maxRetries + 1} attempts (model=${modelName})`);
 }
 
 /**
  * フォールバック付きテキスト生成
  *
- * プライマリモデルで失敗した場合、gemini-2.0-flash にフォールバック
+ * プライマリモデルで失敗した場合、MODEL_FALLBACK にフォールバック
  */
 export async function generateWithFallback(
   prompt: string,
-  primaryModelName: string = 'gemini-2.0-flash'
+  primaryModelName: string = MODEL_DEFAULT
 ): Promise<string> {
   const google = getGoogleProvider();
   const primaryModel = google(primaryModelName);
-  const fallbackModel = google('gemini-2.0-flash');
+  const fallbackModel = google(MODEL_FALLBACK);
 
   try {
     const result = await generateText({
@@ -150,7 +160,7 @@ export async function generateWithFallback(
     });
     return result.text;
   } catch (error) {
-    devLog.warn(`[generateWithFallback] Primary model ${primaryModelName} failed, trying fallback...`, error);
+    devLog.warn(`[generateWithFallback] Primary model ${primaryModelName} failed, trying fallback (${MODEL_FALLBACK})...`, error);
 
     try {
       const result = await generateText({

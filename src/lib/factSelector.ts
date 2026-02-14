@@ -37,8 +37,8 @@ const CATEGORY_PRIORITY: Record<SelectedFact['category'], number> = {
   properNouns: 5,      // 固有名詞（接続しにくい）
 };
 
-// CxO視点のキーワード（これらを含むファクトは優先）
-const CXO_KEYWORDS = [
+// CxO視点のキーワード（民間企業向け）
+const CXO_KEYWORDS_PRIVATE = [
   'ガバナンス',
   '経営',
   '管理',
@@ -57,7 +57,10 @@ const CXO_KEYWORDS = [
   'BPR',
   'リスク',
   '内部統制',
-  // 公共機関・自治体向け
+];
+
+// CxO視点のキーワード（公共機関・自治体向け）
+const CXO_KEYWORDS_PUBLIC = [
   '行政改革',
   '住民サービス',
   '官民連携',
@@ -68,7 +71,34 @@ const CXO_KEYWORDS = [
   '公共調達',
   '行政手続',
   'マイナンバー',
+  'ガバナンス',
+  '統制',
+  'DX',
+  'デジタル',
+  'リスク',
 ];
+
+// 公共機関判定キーワード
+const PUBLIC_SECTOR_DETECT_KEYWORDS = [
+  '省', '庁', '府', '自治体', '市役所', '区役所', '町役場', '村役場',
+  '県庁', '都庁', '道庁', '官公庁', '独立行政法人', '公社', '公団',
+  '機構', '財団法人', '社団法人', '公共', '行政',
+];
+
+/**
+ * 企業名・業界から公共機関かどうかを判定
+ */
+function detectPublicSector(industry?: string, companyName?: string): boolean {
+  const combined = `${industry || ''} ${companyName || ''}`;
+  return PUBLIC_SECTOR_DETECT_KEYWORDS.some(kw => combined.includes(kw));
+}
+
+/**
+ * セクターに応じたCxOキーワードを取得
+ */
+function getCxoKeywords(isPublicSector: boolean): string[] {
+  return isPublicSector ? CXO_KEYWORDS_PUBLIC : CXO_KEYWORDS_PRIVATE;
+}
 
 // Phase 6: トピックタグのキーワードマッピング
 const TOPIC_TAG_KEYWORDS: Record<TopicTag, string[]> = {
@@ -76,12 +106,12 @@ const TOPIC_TAG_KEYWORDS: Record<TopicTag, string[]> = {
   compliance: ['コンプライアンス', '法令遵守', '規制', '適正', '不正防止'],
   supply_chain: ['サプライチェーン', '調達', '物流', 'SCM', '供給'],
   finance_ops: ['財務', '経理', '会計', '決算', '予算', '連結'],
-  digital_transformation: ['DX', 'デジタル', 'IT', 'AI', 'クラウド', '自動化', 'RPA', '自治体DX', 'デジタル庁', '電子行政', 'スマートシティ'],
+  digital_transformation: ['DX', 'デジタル', 'IT', 'AI', 'クラウド', '自動化', 'RPA'],
   sustainability: ['サステナビリティ', 'ESG', 'カーボンニュートラル', '脱炭素', '環境', 'SDGs'],
   global_expansion: ['グローバル', '海外', '国際', '進出', '越境'],
   hr_organization: ['人事', '組織', '採用', '人材', 'タレント', '働き方'],
   risk_management: ['リスク', 'BCP', '危機管理', 'セキュリティ', '情報管理'],
-  growth_strategy: ['成長', 'M&A', '新規事業', '投資', '戦略', '行政改革', '官民連携', '公共調達'],
+  growth_strategy: ['成長', 'M&A', '新規事業', '投資', '戦略'],
   other: [],
 };
 
@@ -348,7 +378,8 @@ function calculateRelevanceScore(
   category: SelectedFact['category'],
   targetPosition?: string,
   productStrength?: string,
-  targetChallenges?: string
+  targetChallenges?: string,
+  isPublicSector: boolean = false
 ): { score: number; reason: string } {
   let score = 0;
   const reasons: string[] = [];
@@ -358,8 +389,9 @@ function calculateRelevanceScore(
   score += (6 - basePriority) * 10; // recentMoves: 50, companyDirection: 40, numbers: 30, hiringTrends: 20, properNouns: 10
   reasons.push(`カテゴリ優先度: ${category}`);
 
-  // 2. CxO視点キーワードボーナス
-  const cxoKeywordHits = CXO_KEYWORDS.filter(keyword =>
+  // 2. CxO視点キーワードボーナス（セクター別）
+  const cxoKeywords = getCxoKeywords(isPublicSector);
+  const cxoKeywordHits = cxoKeywords.filter(keyword =>
     content.includes(keyword)
   );
   if (cxoKeywordHits.length > 0) {
@@ -706,19 +738,23 @@ export function selectFactsForLetter(
   // 鮮度フィルタ（1年超の古いファクトを除外、中計は例外）
   const freshFacts = filterByFreshness(normalizedFacts);
 
+  // 公共機関判定（キーワード選択に使用）
+  const isPublic = detectPublicSector(options?.industry, options?.companyName);
+
   // スコアリング＆SelectedFact変換
   const allFacts: SelectedFact[] = [];
 
   for (const fact of freshFacts) {
     const { content, category, sourceUrl, sourceTitle, sourceCategory, date, isUndated, isMidTermPlan: midTermPlan } = fact;
 
-    // 基本スコア計算
+    // 基本スコア計算（セクター別キーワード使用）
     let { score, reason } = calculateRelevanceScore(
       content,
       category,
       targetPosition,
       productStrength,
-      targetChallenges
+      targetChallenges,
+      isPublic
     );
 
     // 日付不明のrecentMovesは優先度-15

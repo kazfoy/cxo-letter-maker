@@ -224,6 +224,11 @@ export function InputForm({
 
         {/* 送信ボタンエリア - 2レーン統合（sales/event共通） */}
         <div className="space-y-3">
+          {/* 2つの生成方法の説明 */}
+          <div className="text-xs text-stone-500 space-y-1 mb-1">
+            <p>&#9999;&#65039; <strong>まずは下書き</strong> — 企業名だけで素早く生成</p>
+            <p>&#128269; <strong>根拠付きで生成</strong> — URLから企業分析して最適化（おすすめ）</p>
+          </div>
           {/* まずは下書き（クイック）ボタン */}
           <div className="relative">
             <button

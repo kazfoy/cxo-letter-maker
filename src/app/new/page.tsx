@@ -18,7 +18,7 @@ import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/
 import type { AnalysisResult } from '@/types/analysis';
 import type { UserOverrides, Citation } from '@/types/generate-v2';
 import { createClient } from '@/utils/supabase/client';
-import { getErrorDetails } from '@/lib/errorUtils';
+import { getErrorDetails, getUserFriendlyError, type ErrorKind } from '@/lib/errorUtils';
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { resolveTargetUrl } from '@/lib/urlUtils';
 import { toast } from '@/hooks/use-toast';
@@ -78,6 +78,7 @@ function NewLetterPageContent() {
   const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
   const [generatedCitations, setGeneratedCitations] = useState<Citation[] | undefined>(undefined);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generationErrorKind, setGenerationErrorKind] = useState<ErrorKind | null>(null);
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
   const [isSampleCooldown, setIsSampleCooldown] = useState(false);
   const [selfCheck, setSelfCheck] = useState<string[] | undefined>(undefined);
@@ -228,7 +229,8 @@ function NewLetterPageContent() {
             );
           }
           // 再分析失敗
-          setGenerationError('URLから根拠を抽出できませんでした。別のURLを試してください。');
+          setGenerationError('URLから情報を取得できませんでした。別のURLを試すか、URLなしで生成できます。');
+          setGenerationErrorKind('url_not_found');
           return false;
         }
       }
@@ -243,7 +245,8 @@ function NewLetterPageContent() {
         const errorData = await response.json().catch(() => ({}));
         // 422 でリトライ済みの場合
         if (response.status === 422 && errorData.error === 'URL_FACTS_EMPTY') {
-          setGenerationError('URLから根拠を抽出できませんでした。別のURLを試してください。');
+          setGenerationError('URLから情報を取得できませんでした。別のURLを試すか、URLなしで生成できます。');
+          setGenerationErrorKind('url_not_found');
           return false;
         }
         throw new Error(errorData.error || `生成に失敗しました (${response.status})`);
@@ -256,6 +259,7 @@ function NewLetterPageContent() {
         setVariations(undefined);
         setEmailData(undefined);
         setGenerationError(null);
+        setGenerationErrorKind(null);
         setSelfCheck(undefined);
 
         if (outputFormat === 'email') {
@@ -330,7 +334,9 @@ function NewLetterPageContent() {
     } catch (error) {
       const errorDetails = getErrorDetails(error);
       console.error('V2生成エラー:', errorDetails);
-      setGenerationError(`生成に失敗しました: ${errorDetails.message}`);
+      const friendly = getUserFriendlyError(error, 'generation');
+      setGenerationError(friendly.message);
+      setGenerationErrorKind(friendly.kind);
       return false;
     }
   }, [user, mode, increment, refetchGuestUsage, runAnalysis]);
@@ -367,7 +373,8 @@ function NewLetterPageContent() {
         setIsAnalyzing(false);
 
         if (!result) {
-          setGenerationError('分析に失敗しました。入力内容を確認してください。');
+          setGenerationError('分析に失敗しました。入力内容を確認して、もう一度お試しください。');
+          setGenerationErrorKind('unknown');
           return;
         }
         currentAnalysis = result;
@@ -467,7 +474,9 @@ function NewLetterPageContent() {
     } catch (error) {
       const errorDetails = getErrorDetails(error);
       console.error('分析エラー:', errorDetails);
-      setGenerationError(`分析に失敗しました: ${errorDetails.message}`);
+      const friendly = getUserFriendlyError(error, 'analysis');
+      setGenerationError(friendly.message);
+      setGenerationErrorKind(friendly.kind);
     } finally {
       setIsAnalyzing(false);
     }
@@ -675,7 +684,9 @@ function NewLetterPageContent() {
     } catch (error) {
       const errorDetails = getErrorDetails(error);
       console.error('V2生成エラー:', errorDetails);
-      setGenerationError(`生成に失敗しました: ${errorDetails.message}`);
+      const friendly = getUserFriendlyError(error, 'generation');
+      setGenerationError(friendly.message);
+      setGenerationErrorKind(friendly.kind);
     } finally {
       setIsGeneratingV2(false);
       setIsGenerating(false);
@@ -1091,14 +1102,41 @@ function NewLetterPageContent() {
               {/* 生成エラー表示 */}
               {generationError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-sm text-red-800">{generationError}</span>
+                    <div className="flex-1">
+                      <span className="text-sm text-red-800">{generationError}</span>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(generationErrorKind === 'network' || generationErrorKind === 'timeout' || generationErrorKind === 'server' || generationErrorKind === 'unknown') && (
+                          <button
+                            onClick={() => {
+                              setGenerationError(null);
+                              setGenerationErrorKind(null);
+                            }}
+                            className="px-3 py-1 text-xs bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            もう一度試す
+                          </button>
+                        )}
+                        {(generationErrorKind === 'url_not_found' || generationErrorKind === 'url_blocked' || generationErrorKind === 'timeout') && (
+                          <button
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, targetUrl: '' }));
+                              setGenerationError(null);
+                              setGenerationErrorKind(null);
+                            }}
+                            className="px-3 py-1 text-xs bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            URLなしで生成する
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <button
-                      onClick={() => setGenerationError(null)}
-                      className="ml-auto text-red-500 hover:text-red-700"
+                      onClick={() => { setGenerationError(null); setGenerationErrorKind(null); }}
+                      className="text-red-500 hover:text-red-700 flex-shrink-0"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { AnalysisResult, InformationSource } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
 import { FactsDisplay } from '@/components/FactsDisplay';
@@ -42,6 +42,17 @@ export function AnalysisPreviewModal({
   const [mode, setMode] = useState<'draft' | 'complete'>(shouldDefaultToDraft ? 'draft' : 'complete');
   const [overrides, setOverrides] = useState<UserOverrides>({});
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // 初回ユーザーは「証拠ポイント」を自動展開
+  useEffect(() => {
+    if (isOpen && analysisResult) {
+      const hasSeenModal = localStorage.getItem('analysis_modal_seen');
+      if (!hasSeenModal) {
+        setExpandedSections(new Set(['proof_points']));
+        localStorage.setItem('analysis_modal_seen', '1');
+      }
+    }
+  }, [isOpen, analysisResult]);
 
   const toggleSection = useCallback((key: string) => {
     setExpandedSections(prev => {

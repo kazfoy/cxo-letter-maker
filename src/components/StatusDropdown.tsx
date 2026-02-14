@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { LetterStatus } from '@/types/letter';
 import { updateStatus } from '@/lib/supabaseHistoryUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface StatusDropdownProps {
   letterId: string;
@@ -58,11 +59,11 @@ export function StatusDropdown({ letterId, currentStatus, onStatusChange }: Stat
         setStatus(newStatus);
         onStatusChange?.(newStatus);
       } else {
-        alert('ステータスの更新に失敗しました');
+        toast({ title: 'ステータスの更新に失敗しました', type: 'error' });
       }
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('ステータスの更新中にエラーが発生しました');
+      toast({ title: 'ステータスの更新中にエラーが発生しました', type: 'error' });
     } finally {
       setIsUpdating(false);
       setIsOpen(false);

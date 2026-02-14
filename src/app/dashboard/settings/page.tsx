@@ -1,5 +1,6 @@
 'use client';
 import { getErrorMessage } from '@/lib/errorUtils';
+import { toast } from '@/hooks/use-toast';
 
 
 import { useEffect, useState } from 'react';
@@ -172,7 +173,7 @@ export default function SettingsPage() {
       }
     } catch (error: unknown) {
       console.error('Portal error:', error);
-      alert('カスタマーポータルの起動に失敗しました: ' + getErrorMessage(error));
+      toast({ title: 'カスタマーポータルの起動に失敗しました: ' + getErrorMessage(error), type: 'error' });
     } finally {
       setPortalLoading(false);
     }
@@ -182,7 +183,7 @@ export default function SettingsPage() {
     if (!e.target.files || e.target.files.length === 0 || !profile?.id) return;
 
     if (formData.reference_docs.length + e.target.files.length > 3) {
-      alert('アップロードできるファイルは最大3つまでです。');
+      toast({ title: 'アップロードできるファイルは最大3つまでです。', type: 'warning' });
       return;
     }
 
@@ -192,11 +193,11 @@ export default function SettingsPage() {
 
     for (const file of Array.from(e.target.files)) {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`ファイル ${file.name} は10MBを超えています。`);
+        toast({ title: `ファイル ${file.name} は10MBを超えています。`, type: 'warning' });
         continue;
       }
       if (file.type !== 'application/pdf') {
-        alert(`ファイル ${file.name} はPDFではありません。`);
+        toast({ title: `ファイル ${file.name} はPDFではありません。`, type: 'warning' });
         continue;
       }
 
@@ -216,7 +217,7 @@ export default function SettingsPage() {
         });
       } catch (err) {
         console.error('Upload failed:', err);
-        alert(`アップロードに失敗しました: ${file.name}`);
+        toast({ title: `アップロードに失敗しました: ${file.name}`, type: 'error' });
       }
     }
 
@@ -243,7 +244,7 @@ export default function SettingsPage() {
       }));
     } catch (err) {
       console.error('Delete failed:', err);
-      alert('ファイルの削除に失敗しました。');
+      toast({ title: 'ファイルの削除に失敗しました。', type: 'error' });
     } finally {
       setUploading(false);
     }

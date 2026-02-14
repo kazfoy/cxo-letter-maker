@@ -21,6 +21,7 @@ import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails } from '@/lib/errorUtils';
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { resolveTargetUrl } from '@/lib/urlUtils';
+import { toast } from '@/hooks/use-toast';
 
 function NewLetterPageContent() {
   const { user } = useAuth();
@@ -80,6 +81,7 @@ function NewLetterPageContent() {
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
   const [isSampleCooldown, setIsSampleCooldown] = useState(false);
   const [selfCheck, setSelfCheck] = useState<string[] | undefined>(undefined);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 再分析が必要か判定
   const shouldReanalyze = useCallback((
@@ -465,7 +467,7 @@ function NewLetterPageContent() {
     } catch (error) {
       const errorDetails = getErrorDetails(error);
       console.error('分析エラー:', errorDetails);
-      alert(`分析に失敗しました: ${errorDetails.message}`);
+      setGenerationError(`分析に失敗しました: ${errorDetails.message}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -475,7 +477,11 @@ function NewLetterPageContent() {
   const _handleAnalyzeForV2 = useCallback(async () => {
     // 送り手情報の入力必須チェック
     if (!formData.myCompanyName || !formData.myName || !formData.myServiceDescription) {
-      alert('送り手情報（会社名・氏名・サービス説明）を入力してください');
+      const errors: Record<string, string> = {};
+      if (!formData.myCompanyName) errors.myCompanyName = '会社名を入力してください';
+      if (!formData.myName) errors.myName = '氏名を入力してください';
+      if (!formData.myServiceDescription) errors.myServiceDescription = 'サービス概要を入力してください';
+      setFormErrors(errors);
       return;
     }
 
@@ -492,15 +498,18 @@ function NewLetterPageContent() {
   // 2レーン統合：クイック下書き生成（sales/event共通）
   const handleQuickDraft = useCallback(async () => {
     // バリデーション：企業名必須（eventはイベントURLも推奨だが必須ではない）
+    const errors: Record<string, string> = {};
     if (!formData.companyName && !formData.targetUrl?.trim()) {
-      alert('相手企業名またはURLを入力してください');
-      return;
+      errors.companyName = '相手企業名またはURLを入力してください';
     }
-    // サービス概要は必須
     if (!formData.myServiceDescription) {
-      alert('自社サービス概要を入力してください');
+      errors.myServiceDescription = '自社サービス概要を入力してください';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
+    setFormErrors({});
 
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
@@ -520,15 +529,18 @@ function NewLetterPageContent() {
   // 2レーン統合：根拠付き生成（分析→モーダル→生成、sales/event共通）
   const handleAnalyzeAndGenerate = useCallback(async () => {
     // バリデーション：企業名必須
+    const errors: Record<string, string> = {};
     if (!formData.companyName && !formData.targetUrl?.trim()) {
-      alert('相手企業名またはURLを入力してください');
-      return;
+      errors.companyName = '相手企業名またはURLを入力してください';
     }
-    // サービス概要は必須
     if (!formData.myServiceDescription) {
-      alert('自社サービス概要を入力してください');
+      errors.myServiceDescription = '自社サービス概要を入力してください';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
+    setFormErrors({});
 
     // ゲスト制限チェック
     if (usage?.isLimitReached && !user) {
@@ -663,7 +675,7 @@ function NewLetterPageContent() {
     } catch (error) {
       const errorDetails = getErrorDetails(error);
       console.error('V2生成エラー:', errorDetails);
-      alert(`生成に失敗しました: ${errorDetails.message}`);
+      setGenerationError(`生成に失敗しました: ${errorDetails.message}`);
     } finally {
       setIsGeneratingV2(false);
       setIsGenerating(false);
@@ -803,7 +815,7 @@ function NewLetterPageContent() {
       if (savedLetter) {
         setCurrentLetterId(savedLetter.id);
         setCurrentLetterStatus(savedLetter.status);
-        alert('履歴に保存しました');
+        toast({ title: '履歴に保存しました', type: 'success' });
       }
     } else {
       // Guest: Save to LocalStorage
@@ -814,7 +826,7 @@ function NewLetterPageContent() {
 
       // Notify sidebar
       window.dispatchEvent(new Event('guest-history-updated'));
-      alert('ブラウザに一時保存しました');
+      toast({ title: 'ブラウザに一時保存しました', type: 'success' });
     }
   }
 
@@ -1107,6 +1119,8 @@ function NewLetterPageContent() {
                 guestRemaining={usage?.remaining}
                 guestLimit={usage?.limit}
                 isLoggedIn={!!user}
+                formErrors={formErrors}
+                onClearError={(field) => setFormErrors(prev => { const next = { ...prev }; delete next[field]; return next; })}
               />
             </div>
 

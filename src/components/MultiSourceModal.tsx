@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { AnalysisPhase } from '@/types/letter';
+import { toast } from '@/hooks/use-toast';
 
 // PDF.js workerの設定
 if (typeof window !== 'undefined') {
@@ -79,14 +80,14 @@ export function MultiSourceModal({
 
     // ファイルサイズチェック（10MB）
     if (file.size > 10 * 1024 * 1024) {
-      alert('PDFファイルは10MB以下にしてください');
+      toast({ title: 'PDFファイルは10MB以下にしてください', type: 'warning' });
       e.target.value = '';
       return;
     }
 
     // ファイルタイプチェック
     if (!file.type.includes('pdf') && !file.name.endsWith('.pdf')) {
-      alert('PDFファイルのみアップロード可能です');
+      toast({ title: 'PDFファイルのみアップロード可能です', type: 'warning' });
       e.target.value = '';
       return;
     }
@@ -113,7 +114,7 @@ export function MultiSourceModal({
       setPdfText(fullText.trim());
     } catch (error) {
       console.error('PDF extraction error:', error);
-      alert('PDFの読み込みに失敗しました。別のファイルを試してください。');
+      toast({ title: 'PDFの読み込みに失敗しました。別のファイルを試してください。', type: 'error' });
       setPdfFile(null);
       setPdfText(null);
       e.target.value = '';
@@ -127,7 +128,7 @@ export function MultiSourceModal({
 
     // バリデーション
     if (validUrls.length === 0 && !pdfText) {
-      alert('URLまたはPDFファイルを入力してください');
+      toast({ title: 'URLまたはPDFファイルを入力してください', type: 'warning' });
       return;
     }
 
@@ -136,7 +137,7 @@ export function MultiSourceModal({
       url => !url.startsWith('http://') && !url.startsWith('https://')
     );
     if (invalidUrls.length > 0) {
-      alert('無効なURL形式があります。http:// または https:// で始まるURLを入力してください');
+      toast({ title: '無効なURL形式があります。http:// または https:// で始まるURLを入力してください', type: 'warning' });
       return;
     }
 

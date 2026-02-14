@@ -16,6 +16,7 @@ import type { AnalysisResult, InformationSource } from '@/types/analysis';
 import type { Citation } from '@/types/generate-v2';
 import { SourcesDisplay } from './SourcesDisplay';
 import { normalizeLetterText } from '@/lib/textNormalize';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * APIレスポンスの参照揺れを吸収
@@ -339,7 +340,7 @@ export function BulkGenerator() {
                 // APIからのエラーメッセージを表示
                 const errorMsg = data.error || 'URLの分析に失敗しました。';
                 console.error('URL analysis error:', errorMsg, data);
-                alert(errorMsg);
+                toast({ title: errorMsg, type: 'error' });
                 return;
             }
 
@@ -351,7 +352,7 @@ export function BulkGenerator() {
             }));
         } catch (error) {
             console.error('URL analysis error:', error);
-            alert('URLの分析に失敗しました。ネットワーク接続を確認してください。');
+            toast({ title: 'URLの分析に失敗しました。ネットワーク接続を確認してください。', type: 'error' });
         } finally {
             setIsAnalyzing(false);
         }
@@ -549,7 +550,7 @@ export function BulkGenerator() {
         });
 
         if (validItems.length === 0) {
-            alert('有効なデータがありません');
+            toast({ title: '有効なデータがありません', type: 'warning' });
             return;
         }
 
@@ -770,7 +771,7 @@ export function BulkGenerator() {
                     setStep('mapping');
                 } catch (error) {
                     console.error('Excel Parse Error:', error);
-                    alert('Excelファイルの読み込みに失敗しました。');
+                    toast({ title: 'Excelファイルの読み込みに失敗しました。', type: 'error' });
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -787,7 +788,7 @@ export function BulkGenerator() {
                 },
                 error: (error) => {
                     console.error('CSV Parse Error:', error);
-                    alert('CSVの読み込みに失敗しました。');
+                    toast({ title: 'CSVの読み込みに失敗しました。', type: 'error' });
                 }
             });
         }
@@ -918,7 +919,7 @@ export function BulkGenerator() {
 
         const selectedItems = selectRandomPreviewItems();
         if (selectedItems.length === 0) {
-            alert('プレビューするデータがありません');
+            toast({ title: 'プレビューするデータがありません', type: 'warning' });
             return;
         }
 

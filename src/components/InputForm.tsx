@@ -43,6 +43,10 @@ interface InputFormProps {
   guestLimit?: number;
   /** ログイン済みかどうか */
   isLoggedIn?: boolean;
+  /** フォームバリデーションエラー */
+  formErrors?: Record<string, string>;
+  /** エラークリアコールバック */
+  onClearError?: (field: string) => void;
 }
 
 export function InputForm({
@@ -63,6 +67,8 @@ export function InputForm({
   guestRemaining,
   guestLimit,
   isLoggedIn = false,
+  formErrors = {},
+  onClearError,
 }: InputFormProps) {
   const {
     // State
@@ -191,6 +197,8 @@ export function InputForm({
             handleOpenStructureSuggestion={handleOpenStructureSuggestion}
             setInputMode={setInputMode}
             setFormData={setFormData}
+            formErrors={formErrors}
+            onClearError={onClearError}
           />
         )}
 

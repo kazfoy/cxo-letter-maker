@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 
 export function useCheckout() {
     const { user } = useAuth();
@@ -43,7 +44,7 @@ export function useCheckout() {
             console.error('Checkout error:', err);
             const message = err instanceof Error ? err.message : '予期せぬエラーが発生しました';
             setError(message);
-            alert('エラーが発生しました: ' + message);
+            toast({ title: 'エラーが発生しました: ' + message, type: 'error' });
         } finally {
             setLoading(false);
         }

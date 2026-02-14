@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SALES_PLACEHOLDERS } from '@/lib/placeholders';
 import { FIELD_LABELS, BUTTON_TEXTS, MESSAGES, TAB_LABELS, ICONS, REQUIRED_MARK } from '@/lib/constants';
 import { Accordion } from '@/components/ui/Accordion';
+import { toast } from '@/hooks/use-toast';
 import type { LetterFormData } from '@/types/letter';
 
 interface SalesFormProps {
@@ -13,6 +14,8 @@ interface SalesFormProps {
   handleOpenStructureSuggestion: () => void;
   setInputMode: (mode: 'step' | 'freeform') => void;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
+  formErrors?: Record<string, string>;
+  onClearError?: (field: string) => void;
 }
 
 export const SalesForm = React.memo(function SalesForm({
@@ -24,12 +27,14 @@ export const SalesForm = React.memo(function SalesForm({
   handleOpenStructureSuggestion,
   setInputMode,
   setFormData,
+  formErrors = {},
+  onClearError,
 }: SalesFormProps) {
   const [isSearching, setIsSearching] = useState(false);
 
   const handleSearchNews = async () => {
     if (!formData.companyName) {
-      alert('企業名を入力してください');
+      toast({ title: '企業名を入力してください', type: 'warning' });
       return;
     }
 
@@ -46,7 +51,7 @@ export const SalesForm = React.memo(function SalesForm({
 
       const trimmedResults = (data.results || '').trim();
       if (!trimmedResults) {
-        alert('具体的なニュースファクトが見つかりませんでした。');
+        toast({ title: '具体的なニュースファクトが見つかりませんでした', type: 'warning' });
         return;
       }
 
@@ -55,11 +60,11 @@ export const SalesForm = React.memo(function SalesForm({
         searchResults: trimmedResults,
       }));
 
-      alert('最新ニュースを取得しました。「生成」時に活用されます。');
+      toast({ title: '最新ニュースを取得しました', description: '「生成」時に活用されます', type: 'success' });
 
     } catch (error) {
       console.error('Search error:', error);
-      alert('ニュースの取得に失敗しました');
+      toast({ title: 'ニュースの取得に失敗しました', type: 'error' });
     } finally {
       setIsSearching(false);
     }
@@ -80,10 +85,13 @@ export const SalesForm = React.memo(function SalesForm({
             id="companyName"
             name="companyName"
             value={formData.companyName}
-            onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            onChange={(e) => { handleChange(e); onClearError?.('companyName'); }}
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.companyName ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder={SALES_PLACEHOLDERS.companyName}
           />
+          {formErrors.companyName && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.companyName}</p>
+          )}
           <div className="flex justify-end mt-2">
             <button
               type="button"
@@ -106,10 +114,23 @@ export const SalesForm = React.memo(function SalesForm({
             id="targetUrl"
             name="targetUrl"
             value={formData.targetUrl || ''}
-            onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            onChange={(e) => {
+              handleChange(e);
+              onClearError?.('targetUrl');
+            }}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && !/^https?:\/\/.+/.test(v)) {
+                // URL形式チェック（リアルタイムバリデーション）
+                // formErrorsの更新は親コンポーネントが管理するため、ここではclearのみ
+              }
+            }}
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.targetUrl ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder="https://example.com（サンプル実行時は自動入力）"
           />
+          {formErrors.targetUrl && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.targetUrl}</p>
+          )}
           <p className="mt-1 text-xs text-slate-500">
             <span className="text-indigo-600 font-medium">URLを入れると、ニュース・採用・IRなどから具体的な根拠を抽出</span>し、説得力のあるレターを作成できます
           </p>
@@ -134,12 +155,15 @@ export const SalesForm = React.memo(function SalesForm({
             id="myServiceDescription"
             name="myServiceDescription"
             value={formData.myServiceDescription}
-            onChange={handleChange}
+            onChange={(e) => { handleChange(e); onClearError?.('myServiceDescription'); }}
             rows={3}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.myServiceDescription ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder={SALES_PLACEHOLDERS.myServiceDescription}
             maxLength={300}
           />
+          {formErrors.myServiceDescription && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.myServiceDescription}</p>
+          )}
         </div>
 
         {/* 宛名（任意、デフォルトご担当者様） */}

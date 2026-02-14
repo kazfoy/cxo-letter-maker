@@ -3,6 +3,7 @@
 import { useEffect, useState, use, useCallback } from 'react';
 import { getBatchLetters, getBatchJobStatus } from '@/lib/supabaseHistoryUtils';
 import { useSearchParams } from 'next/navigation';
+import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import type { LetterHistory } from '@/types/letter';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
@@ -85,11 +86,11 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             if (response.ok) {
                 await loadBatch(batchId, true);
             } else {
-                alert('キャンセルに失敗しました');
+                toast({ title: 'キャンセルに失敗しました', type: 'error' });
             }
         } catch (error) {
             console.error('Cancel error:', error);
-            alert('エラーが発生しました');
+            toast({ title: 'エラーが発生しました', type: 'error' });
         } finally {
             setIsCancelling(false);
         }
@@ -98,7 +99,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
     const handleCopy = async (content: string) => {
         try {
             await navigator.clipboard.writeText(content);
-            alert('コピーしました');
+            toast({ title: 'コピーしました', type: 'success' });
         } catch (err) {
             console.error('Copy failed:', err);
         }
@@ -118,7 +119,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             saveAs(blob, `${letter.targetCompany}_${letter.targetName}_letter.docx`);
         } catch (err) {
             console.error('Download failed:', err);
-            alert('ダウンロードに失敗しました');
+            toast({ title: 'ダウンロードに失敗しました', type: 'error' });
         }
     };
 

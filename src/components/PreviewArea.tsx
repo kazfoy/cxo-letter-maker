@@ -336,8 +336,8 @@ export function PreviewArea({
       )}
 
       {/* Fixed Action Bar */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mx-6 -mt-6 px-6 py-4 mb-6 rounded-t-lg">
-        <div className="flex flex-col gap-4">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 -mx-6 -mt-6 px-4 py-2 md:px-6 md:py-4 mb-6 rounded-t-lg">
+        <div className="flex flex-col gap-2 md:gap-4">
           <div className="flex justify-between items-start md:items-center">
             {/* Left side: Title */}
             <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">プレビュー</h2>
@@ -386,7 +386,7 @@ export function PreviewArea({
 
           {/* Stats & Status Row */}
           {content && (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm border-t border-gray-100 pt-3 md:border-0 md:pt-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3 text-xs md:text-sm border-t border-gray-100 pt-1.5 md:pt-0 md:border-0">
               <div className="flex items-center gap-4 text-gray-600">
                 <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,26 +423,38 @@ export function PreviewArea({
 
           {/* Mobile Actions (Bottom Row) */}
           {content && (
-            <div className="flex md:hidden gap-2 pt-2 border-t border-gray-100">
+            <div className="flex md:hidden gap-2 pt-1.5 border-t border-gray-100">
+              {onSave && (
+                <button
+                  onClick={onSave}
+                  className="flex justify-center items-center gap-1 px-2.5 py-1.5 text-xs bg-teal-600 text-white hover:bg-teal-700 rounded-md transition-colors font-semibold"
+                  aria-label="保存"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  保存
+                </button>
+              )}
               <button
                 onClick={handleCopy}
-                className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-medium text-gray-700"
+                className="flex-1 flex justify-center items-center gap-1 px-2.5 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-medium text-gray-700"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                 </svg>
                 コピー
               </button>
               <button
                 onClick={handleExportWord}
-                className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold shadow-sm"
+                className="flex-1 flex justify-center items-center gap-1 px-2.5 py-1.5 text-xs bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Word
                 {!isPro && !isPremium && (
-                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
+                  <span className="ml-1 px-1 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
                 )}
               </button>
             </div>

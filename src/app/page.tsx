@@ -2,33 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
 import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
-
-const TypewriterText = ({ text }: { text: string }) => {
-  const [displayText, setDisplayText] = useState('');
-
-  useEffect(() => {
-    let currentIndex = 0;
-    const intervalId = setInterval(() => {
-      if (currentIndex <= text.length) {
-        setDisplayText(text.slice(0, currentIndex));
-        currentIndex++;
-      } else {
-        clearInterval(intervalId);
-      }
-    }, 100);
-    return () => clearInterval(intervalId);
-  }, [text]);
-
-  return (
-    <span className="inline-block">
-      {displayText}
-      <span className="animate-blink border-r-2 border-stone-900 ml-1">&nbsp;</span>
-    </span>
-  );
-};
 
 export default function LandingPage() {
   const { handleUpgrade, loading: upgrading } = useCheckout();
@@ -181,17 +156,12 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-black text-stone-900 leading-tight tracking-tight">
-                決裁者への<br className="md:hidden" />アポ率を<span className="text-amber-800">3倍</span>にする。
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-black text-stone-900 leading-[1.2] tracking-tight">
+                決裁者に届く営業レターを、<br className="hidden md:block" /><span className="text-amber-800">AIが30秒で作成。</span>
               </h1>
 
-              <p className="text-2xl md:text-3xl font-serif text-stone-700 leading-relaxed min-h-[1.5em]">
-                <TypewriterText text="AIが書く、本気の手紙。" />
-              </p>
-
-              <p className="text-lg text-stone-600 leading-relaxed">
-                URLを入れるだけ。独自の営業メソッドに基づいた個別最適化レターを、30秒で。<br />
-                営業レターだけでなく、イベント集客の招待状も作成可能。
+              <p className="text-lg md:text-xl text-stone-600 leading-relaxed mt-4">
+                URLを入れるだけ。独自の営業メソッドに基づいた<br className="hidden md:block" />個別最適化レターを自動生成。
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">

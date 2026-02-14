@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { AnalysisResult, InformationSource } from '@/types/analysis';
 import type { UserOverrides } from '@/types/generate-v2';
 import { FactsDisplay } from '@/components/FactsDisplay';
@@ -16,6 +16,60 @@ function normalizeSources(
   if ('sources' in result && result.sources) return result.sources;
   if ('analysis' in result && result.analysis?.sources) return result.analysis.sources;
   return undefined;
+}
+
+function ModalGenerationProgress() {
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const steps = [
+    { label: 'レターを生成中...', active: elapsed < 15 },
+    { label: '品質チェック中...', active: elapsed >= 15 },
+  ];
+  const currentStepIndex = steps.findIndex(s => s.active);
+  const estimatedTotal = 25;
+  const progressPercent = Math.min((elapsed / estimatedTotal) * 100, 95);
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center gap-3 mb-2">
+        {steps.map((step, i) => {
+          const isCompleted = i < currentStepIndex;
+          const isCurrent = step.active;
+          return (
+            <div key={i} className={`flex items-center gap-1.5 ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
+              {isCompleted ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : isCurrent ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-200 border-t-indigo-600"></div>
+              ) : (
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
+              )}
+              <span className="text-xs font-medium">{step.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="w-full bg-slate-200 rounded-full h-1.5 mb-1">
+        <div
+          className="bg-indigo-500 h-1.5 rounded-full transition-all duration-1000 ease-linear"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+      <p className="text-xs text-slate-400 text-right">
+        経過: {elapsed}秒 / 目安: 約{estimatedTotal}秒
+      </p>
+    </div>
+  );
 }
 
 interface AnalysisPreviewModalProps {
@@ -376,28 +430,31 @@ export function AnalysisPreviewModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-slate-50 flex gap-3">
-          <button
-            onClick={onClose}
-            disabled={isLoading}
-            className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-md hover:bg-slate-200 transition-colors font-medium disabled:opacity-50"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={isLoading || !analysisResult}
-            className="flex-1 bg-indigo-600 text-white py-2.5 rounded-md hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                生成中...
-              </>
-            ) : (
-              'レターを生成'
-            )}
-          </button>
+        <div className="p-4 border-t bg-slate-50">
+          {isLoading && <ModalGenerationProgress />}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-md hover:bg-slate-200 transition-colors font-medium disabled:opacity-50"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={isLoading || !analysisResult}
+              className="flex-1 bg-indigo-600 text-white py-2.5 rounded-md hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  生成中...
+                </>
+              ) : (
+                'レターを生成'
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

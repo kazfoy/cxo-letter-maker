@@ -25,6 +25,7 @@ interface PreviewAreaProps {
   content: string;
   onContentChange: (content: string) => void;
   isGenerating: boolean;
+  isAnalyzing?: boolean;
   currentLetterId?: string;
   currentStatus?: LetterStatus;
 
@@ -49,10 +50,80 @@ interface PreviewAreaProps {
   letterMode?: LetterMode;
 }
 
+function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolean; isGenerating: boolean }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!isAnalyzing && !isGenerating) {
+      setElapsed(0);
+      return;
+    }
+    setElapsed(0);
+    const timer = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, [isAnalyzing, isGenerating]);
+
+  const steps = [
+    { label: '企業サイトを分析中...', active: isAnalyzing },
+    { label: 'レターを生成中...', active: !isAnalyzing && isGenerating && elapsed < 20 },
+    { label: '品質チェック中...', active: !isAnalyzing && isGenerating && elapsed >= 20 },
+  ];
+
+  const currentStepIndex = steps.findIndex(s => s.active);
+  const estimatedTotal = isAnalyzing ? 20 : 30;
+  const progressPercent = Math.min((elapsed / estimatedTotal) * 100, 95);
+
+  return (
+    <div className="flex items-center justify-center min-h-[600px]">
+      <div className="text-center w-full max-w-sm px-4">
+        {/* Steps */}
+        <div className="space-y-3 mb-6">
+          {steps.map((step, i) => {
+            const isCompleted = i < currentStepIndex;
+            const isCurrent = step.active;
+            return (
+              <div key={i} className={`flex items-center gap-3 ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
+                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  {isCompleted ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : isCurrent ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-200 border-t-indigo-600"></div>
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                  )}
+                </div>
+                <span className={`text-sm font-medium ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
+          <div
+            className="bg-indigo-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {/* Elapsed time */}
+        <p className="text-xs text-slate-400">
+          経過: {elapsed}秒 / 目安: 約{estimatedTotal}秒
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function PreviewArea({
   content,
   onContentChange,
   isGenerating,
+  isAnalyzing = false,
   currentLetterId,
   currentStatus,
   onStatusChange,
@@ -647,14 +718,16 @@ export function PreviewArea({
         )}
 
         {isGenerating || isEditing ? (
-          <div className="flex items-center justify-center min-h-[600px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">
-                {isGenerating ? '手紙を生成中...' : '編集中...'}
-              </p>
+          isEditing ? (
+            <div className="flex items-center justify-center min-h-[600px]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">編集中...</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <GenerationProgress isAnalyzing={isAnalyzing} isGenerating={isGenerating} />
+          )
 
         ) : emailData ? (
           <div className="flex flex-col h-full bg-white rounded-md min-h-[600px]">

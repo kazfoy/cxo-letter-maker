@@ -1184,6 +1184,7 @@ function NewLetterPageContent() {
                   }
                 }}
                 isGenerating={isGenerating}
+                isAnalyzing={isAnalyzing}
                 currentLetterId={currentLetterId}
                 currentStatus={currentLetterStatus}
                 onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}

@@ -36,7 +36,7 @@ export default function LandingPage() {
         "name": "Premium Plan"
       }
     ],
-    "description": "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率を劇的に向上させます。",
+    "description": "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率の向上をサポートします。",
     "featureList": [
       "企業URLからAIが自動で事業内容・課題を分析",
       "BtoB営業専門家監修メソッドに基づいた文面生成",
@@ -513,8 +513,9 @@ export default function LandingPage() {
               導入企業の声
             </h2>
             <p className="text-xl text-stone-600">
-              多くの営業担当者が、成果を実感しています。
+              ご利用いただいた方の声をご紹介します。
             </p>
+            <p className="text-sm text-stone-400 mt-2">※ 掲載内容は個人の感想であり、効果を保証するものではありません。成果には個人差があります。</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -798,7 +799,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <span>圧倒的コストパフォーマンス</span>
-                      <p className="text-xs text-slate-400 mt-0.5">1件あたり約0.3円。外注費を劇的に削減</p>
+                      <p className="text-xs text-slate-400 mt-0.5">1件あたり約0.3円。外注費の削減に貢献</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">

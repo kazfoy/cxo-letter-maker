@@ -10,6 +10,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
 import { StatusDropdown } from '@/components/StatusDropdown';
 import { Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { devLog } from '@/lib/logger';
 
 export default function BatchDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
     const searchParams = useSearchParams();
@@ -40,7 +41,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             setLetters(batchLetters);
             setJobStatus(status);
         } catch (error) {
-            console.error('Failed to load batch:', error);
+            devLog.error('Failed to load batch:', error);
         } finally {
             if (!silent) setLoading(false);
         }
@@ -89,7 +90,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
                 toast({ title: 'キャンセルに失敗しました', type: 'error' });
             }
         } catch (error) {
-            console.error('Cancel error:', error);
+            devLog.error('Cancel error:', error);
             toast({ title: 'エラーが発生しました', type: 'error' });
         } finally {
             setIsCancelling(false);
@@ -101,7 +102,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             await navigator.clipboard.writeText(content);
             toast({ title: 'コピーしました', type: 'success' });
         } catch (err) {
-            console.error('Copy failed:', err);
+            devLog.error('Copy failed:', err);
         }
     };
 
@@ -118,7 +119,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ batchId:
             const blob = await Packer.toBlob(doc);
             saveAs(blob, `${letter.targetCompany}_${letter.targetName}_letter.docx`);
         } catch (err) {
-            console.error('Download failed:', err);
+            devLog.error('Download failed:', err);
             toast({ title: 'ダウンロードに失敗しました', type: 'error' });
         }
     };

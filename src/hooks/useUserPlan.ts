@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase/client';
 import { type PlanType, getDailyBatchLimit } from '@/config/subscriptionPlans';
+import { devLog } from '@/lib/logger';
 
 export type UserPlan = PlanType;
 
@@ -29,13 +30,13 @@ export function useUserPlan() {
                     .single();
 
                 if (error) {
-                    console.error('Failed to fetch user plan:', error);
+                    devLog.error('Failed to fetch user plan:', error);
                     // Default to free on error
                 } else if (data) {
                     setPlan(data.plan as UserPlan);
                 }
             } catch (err) {
-                console.error('Error fetching plan:', err);
+                devLog.error('Error fetching plan:', err);
             } finally {
                 setLoading(false);
             }

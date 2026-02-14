@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { MODEL_DEFAULT } from '@/lib/gemini';
+import { devLog } from '@/lib/logger';
 
 const ProcessItemSchema = z.object({
     batchId: z.string().uuid(),
@@ -245,7 +246,7 @@ ${specificInstruction}
                 return NextResponse.json({ success: true });
 
             } catch (error) {
-                console.error('Generation Error:', error);
+                devLog.error('Generation Error:', error);
                 // Increment failed count without RPC
                 const { data: job } = await supabase.from('batch_jobs').select('processed_count, failure_count').eq('id', batchId).single();
                 if (job) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { devLog } from '@/lib/logger';
 
 const GUEST_DAILY_LIMIT = 3;
 const STORAGE_KEY = 'cxo_guest_limit';
@@ -50,7 +51,7 @@ export function useGuestLimit() {
                 isLimitReached: currentCount >= GUEST_DAILY_LIMIT
             });
         } catch (error) {
-            console.error('Failed to access localStorage:', error);
+            devLog.error('Failed to access localStorage:', error);
             // エラー時は制限なしとして振る舞うか、安全側に倒す
         } finally {
             setLoading(false);

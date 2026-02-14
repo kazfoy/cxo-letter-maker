@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { type PlanType } from '@/config/subscriptionPlans';
+import { devLog } from '@/lib/logger';
 
 export async function checkSubscriptionStatus(userId: string): Promise<{
     isPro: boolean;
@@ -15,7 +16,7 @@ export async function checkSubscriptionStatus(userId: string): Promise<{
             .single();
 
         if (error || !profile) {
-            console.warn('Subscription check failed:', error);
+            devLog.warn('Subscription check failed:', error);
             return { isPro: false, isPremium: false, plan: 'free' };
         }
 
@@ -30,7 +31,7 @@ export async function checkSubscriptionStatus(userId: string): Promise<{
 
         return { isPro, isPremium, plan: planType };
     } catch (err) {
-        console.error('Subscription check error:', err);
+        devLog.error('Subscription check error:', err);
         return { isPro: false, isPremium: false, plan: 'free' };
     }
 }

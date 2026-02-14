@@ -45,7 +45,7 @@ async function searchCompanyForFallback(companyName: string): Promise<string | n
   const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
   const cx = process.env.GOOGLE_SEARCH_ENGINE_ID;
   if (!apiKey || !cx) {
-    console.warn('[WARN] Google Search API keys not configured');
+    devLog.warn('[WARN] Google Search API keys not configured');
     return null;
   }
 
@@ -60,12 +60,12 @@ async function searchCompanyForFallback(companyName: string): Promise<string | n
       const snippets = json.items
         .map((item: { title?: string; snippet?: string }) => `${item.title || ''}: ${item.snippet || ''}`)
         .join('\n');
-      console.log('[DEBUG] Google検索フォールバック成功:', snippets.substring(0, 200));
+      devLog.log('[DEBUG] Google検索フォールバック成功:', snippets.substring(0, 200));
       return snippets;
     }
     return null;
   } catch (error) {
-    console.error('[ERROR] Google検索フォールバック失敗:', error);
+    devLog.error('[ERROR] Google検索フォールバック失敗:', error);
     return null;
   }
 }
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
 
         // 複数URLからテキスト抽出（並列処理）
         if (urls.length > 0) {
-          console.log(`[DEBUG] ${urls.length}件のURL解析を開始`);
+          devLog.log(`[DEBUG] ${urls.length}件のURL解析を開始`);
           const urlResults = await Promise.allSettled(
             urls.map(async (url, index) => {
               try {
@@ -289,7 +289,7 @@ export async function POST(request: Request) {
 
         // すべてのソースが失敗し、フォールバックも失敗した場合は業界別テンプレート
         if (extractedTexts.length === 0) {
-          console.log('[INFO] 情報取得失敗、業界別テンプレートを使用');
+          devLog.log('[INFO] 情報取得失敗、業界別テンプレートを使用');
           const industry = detectIndustry(companyNameForSearch || '', fallbackSnippets || '');
           const template = industryTemplates[industry];
 
@@ -496,7 +496,7 @@ JSON形式で返してください（説明文は不要）：
         controller.close();
 
       } catch (error) {
-        console.error('[ERROR] SSE解析エラー:', error);
+        devLog.error('[ERROR] SSE解析エラー:', error);
         sendEvent(controller, encoder, {
           phase: 'complete',
           error: 'ソース解析に失敗しました。もう一度お試しください。',

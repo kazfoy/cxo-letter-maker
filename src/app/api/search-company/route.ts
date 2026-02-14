@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { getErrorMessage } from '@/lib/errorUtils';
 import { searchNewsFacts } from '@/lib/news-search';
+import { devLog } from '@/lib/logger';
 
 // Input schema
 const SearchSchema = z.object({
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ results: resultText });
 
             } catch (error: unknown) {
-                console.error('Search API Error:', error);
+                devLog.error('Search API Error:', error);
                 return NextResponse.json(
                     {
                         error: 'Failed to fetch search results',

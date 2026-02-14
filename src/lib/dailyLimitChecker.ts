@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { getDailyBatchLimit, type PlanType } from '@/config/subscriptionPlans';
+import { devLog } from '@/lib/logger';
 
 export interface DailyUsageResult {
   /** 本日の使用済み件数 */
@@ -29,7 +30,7 @@ export async function checkDailyBatchUsage(userId: string): Promise<DailyUsageRe
       .single();
 
     if (profileError || !profile) {
-      console.error('Failed to fetch user profile:', profileError);
+      devLog.error('Failed to fetch user profile:', profileError);
       // デフォルトはFreeプラン
       return {
         usedToday: 0,
@@ -73,7 +74,7 @@ export async function checkDailyBatchUsage(userId: string): Promise<DailyUsageRe
       .lt('created_at', tomorrowStart);
 
     if (countError) {
-      console.error('Failed to count today\'s batch usage:', countError);
+      devLog.error('Failed to count today\'s batch usage:', countError);
       // エラー時は安全側に倒して制限に達していると判定
       return {
         usedToday: dailyLimit,
@@ -96,7 +97,7 @@ export async function checkDailyBatchUsage(userId: string): Promise<DailyUsageRe
       userPlan,
     };
   } catch (error) {
-    console.error('Error checking daily batch usage:', error);
+    devLog.error('Error checking daily batch usage:', error);
     // エラー時は安全側に倒す
     return {
       usedToday: 0,

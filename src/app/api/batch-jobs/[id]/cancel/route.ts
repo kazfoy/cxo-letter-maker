@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { devLog } from '@/lib/logger';
 
 export async function POST(
     request: Request,
@@ -24,13 +25,13 @@ export async function POST(
             .eq('status', 'processing'); // Only cancel if currently processing
 
         if (updateError) {
-            console.error('Cancel Error:', updateError);
+            devLog.error('Cancel Error:', updateError);
             return NextResponse.json({ error: 'キャンセルに失敗しました' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, message: '生成を中断しました' });
     } catch (error) {
-        console.error('Cancel API Error:', error);
+        devLog.error('Cancel API Error:', error);
         return NextResponse.json({ error: 'サーバーエラー' }, { status: 500 });
     }
 }

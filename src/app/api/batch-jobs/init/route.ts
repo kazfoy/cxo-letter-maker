@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { apiGuard } from '@/lib/api-guard';
+import { devLog } from '@/lib/logger';
 
 const InitBatchSchema = z.object({
     totalCount: z.number().int().positive(),
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
             });
 
             if (error) {
-                console.error('Batch Init Error:', error);
+                devLog.error('Batch Init Error:', error);
                 return NextResponse.json({ error: `バッチジョブの作成に失敗しました: ${error.message}` }, { status: 500 });
             }
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getHistories, togglePin, deleteHistory } from '@/lib/supabaseHistoryUtils';
 import type { LetterHistory, LetterStatus } from '@/types/letter';
+import { devLog } from '@/lib/logger';
 
 interface HistorySidebarProps {
   onRestore: (history: LetterHistory) => void;
@@ -47,7 +48,7 @@ export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperie
         setHistories(getGuestHistory());
       }
     } catch (error) {
-      console.error('履歴読み込みエラー:', error);
+      devLog.error('履歴読み込みエラー:', error);
     }
   }, [user]);
 
@@ -87,7 +88,7 @@ export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperie
       const updated = await deleteHistory(id);
       setHistories(updated);
     } catch (error) {
-      console.error('履歴削除エラー:', error);
+      devLog.error('履歴削除エラー:', error);
     }
   };
 
@@ -97,7 +98,7 @@ export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperie
       const updated = await togglePin(id);
       setHistories(updated);
     } catch (error) {
-      console.error('ピン留め切り替えエラー:', error);
+      devLog.error('ピン留め切り替えエラー:', error);
     }
   };
 

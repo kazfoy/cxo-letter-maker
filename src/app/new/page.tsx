@@ -22,6 +22,7 @@ import { getErrorDetails, getUserFriendlyError, type ErrorKind } from '@/lib/err
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { resolveTargetUrl } from '@/lib/urlUtils';
 import { toast } from '@/hooks/use-toast';
+import { devLog } from '@/lib/logger';
 
 function NewLetterPageContent() {
   const { user } = useAuth();
@@ -115,7 +116,7 @@ function NewLetterPageContent() {
             setProfileLoaded(true);
           }
         } catch (error) {
-          console.error('Failed to load profile:', error);
+          devLog.error('Failed to load profile:', error);
         }
       }
     };
@@ -167,7 +168,7 @@ function NewLetterPageContent() {
       }
       throw new Error(data.error || '分析結果の取得に失敗しました');
     } catch (error) {
-      console.error('分析エラー:', error);
+      devLog.error('分析エラー:', error);
       return null;
     }
   }, []);
@@ -216,7 +217,7 @@ function NewLetterPageContent() {
       if (response.status === 422 && retryCount < 1) {
         const errorData = await response.json().catch(() => ({}));
         if (errorData.error === 'URL_FACTS_EMPTY') {
-          console.log('URL_FACTS_EMPTY: 再分析を実行');
+          devLog.log('URL_FACTS_EMPTY: 再分析を実行');
           const reanalyzedResult = await runAnalysis(inputFormData, targetUrl);
           if (reanalyzedResult) {
             setAnalysisResult(reanalyzedResult);
@@ -324,7 +325,7 @@ function NewLetterPageContent() {
 
         // 品質スコアが低い場合は警告
         if (data.data.quality && !data.data.quality.passed) {
-          console.warn('品質スコアが基準を下回りました:', data.data.quality);
+          devLog.warn('品質スコアが基準を下回りました:', data.data.quality);
         }
 
         return true;
@@ -333,7 +334,7 @@ function NewLetterPageContent() {
       }
     } catch (error) {
       const errorDetails = getErrorDetails(error);
-      console.error('V2生成エラー:', errorDetails);
+      devLog.error('V2生成エラー:', errorDetails);
       const friendly = getUserFriendlyError(error, 'generation');
       setGenerationError(friendly.message);
       setGenerationErrorKind(friendly.kind);
@@ -357,7 +358,7 @@ function NewLetterPageContent() {
 
       // デバッグ情報をconsoleに出力（開発時のみ）
       if (process.env.NODE_ENV === 'development') {
-        console.log('[V2 Analyze] targetUrl resolution:', {
+        devLog.log('[V2 Analyze] targetUrl resolution:', {
           explicitTargetUrl: inputFormData.targetUrl,
           eventUrl: inputFormData.eventUrl,
           freeformInput: inputFormData.freeformInput?.substring(0, 100),
@@ -408,7 +409,7 @@ function NewLetterPageContent() {
 
       // デバッグ情報をconsoleに出力（開発時のみ）
       if (process.env.NODE_ENV === 'development') {
-        console.log('[V2 Analyze] targetUrl resolution:', {
+        devLog.log('[V2 Analyze] targetUrl resolution:', {
           explicitTargetUrl: inputFormData.targetUrl,
           eventUrl: inputFormData.eventUrl,
           freeformInput: inputFormData.freeformInput?.substring(0, 100),
@@ -419,7 +420,7 @@ function NewLetterPageContent() {
       // URL未入力時は警告を表示（ブロックはしない）
       if (!targetUrl) {
         _setUrlWarning('URLが未入力です。分析精度が低下する可能性があります。');
-        console.warn('[V2 Analyze] URLが未入力です。分析精度が低下する可能性があります。');
+        devLog.warn('[V2 Analyze] URLが未入力です。分析精度が低下する可能性があります。');
       }
 
       // ユーザーノートを構築（フォームデータから）
@@ -473,7 +474,7 @@ function NewLetterPageContent() {
       }
     } catch (error) {
       const errorDetails = getErrorDetails(error);
-      console.error('分析エラー:', errorDetails);
+      devLog.error('分析エラー:', errorDetails);
       const friendly = getUserFriendlyError(error, 'analysis');
       setGenerationError(friendly.message);
       setGenerationErrorKind(friendly.kind);
@@ -676,14 +677,14 @@ function NewLetterPageContent() {
 
         // 品質スコアが低い場合は警告
         if (data.data.quality && !data.data.quality.passed) {
-          console.warn('品質スコアが基準を下回りました:', data.data.quality);
+          devLog.warn('品質スコアが基準を下回りました:', data.data.quality);
         }
       } else {
         throw new Error(data.error || '生成結果の取得に失敗しました');
       }
     } catch (error) {
       const errorDetails = getErrorDetails(error);
-      console.error('V2生成エラー:', errorDetails);
+      devLog.error('V2生成エラー:', errorDetails);
       const friendly = getUserFriendlyError(error, 'generation');
       setGenerationError(friendly.message);
       setGenerationErrorKind(friendly.kind);
@@ -707,7 +708,7 @@ function NewLetterPageContent() {
           .single();
 
         if (error || !data) {
-          console.error('Failed to fetch letter:', error);
+          devLog.error('Failed to fetch letter:', error);
           return;
         }
 
@@ -735,7 +736,7 @@ function NewLetterPageContent() {
           setEmailData(data.email_content as { subject: string; body: string });
         }
       } catch (error) {
-        console.error('Error restoring letter:', error);
+        devLog.error('Error restoring letter:', error);
       }
     };
 

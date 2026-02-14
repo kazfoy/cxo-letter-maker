@@ -7,6 +7,7 @@ import type { LetterHistory, LetterStatus } from '@/types/letter';
 import Link from 'next/link';
 import { StatusDropdown } from '@/components/StatusDropdown';
 import { Loader2, XCircle, AlertCircle } from 'lucide-react'; // Added icons
+import { devLog } from '@/lib/logger';
 
 interface BatchSummary {
   batchId: string;
@@ -70,7 +71,7 @@ export default function HistoryPage() {
       const activeData = await getActiveBatchJobs();
       setActiveJobs(activeData);
     } catch (error) {
-      console.error('Failed to load histories:', error);
+      devLog.error('Failed to load histories:', error);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function HistoryPage() {
         setTimeout(loadData, 1000);
       }
     } catch (err) {
-      console.error('Failed to cancel job:', err);
+      devLog.error('Failed to cancel job:', err);
     }
   };
 
@@ -104,7 +105,7 @@ export default function HistoryPage() {
       const updated = await deleteHistory(id);
       setHistories(updated);
     } catch (error) {
-      console.error('Failed to delete:', error);
+      devLog.error('Failed to delete:', error);
     }
   };
 

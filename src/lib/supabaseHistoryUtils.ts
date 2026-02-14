@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/client';
 import type { LetterHistory, LetterStatus, LetterMode } from '@/types/letter';
 import { getErrorMessage } from '@/lib/errorUtils';
 import { FREE_HISTORY_LIMIT } from '@/config/subscriptionPlans';
+import { devLog } from '@/lib/logger';
 
 // Database type (snake_case for Supabase)
 interface LetterRow {
@@ -58,16 +59,16 @@ export async function getHistories(): Promise<LetterHistory[]> {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error('認証エラー:', userError);
+      devLog.error('認証エラー:', userError);
       return [];
     }
 
     if (!user) {
-      console.log('No user found, returning empty array');
+      devLog.log('No user found, returning empty array');
       return [];
     }
 
-    console.log(`Fetching histories for user: ${user.id}`);
+    devLog.log(`Fetching histories for user: ${user.id}`);
 
     // Sort at database level: pinned DESC (true first), then created_at DESC (newest first)
     // Fetch user profile to check plan
@@ -102,8 +103,8 @@ export async function getHistories(): Promise<LetterHistory[]> {
     const { data, error } = await query;
 
     if (error) {
-      console.error('履歴取得エラー:', error);
-      console.error('Error details:', {
+      devLog.error('履歴取得エラー:', error);
+      devLog.error('Error details:', {
         message: error.message,
         code: error.code,
         details: error.details,
@@ -112,12 +113,12 @@ export async function getHistories(): Promise<LetterHistory[]> {
       return [];
     }
 
-    console.log(`Fetched ${data?.length || 0} histories from Supabase`);
+    devLog.log(`Fetched ${data?.length || 0} histories from Supabase`);
     // NOTE: This now includes batch items. We will group them in the UI or fetch distinct batches in a separate call if needed.
     // For efficient "grouping", we might want a separate query, but for now let's just properly map properties.
     return (data || []).map(rowToHistory);
   } catch (error) {
-    console.error('履歴取得エラー (catch):', error);
+    devLog.error('履歴取得エラー (catch):', error);
     return [];
   }
 }
@@ -143,7 +144,7 @@ export async function getBatches(): Promise<{ batchId: string; createdAt: string
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Batches fetch error:', error);
+      devLog.error('Batches fetch error:', error);
       return [];
     }
 
@@ -167,7 +168,7 @@ export async function getBatches(): Promise<{ batchId: string; createdAt: string
 
     return Array.from(batchMap.values());
   } catch (error) {
-    console.error('Batches fetch error (catch):', error);
+    devLog.error('Batches fetch error (catch):', error);
     return [];
   }
 }
@@ -189,12 +190,12 @@ export async function getBatchLetters(batchId: string): Promise<LetterHistory[]>
       .order('created_at', { ascending: true }); // Keep usually roughly CSV order
 
     if (error) {
-      console.error('Batch fetch error:', error);
+      devLog.error('Batch fetch error:', error);
       return [];
     }
     return (data || []).map(rowToHistory);
   } catch (error) {
-    console.error('Batch fetch error (catch):', error);
+    devLog.error('Batch fetch error (catch):', error);
     return [];
   }
 }
@@ -222,7 +223,7 @@ export async function getBatchJobStatus(batchId: string): Promise<{
 
     if (error) {
       if (error.code !== 'PGRST116') { // Ignore "not found"
-        console.error('Batch job status fetch error:', error);
+        devLog.error('Batch job status fetch error:', error);
       }
       return null;
     }
@@ -234,7 +235,7 @@ export async function getBatchJobStatus(batchId: string): Promise<{
       failureCount: data.failure_count
     };
   } catch (error) {
-    console.error('Batch job status fetch error (catch):', error);
+    devLog.error('Batch job status fetch error (catch):', error);
     return null;
   }
 }
@@ -261,7 +262,7 @@ export async function getActiveBatchJobs(): Promise<Array<{
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Active/Failed batch jobs fetch error:', error);
+      devLog.error('Active/Failed batch jobs fetch error:', error);
       return [];
     }
 
@@ -275,7 +276,7 @@ export async function getActiveBatchJobs(): Promise<Array<{
       errorMessage: job.error_message
     }));
   } catch (error) {
-    console.error('Active/Failed batch jobs fetch error (catch):', error);
+    devLog.error('Active/Failed batch jobs fetch error (catch):', error);
     return [];
   }
 }
@@ -324,7 +325,7 @@ export async function saveToHistory(
       .single();
 
     if (error) {
-      console.error('履歴保存エラー:', error);
+      devLog.error('履歴保存エラー:', error);
       throw error;
     }
 
@@ -333,7 +334,7 @@ export async function saveToHistory(
 
     return data ? rowToHistory(data) : null;
   } catch (error) {
-    console.error('履歴保存エラー:', error);
+    devLog.error('履歴保存エラー:', error);
     return null;
   }
 }
@@ -368,7 +369,7 @@ async function cleanupOldHistories(): Promise<void> {
         .in('id', idsToDelete);
     }
   } catch (error) {
-    console.error('古い履歴の削除エラー:', error);
+    devLog.error('古い履歴の削除エラー:', error);
   }
 }
 
@@ -393,7 +394,7 @@ export async function togglePin(id: string): Promise<LetterHistory[]> {
       .single();
 
     if (!letter) {
-      console.error('Letter not found');
+      devLog.error('Letter not found');
       return getHistories();
     }
 
@@ -405,13 +406,13 @@ export async function togglePin(id: string): Promise<LetterHistory[]> {
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('ピン留め切り替えエラー:', error);
+      devLog.error('ピン留め切り替えエラー:', error);
     }
 
     // Return updated histories
     return getHistories();
   } catch (error) {
-    console.error('ピン留め切り替えエラー:', error);
+    devLog.error('ピン留め切り替えエラー:', error);
     return [];
   }
 }
@@ -435,13 +436,13 @@ export async function deleteHistory(id: string): Promise<LetterHistory[]> {
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('履歴削除エラー:', error);
+      devLog.error('履歴削除エラー:', error);
     }
 
     // Return updated histories
     return getHistories();
   } catch (error) {
-    console.error('履歴削除エラー:', error);
+    devLog.error('履歴削除エラー:', error);
     return [];
   }
 }
@@ -467,13 +468,13 @@ export async function updateStatus(id: string, status: LetterStatus): Promise<Le
       .single();
 
     if (error) {
-      console.error('ステータス更新エラー:', error);
+      devLog.error('ステータス更新エラー:', error);
       throw error;
     }
 
     return data ? rowToHistory(data) : null;
   } catch (error) {
-    console.error('ステータス更新エラー:', error);
+    devLog.error('ステータス更新エラー:', error);
     return null;
   }
 }
@@ -490,40 +491,40 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error('Migration: 認証エラー:', userError);
+      devLog.error('Migration: 認証エラー:', userError);
       return { success: false, error: userError.message };
     }
 
     if (!user) {
-      console.log('Migration: No user logged in, skipping migration');
+      devLog.log('Migration: No user logged in, skipping migration');
       return { success: true };
     }
 
-    console.log(`Migration: Starting for user ${user.id}`);
+    devLog.log(`Migration: Starting for user ${user.id}`);
 
     // Check if migration has already been done
     const migrationKey = `migration_done_${user.id}`;
     if (localStorage.getItem(migrationKey)) {
-      console.log('Migration: Already completed for this user');
+      devLog.log('Migration: Already completed for this user');
       return { success: true };
     }
 
     // Get LocalStorage data
     const stored = localStorage.getItem('letterHistories');
     if (!stored) {
-      console.log('Migration: No LocalStorage data to migrate');
+      devLog.log('Migration: No LocalStorage data to migrate');
       localStorage.setItem(migrationKey, 'true');
       return { success: true };
     }
 
     const localHistories: LetterHistory[] = JSON.parse(stored);
     if (localHistories.length === 0) {
-      console.log('Migration: No histories to migrate');
+      devLog.log('Migration: No histories to migrate');
       localStorage.setItem(migrationKey, 'true');
       return { success: true };
     }
 
-    console.log(`Migration: Migrating ${localHistories.length} histories to Supabase (attempt ${retryCount + 1})`);
+    devLog.log(`Migration: Migrating ${localHistories.length} histories to Supabase (attempt ${retryCount + 1})`);
 
     // Insert all local histories to Supabase
     const lettersToInsert = localHistories.map(history => ({
@@ -544,8 +545,8 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
       .upsert(lettersToInsert, { onConflict: 'id' });
 
     if (error) {
-      console.error('Migration: Database error:', error);
-      console.error('Migration: Error details:', {
+      devLog.error('Migration: Database error:', error);
+      devLog.error('Migration: Error details:', {
         message: error.message,
         code: error.code,
         details: error.details,
@@ -554,7 +555,7 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
 
       // Retry up to 2 times
       if (retryCount < 2) {
-        console.log(`Migration: Retrying... (${retryCount + 1}/2)`);
+        devLog.log(`Migration: Retrying... (${retryCount + 1}/2)`);
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         return migrateFromLocalStorage(retryCount + 1);
       }
@@ -562,22 +563,22 @@ export async function migrateFromLocalStorage(retryCount = 0): Promise<{ success
       return { success: false, error: error.message };
     }
 
-    console.log('Migration: Successful!');
+    devLog.log('Migration: Successful!');
 
     // Mark migration as complete
     localStorage.setItem(migrationKey, 'true');
 
     // Optionally clear LocalStorage data after successful migration
     localStorage.removeItem('letterHistories');
-    console.log('Migration: Cleared LocalStorage data after successful migration');
+    devLog.log('Migration: Cleared LocalStorage data after successful migration');
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Migration: Failed (catch):', error);
+    devLog.error('Migration: Failed (catch):', error);
 
     // Retry up to 2 times
     if (retryCount < 2) {
-      console.log(`Migration: Retrying... (${retryCount + 1}/2)`);
+      devLog.log(`Migration: Retrying... (${retryCount + 1}/2)`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       return migrateFromLocalStorage(retryCount + 1);
     }

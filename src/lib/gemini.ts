@@ -32,7 +32,7 @@ export function getGoogleProvider(): GoogleProvider {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
+    devLog.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
     throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set!');
   }
 

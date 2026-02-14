@@ -13,6 +13,7 @@ import { useUserPlan } from '@/hooks/useUserPlan';
 import { EXTERNAL_LINKS } from '@/lib/constants';
 import { PlanSelectionModal } from '@/components/PlanSelectionModal';
 import { useCheckout } from '@/hooks/useCheckout';
+import { devLog } from '@/lib/logger';
 
 function SecuritySettings() {
   const [newPassword, setNewPassword] = useState('');
@@ -151,7 +152,7 @@ export default function SettingsPage() {
         });
       }
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      devLog.error('Failed to load profile:', error);
     } finally {
       setLoading(false);
     }
@@ -172,7 +173,7 @@ export default function SettingsPage() {
         throw new Error(data.error || 'ポータルセッションの作成に失敗しました');
       }
     } catch (error: unknown) {
-      console.error('Portal error:', error);
+      devLog.error('Portal error:', error);
       toast({ title: 'カスタマーポータルの起動に失敗しました: ' + getErrorMessage(error), type: 'error' });
     } finally {
       setPortalLoading(false);
@@ -216,7 +217,7 @@ export default function SettingsPage() {
           path: fileName,
         });
       } catch (err) {
-        console.error('Upload failed:', err);
+        devLog.error('Upload failed:', err);
         toast({ title: `アップロードに失敗しました: ${file.name}`, type: 'error' });
       }
     }
@@ -243,7 +244,7 @@ export default function SettingsPage() {
         reference_docs: prev.reference_docs.filter(doc => doc.path !== path)
       }));
     } catch (err) {
-      console.error('Delete failed:', err);
+      devLog.error('Delete failed:', err);
       toast({ title: 'ファイルの削除に失敗しました。', type: 'error' });
     } finally {
       setUploading(false);
@@ -267,7 +268,7 @@ export default function SettingsPage() {
         throw new Error('保存に失敗しました');
       }
     } catch (error: unknown) {
-      console.error('Save error:', error);
+      devLog.error('Save error:', error);
       setMessage({
         type: 'error',
         text: getErrorMessage(error) || '保存に失敗しました',

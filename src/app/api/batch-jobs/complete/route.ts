@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
+import { devLog } from '@/lib/logger';
 
 const CompleteBatchSchema = z.object({
     batchId: z.string().uuid(),
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
                 .eq('id', batchId);
 
             if (error) {
-                console.error('Batch Complete Error:', error);
+                devLog.error('Batch Complete Error:', error);
                 return NextResponse.json({ error: 'ステータス更新に失敗しました' }, { status: 500 });
             }
 

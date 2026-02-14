@@ -3,6 +3,7 @@ import { getErrorDetails } from '@/lib/errorUtils';
 
 import { useToast } from '@/hooks/use-toast';
 import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse, GenerateResponse, AnalysisPhase, SSEEvent } from '@/types/letter';
+import { devLog } from '@/lib/logger';
 
 interface UseInputFormProps {
   mode: LetterMode;
@@ -112,7 +113,7 @@ export function useInputForm({
         setAiSuggestions(data.suggestions);
       }
     } catch (error) {
-      console.error('AIアシストエラー:', error);
+      devLog.error('AIアシストエラー:', error);
       showError('AIアシストに失敗しました。', 'もう一度お試しください。');
       setAiModalOpen(false);
     } finally {
@@ -294,7 +295,7 @@ export function useInputForm({
         }
       }
     } catch (error) {
-      console.error('ソース解析エラー:', error);
+      devLog.error('ソース解析エラー:', error);
       showError('ソース解析に失敗しました。', 'もう一度お試しください。');
     } finally {
       setIsAnalyzingSource(false);
@@ -327,7 +328,7 @@ export function useInputForm({
         setTimeout(() => setGenerationSuccess(false), 2000);
       } catch (error) {
         const errorDetails = getErrorDetails(error);
-        console.error('[ERROR] V2生成エラー:', errorDetails);
+        devLog.error('[ERROR] V2生成エラー:', errorDetails);
         showError('生成に失敗しました。', 'もう一度お試しください。');
       } finally {
         setIsGeneratingLocal(false);
@@ -341,7 +342,7 @@ export function useInputForm({
     setGenerationSuccess(false);
 
     try {
-      console.log(`[DEBUG] ${outputFormat === 'email' ? 'メール' : '手紙'}生成リクエスト開始`);
+      devLog.log(`[DEBUG] ${outputFormat === 'email' ? 'メール' : '手紙'}生成リクエスト開始`);
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -354,7 +355,7 @@ export function useInputForm({
         }),
       });
 
-      console.log('[DEBUG] レスポンス受信:', {
+      devLog.log('[DEBUG] レスポンス受信:', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
@@ -362,7 +363,7 @@ export function useInputForm({
       });
 
       const data: GenerateResponse = await response.json();
-      console.log('[DEBUG] レスポンスデータ:', {
+      devLog.log('[DEBUG] レスポンスデータ:', {
         hasLetter: !!data.letter,
         hasEmail: !!data.email,
         hasError: !!data.error,
@@ -374,12 +375,12 @@ export function useInputForm({
         setGenerationSuccess(true);
         setTimeout(() => setGenerationSuccess(false), 2000);
       } else if (data.error) {
-        console.error('[ERROR] API エラーレスポンス:', data);
+        devLog.error('[ERROR] API エラーレスポンス:', data);
         handleApiErrorData(data);
       }
     } catch (error: unknown) {
       const errorDetails = getErrorDetails(error);
-      console.error('[ERROR] 生成エラー詳細:', {
+      devLog.error('[ERROR] 生成エラー詳細:', {
         ...errorDetails,
         fullError: error,
       });
@@ -436,7 +437,7 @@ export function useInputForm({
         eventSpeakers: eventSpeakers || prev.eventSpeakers,
       }));
     } catch (error) {
-      console.error('イベントURL解析エラー:', error);
+      devLog.error('イベントURL解析エラー:', error);
       showError('イベントURL解析に失敗しました。', 'URLを確認して、もう一度お試しください。');
     } finally {
       setIsAnalyzingSource(false);

@@ -10,6 +10,7 @@ import { generateJson } from '@/lib/gemini';
 import { safeFetch } from '@/lib/url-validator';
 import { extractTextFromHtml } from '@/lib/urlAnalysis';
 import { z } from 'zod';
+import { devLog } from '@/lib/logger';
 
 const RequestSchema = z.object({
   event_url: z.string().url(),
@@ -115,7 +116,7 @@ JSON形式のみ：
         });
 
       } catch (error) {
-        console.error('Event URL analysis error:', error);
+        devLog.error('Event URL analysis error:', error);
         return NextResponse.json({
           success: false,
           error: 'ANALYSIS_FAILED',

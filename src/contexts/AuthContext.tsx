@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/client';
 import { migrateFromLocalStorage } from '@/lib/supabaseHistoryUtils';
+import { devLog } from '@/lib/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         migrateFromLocalStorage().then((result) => {
           if (!result.success) {
-            console.error('Migration failed:', result.error);
+            devLog.error('Migration failed:', result.error);
           }
         });
       }
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         migrateFromLocalStorage().then((result) => {
           if (!result.success) {
-            console.error('Migration failed:', result.error);
+            devLog.error('Migration failed:', result.error);
           }
         });
       }

@@ -3,6 +3,7 @@ import { EVENT_PLACEHOLDERS } from '@/lib/placeholders';
 import { FIELD_LABELS, BUTTON_TEXTS, ICONS, REQUIRED_MARK } from '@/lib/constants';
 import { Accordion } from '@/components/ui/Accordion';
 import type { LetterFormData } from '@/types/letter';
+import { devLog } from '@/lib/logger';
 
 interface EventFormProps {
   formData: LetterFormData;
@@ -70,7 +71,7 @@ export const EventForm = React.memo(function EventForm({
         setEventUrlError(data.message || 'イベント情報を取得できませんでした');
       }
     } catch (error) {
-      console.error('Event URL analysis failed:', error);
+      devLog.error('Event URL analysis failed:', error);
       setEventUrlError('イベント情報の取得に失敗しました。手動で入力してください。');
     } finally {
       setIsAnalyzingEventUrl(false);

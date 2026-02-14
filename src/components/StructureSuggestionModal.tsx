@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { devLog } from '@/lib/logger';
 
 interface Approach {
   type: string;
@@ -53,7 +54,7 @@ export function StructureSuggestionModal({
 
       setApproaches(data.approaches);
     } catch (err) {
-      console.error('構成案取得エラー:', err);
+      devLog.error('構成案取得エラー:', err);
       setError(err instanceof Error ? err.message : '構成案の取得に失敗しました');
     } finally {
       setIsLoading(false);

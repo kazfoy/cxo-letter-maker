@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     EditSchema,
     async (data, user) => {
       try {
-        console.log('[DEBUG] 編集APIリクエスト:', {
+        devLog.log('[DEBUG] 編集APIリクエスト:', {
           isAuthenticated: !!user,
           userId: user?.id || 'guest',
           editType: data.editType,
@@ -169,7 +169,7 @@ ${formatConstraints}
         return NextResponse.json({ editedLetter });
       } catch (error: unknown) {
         const errorDetails = getErrorDetails(error);
-        console.error('[ERROR] 編集エラー詳細:', {
+        devLog.error('[ERROR] 編集エラー詳細:', {
           ...errorDetails,
           fullError: error,
         });

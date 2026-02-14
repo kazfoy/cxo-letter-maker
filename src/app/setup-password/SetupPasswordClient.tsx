@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/client';
+import { devLog } from '@/lib/logger';
 
 type Props = {
   user: User;
@@ -70,7 +71,7 @@ export default function SetupPasswordClient({ user }: Props) {
         .single();
 
       if (!profile) {
-        console.log('Creating profile...');
+        devLog.log('Creating profile...');
         await supabase
           .from('profiles')
           .insert({
@@ -83,7 +84,7 @@ export default function SetupPasswordClient({ user }: Props) {
         router.push('/dashboard');
       }, 800);
     } catch (error: unknown) {
-      console.error('Setup password error:', error);
+      devLog.error('Setup password error:', error);
       setMessage({
         type: 'error',
         text: getErrorMessage(error) || 'パスワードの設定に失敗しました',
@@ -168,7 +169,7 @@ export default function SetupPasswordClient({ user }: Props) {
           <div className="mt-4">
             <button
               onClick={() => {
-                console.log('Skipping password setup, redirecting to dashboard');
+                devLog.log('Skipping password setup, redirecting to dashboard');
                 router.push('/dashboard');
               }}
               disabled={loading}

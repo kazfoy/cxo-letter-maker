@@ -40,7 +40,7 @@ async function _getReferenceContext(userId: string): Promise<string> {
         .download(doc.path);
 
       if (error || !data) {
-        console.warn(`Failed to download auth doc: ${doc.name}`, error);
+        devLog.warn(`Failed to download auth doc: ${doc.name}`, error);
         continue;
       }
 
@@ -57,13 +57,13 @@ async function _getReferenceContext(userId: string): Promise<string> {
         const text = result.text.slice(0, 3000).replace(/\s+/g, ' ').trim();
         combinedText += `\n【参照資料: ${doc.name}】\n${text}\n`;
       } catch (parseError) {
-        console.warn(`Failed to parse auth doc: ${doc.name}`, parseError);
+        devLog.warn(`Failed to parse auth doc: ${doc.name}`, parseError);
       }
     }
 
     return combinedText;
   } catch (err) {
-    console.error('Error fetching reference context:', err);
+    devLog.error('Error fetching reference context:', err);
     return ''; // Fail safe
   }
 }
@@ -79,8 +79,8 @@ function getGoogleProvider(): GoogleProvider {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
-    console.error('Available Env Vars:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET')));
+    devLog.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
+    devLog.error('Available Env Vars:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET')));
     throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
   }
 
@@ -134,7 +134,7 @@ async function generateWithFallback(prompt: string, primaryModelName: string = M
     return result;
   } catch (error: unknown) {
     const errorDetails = getErrorDetails(error);
-    console.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
+    devLog.error(`[ERROR] プライマリモデル ${primaryModelName} 失敗:`, {
       message: errorDetails.message,
     });
     devLog.warn(`Primary model ${primaryModelName} failed, trying fallback to ${MODEL_FALLBACK}...`, error);
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
           .single();
 
         if (profileError) {
-          console.error('Profile fetch error:', profileError);
+          devLog.error('Profile fetch error:', profileError);
           // エラーでも一旦進めるか、エラーにするか。安全のためエラーにはしないがログ出す
         } else if (profile) {
           let { daily_usage_count } = profile;
@@ -798,7 +798,7 @@ ${jsonInstruction}
           }
 
         } catch (e) {
-          console.warn('JSON Parse failed, using fallback.', e);
+          devLog.warn('JSON Parse failed, using fallback.', e);
           // パース失敗時のフォールバック
           if (output_format === 'email') {
             responseData = {
@@ -875,7 +875,7 @@ ${jsonInstruction}
         // 詳細なエラーログ出力（デバッグ用）
         const errorDetails = getErrorDetails(error);
         const errorObj = error as { status?: number; statusCode?: number; code?: string; cause?: unknown };
-        console.error('[ERROR] 生成エラー詳細:', {
+        devLog.error('[ERROR] 生成エラー詳細:', {
           ...errorDetails,
           status: errorObj.status,
           statusCode: errorObj.statusCode,
@@ -883,7 +883,7 @@ ${jsonInstruction}
           cause: errorObj.cause,
         });
         // オブジェクトとして直接出力（JSON.stringifyでは消える情報があるため）
-        console.error('[ERROR] Full Error Object:', error);
+        devLog.error('[ERROR] Full Error Object:', error);
 
         devLog.error('生成エラー:', error);
 

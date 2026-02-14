@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { devLog } from '@/lib/logger';
 
 export interface LetterHistory {
   id: string;
@@ -59,7 +60,7 @@ export function saveToHistory(
 
     localStorage.setItem('letterHistories', JSON.stringify(trimmed));
   } catch (error) {
-    console.error('履歴保存エラー:', error);
+    devLog.error('履歴保存エラー:', error);
   }
 }
 
@@ -78,7 +79,7 @@ export function togglePin(id: string): LetterHistory[] {
     localStorage.setItem('letterHistories', JSON.stringify(updated));
     return updated;
   } catch (error) {
-    console.error('ピン留め切り替えエラー:', error);
+    devLog.error('ピン留め切り替えエラー:', error);
     return [];
   }
 }

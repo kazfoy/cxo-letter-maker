@@ -14,6 +14,7 @@ import type { InformationSource } from '@/types/analysis';
 import type { Citation } from '@/types/generate-v2';
 import type { LetterMode } from '@/types/letter';
 import { normalizeLetterText } from '@/lib/textNormalize';
+import { devLog } from '@/lib/logger';
 
 // LocalStorageキー
 const EDIT_USAGE_KEY = 'guest_edit_usage';
@@ -139,7 +140,7 @@ export function PreviewArea({
         }
       }
     } catch (error) {
-      console.error('Status update error:', error);
+      devLog.error('Status update error:', error);
       showNotification('ステータスの更新に失敗しました', 'error');
     }
   };
@@ -149,7 +150,7 @@ export function PreviewArea({
       await navigator.clipboard.writeText(normalizeLetterText(content));
       showNotification('クリップボードにコピーしました！', 'success');
     } catch (error) {
-      console.error('コピーエラー:', error);
+      devLog.error('コピーエラー:', error);
       showNotification('コピーに失敗しました。', 'error');
     }
   };
@@ -189,7 +190,7 @@ export function PreviewArea({
       saveAs(blob, 'cxo_letter.docx');
       showNotification('Wordファイルをダウンロードしました！', 'success');
     } catch (error) {
-      console.error('Word出力エラー:', error);
+      devLog.error('Word出力エラー:', error);
       showNotification('Word出力に失敗しました。', 'error');
     }
   };
@@ -216,7 +217,7 @@ export function PreviewArea({
     setIsEditing(true);
 
     try {
-      console.log('[DEBUG] 編集リクエスト:', {
+      devLog.log('[DEBUG] 編集リクエスト:', {
         editType,
         isAuthenticated: !!user,
         guestEditUsage,
@@ -228,14 +229,14 @@ export function PreviewArea({
         body: JSON.stringify({ content, editType }),
       });
 
-      console.log('[DEBUG] 編集レスポンス:', {
+      devLog.log('[DEBUG] 編集レスポンス:', {
         status: response.status,
         ok: response.ok,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[ERROR] 編集エラーレスポンス:', errorData);
+        devLog.error('[ERROR] 編集エラーレスポンス:', errorData);
 
         if (response.status === 429) {
           showNotification('利用制限に達しました。しばらく待ってから再試行してください。', 'error');
@@ -274,7 +275,7 @@ export function PreviewArea({
         }
       }
     } catch (error: unknown) {
-      console.error('[ERROR] 編集エラー:', error);
+      devLog.error('[ERROR] 編集エラー:', error);
       showNotification('編集に失敗しました。', 'error');
     } finally {
       setIsEditing(false);
@@ -302,7 +303,7 @@ export function PreviewArea({
         showNotification('品質改善が完了しました！', 'success');
       }
     } catch (error) {
-      console.error('品質改善エラー:', error);
+      devLog.error('品質改善エラー:', error);
       showNotification('品質改善に失敗しました。', 'error');
     } finally {
       setIsEditing(false);

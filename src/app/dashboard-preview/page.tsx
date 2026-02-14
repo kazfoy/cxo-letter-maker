@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Clock
 } from 'lucide-react';
+import { devLog } from '@/lib/logger';
 
 export default function DashboardPreviewPage() {
   const { user } = useAuth();
@@ -39,7 +40,7 @@ export default function DashboardPreviewPage() {
       const data = await getHistories();
       setHistories(data);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      devLog.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }

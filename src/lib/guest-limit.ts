@@ -110,7 +110,7 @@ export async function getGuestUsage(guestId: string): Promise<GuestUsage> {
             .single() as { data: Pick<GuestUsageRow, 'count'> | null; error: { code: string } | null };
 
         if (error && error.code !== 'PGRST116') {
-            console.error('Failed to fetch guest usage:', error);
+            devLog.error('Failed to fetch guest usage:', error);
         }
 
         const count = data?.count || 0;
@@ -122,7 +122,7 @@ export async function getGuestUsage(guestId: string): Promise<GuestUsage> {
             isLimitReached: count >= GUEST_DAILY_LIMIT,
         };
     } catch (error) {
-        console.error('Get guest usage failed:', error);
+        devLog.error('Get guest usage failed:', error);
         return { count: 0, limit: GUEST_DAILY_LIMIT, remaining: GUEST_DAILY_LIMIT, isLimitReached: false };
     }
 }

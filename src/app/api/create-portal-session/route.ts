@@ -3,6 +3,7 @@ import { getErrorMessage } from '@/lib/errorUtils';
 
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/utils/supabase/server';
+import { devLog } from '@/lib/logger';
 
 export async function POST(_req: Request) {
     try {
@@ -38,7 +39,7 @@ export async function POST(_req: Request) {
 
         return NextResponse.json({ url: session.url });
     } catch (error: unknown) {
-        console.error('Portal session creation failed:', error);
+        devLog.error('Portal session creation failed:', error);
         return NextResponse.json(
             { error: 'Internal Server Error', details: getErrorMessage(error) },
             { status: 500 }

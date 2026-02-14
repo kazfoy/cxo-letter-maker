@@ -17,6 +17,7 @@ import type { Citation } from '@/types/generate-v2';
 import { SourcesDisplay } from './SourcesDisplay';
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { toast } from '@/hooks/use-toast';
+import { devLog } from '@/lib/logger';
 
 /**
  * APIレスポンスの参照揺れを吸収
@@ -339,7 +340,7 @@ export function BulkGenerator() {
             if (!response.ok) {
                 // APIからのエラーメッセージを表示
                 const errorMsg = data.error || 'URLの分析に失敗しました。';
-                console.error('URL analysis error:', errorMsg, data);
+                devLog.error('URL analysis error:', errorMsg, data);
                 toast({ title: errorMsg, type: 'error' });
                 return;
             }
@@ -351,7 +352,7 @@ export function BulkGenerator() {
                 myName: data.personName || prev.myName,
             }));
         } catch (error) {
-            console.error('URL analysis error:', error);
+            devLog.error('URL analysis error:', error);
             toast({ title: 'URLの分析に失敗しました。ネットワーク接続を確認してください。', type: 'error' });
         } finally {
             setIsAnalyzing(false);
@@ -528,7 +529,7 @@ export function BulkGenerator() {
 
             return { success: true, content, sources, citations };
         } catch (error) {
-            console.error('[V2 Flow Error]', error);
+            devLog.error('[V2 Flow Error]', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : '生成中にエラーが発生しました',
@@ -614,7 +615,7 @@ export function BulkGenerator() {
 
                 // Debug: 姓名順序の確認
                 if (nameMode === 'separate') {
-                    console.log(`[Name Order] 姓: ${row[mapping.lastName]}, 名: ${row[mapping.firstName]} → ${fullName}`);
+                    devLog.log(`[Name Order] 姓: ${row[mapping.lastName]}, 名: ${row[mapping.firstName]} → ${fullName}`);
                 }
 
                 // Resolve sender info based on senderRule
@@ -639,7 +640,7 @@ export function BulkGenerator() {
                 // V2フローで生成
                 try {
                     // Debug log
-                    console.log('[BulkGenerator V2] Generating for:', row[mapping.companyName]);
+                    devLog.log('[BulkGenerator V2] Generating for:', row[mapping.companyName]);
 
                     const v2Result = await generateWithV2Flow({
                         targetUrl: mapping.url ? row[mapping.url] : undefined,
@@ -655,7 +656,7 @@ export function BulkGenerator() {
                         outputFormat: mediaType === 'mail' ? 'email' : 'letter',
                     });
 
-                    console.log('[BulkGenerator V2] Response:', v2Result.success, v2Result.error || 'OK');
+                    devLog.log('[BulkGenerator V2] Response:', v2Result.success, v2Result.error || 'OK');
 
                     if (!v2Result.success || !v2Result.content) {
                         throw new Error(v2Result.error || '生成に失敗しました');
@@ -688,7 +689,7 @@ export function BulkGenerator() {
                     });
 
                     if (dbError) {
-                        console.error('DB Save Error:', dbError);
+                        devLog.error('DB Save Error:', dbError);
                         throw new Error('データベース保存に失敗しました');
                     }
 
@@ -700,7 +701,7 @@ export function BulkGenerator() {
                     });
 
                 } catch (err) {
-                    console.error('Generation Error:', err);
+                    devLog.error('Generation Error:', err);
                     failureCount++;
 
                     // Save failed record to DB
@@ -737,7 +738,7 @@ export function BulkGenerator() {
             }
 
         } catch (error) {
-            console.error('Batch Process Error:', error);
+            devLog.error('Batch Process Error:', error);
             setErrorMessage(error instanceof Error ? error.message : '一括生成中にエラーが発生しました');
         } finally {
             // Generation is complete (either finished or cancelled)
@@ -770,7 +771,7 @@ export function BulkGenerator() {
                     autoMapHeaders(headers);
                     setStep('mapping');
                 } catch (error) {
-                    console.error('Excel Parse Error:', error);
+                    devLog.error('Excel Parse Error:', error);
                     toast({ title: 'Excelファイルの読み込みに失敗しました。', type: 'error' });
                 }
             };
@@ -787,7 +788,7 @@ export function BulkGenerator() {
                     setStep('mapping');
                 },
                 error: (error) => {
-                    console.error('CSV Parse Error:', error);
+                    devLog.error('CSV Parse Error:', error);
                     toast({ title: 'CSVの読み込みに失敗しました。', type: 'error' });
                 }
             });
@@ -964,7 +965,7 @@ export function BulkGenerator() {
                 }
 
                 // V2フローで生成
-                console.log('[BulkGenerator V2 Preview] Generating for:', item.row[mapping.companyName]);
+                devLog.log('[BulkGenerator V2 Preview] Generating for:', item.row[mapping.companyName]);
 
                 const v2Result = await generateWithV2Flow({
                     targetUrl: mapping.url ? item.row[mapping.url] : undefined,
@@ -993,7 +994,7 @@ export function BulkGenerator() {
                 });
 
             } catch (err) {
-                console.error('Preview generation error:', err);
+                devLog.error('Preview generation error:', err);
                 setPreviewItems(prev => {
                     const next = [...prev];
                     next[i] = { ...next[i], status: 'error', error: err instanceof Error ? err.message : 'エラー' };
@@ -1022,10 +1023,10 @@ export function BulkGenerator() {
     const _isMappingValid = React.useCallback(() => {
         const errors = getValidationErrors();
         if (errors.length > 0) {
-            console.log('[Validation Debug] Failed. Missing:', errors);
+            devLog.log('[Validation Debug] Failed. Missing:', errors);
             return false;
         }
-        console.log('[Validation Debug] Passed!');
+        devLog.log('[Validation Debug] Passed!');
         return true;
     }, [getValidationErrors]);
 

@@ -4,6 +4,7 @@ import { FIELD_LABELS, BUTTON_TEXTS, MESSAGES, TAB_LABELS, ICONS, REQUIRED_MARK 
 import { Accordion } from '@/components/ui/Accordion';
 import { toast } from '@/hooks/use-toast';
 import type { LetterFormData } from '@/types/letter';
+import { devLog } from '@/lib/logger';
 
 interface SalesFormProps {
   formData: LetterFormData;
@@ -63,7 +64,7 @@ export const SalesForm = React.memo(function SalesForm({
       toast({ title: '最新ニュースを取得しました', description: '「生成」時に活用されます', type: 'success' });
 
     } catch (error) {
-      console.error('Search error:', error);
+      devLog.error('Search error:', error);
       toast({ title: 'ニュースの取得に失敗しました', type: 'error' });
     } finally {
       setIsSearching(false);

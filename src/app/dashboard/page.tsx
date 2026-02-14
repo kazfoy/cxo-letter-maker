@@ -10,6 +10,7 @@ import { useUserPlan } from '@/hooks/useUserPlan';
 import { useCheckout } from '@/hooks/useCheckout';
 import { Upload, Zap } from 'lucide-react';
 import { PlanSelectionModal } from '@/components/PlanSelectionModal';
+import { devLog } from '@/lib/logger';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function DashboardPage() {
       const data = await getHistories();
       setHistories(data);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      devLog.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }

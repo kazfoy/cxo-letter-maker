@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
+import { devLog } from '@/lib/logger';
 
 export function useCheckout() {
     const { user } = useAuth();
@@ -41,7 +42,7 @@ export function useCheckout() {
                 throw new Error('決済URLの取得に失敗しました');
             }
         } catch (err) {
-            console.error('Checkout error:', err);
+            devLog.error('Checkout error:', err);
             const message = err instanceof Error ? err.message : '予期せぬエラーが発生しました';
             setError(message);
             toast({ title: 'エラーが発生しました: ' + message, type: 'error' });

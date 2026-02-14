@@ -5,6 +5,7 @@ import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
 import { PlanType, getPlanConfig } from '@/config/subscriptionPlans';
+import { devLog } from '@/lib/logger';
 
 export async function POST(request: Request) {
     return await authGuard(async (user) => {
@@ -14,11 +15,11 @@ export async function POST(request: Request) {
             }
 
             const { planType = 'pro' } = await request.json();
-            console.log(`[Checkout API] planType received: ${planType}`);
+            devLog.log(`[Checkout API] planType received: ${planType}`);
 
             // USE getPlanConfig for robust environment variable resolution
             const plan = getPlanConfig(planType as PlanType);
-            console.log(`[Checkout API] Resolved plan configuration:`, {
+            devLog.log(`[Checkout API] Resolved plan configuration:`, {
                 label: plan.label,
                 hasPriceId: !!plan.stripePriceId,
                 priceId: plan.stripePriceId?.substring(0, 8) + '...' // Log partially for privacy, but confirm it exists
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
             if (!plan || !plan.stripePriceId) {
                 const envVarName = planType === 'pro' ? 'STRIPE_PRICE_ID_PRO_MONTHLY' : 'STRIPE_PRICE_ID_PREMIUM_MONTHLY';
                 const errorMsg = `Stripe Price ID is missing for plan: ${planType}. Please check if ${envVarName} is set in your environment variables (.env.local).`;
-                console.error(`[Checkout API Error] ${errorMsg}`);
+                devLog.error(`[Checkout API Error] ${errorMsg}`);
                 return NextResponse.json({
                     error: 'Invalid plan selected or Stripe configuration is missing',
                     details: process.env.NODE_ENV === 'development' ? errorMsg : undefined
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
             }
 
             const priceId = plan.stripePriceId;
-            console.log(`[Checkout API] Proceeding with priceId: ${priceId}`);
+            devLog.log(`[Checkout API] Proceeding with priceId: ${priceId}`);
 
             // 既存のCustomerIDを取得するか確認
             // (ここでは簡単のため、毎回Checkoutで顧客を作成するのではなく、
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
 
             return NextResponse.json({ url: session.url });
         } catch (error: unknown) {
-            console.error('Checkout error:', error);
+            devLog.error('Checkout error:', error);
             return NextResponse.json(
                 { error: 'Failed to create checkout session', details: getErrorMessage(error) },
                 { status: 500 }

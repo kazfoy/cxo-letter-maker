@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { devLog } from '@/lib/logger';
 
 type TabType = 'login' | 'signup';
 type AuthMethod = 'magic_link' | 'otp_code';
@@ -30,7 +31,7 @@ function LoginContent() {
   // Redirect logged-in users
   useEffect(() => {
     if (user) {
-      console.log('User already logged in, redirecting');
+      devLog.log('User already logged in, redirecting');
       router.push(redirectPath);
     }
   }, [user, router, redirectPath]);
@@ -72,18 +73,18 @@ function LoginContent() {
       });
 
       if (error) {
-        console.error('Magic link error:', error);
+        devLog.error('Magic link error:', error);
         throw error;
       }
 
-      console.log('Magic link sent successfully');
+      devLog.log('Magic link sent successfully');
       setMagicLinkSent(true);
       setMessage({
         type: 'success',
         text: '登録用リンクを送信しました',
       });
     } catch (error: unknown) {
-      console.error('Signup error:', error);
+      devLog.error('Signup error:', error);
       setMessage({
         type: 'error',
         text: getErrorMessage(error) || '登録リンクの送信に失敗しました。もう一度お試しください。',
@@ -100,7 +101,7 @@ function LoginContent() {
     setMessage(null);
 
     try {
-      console.log('Starting signin process...');
+      devLog.log('Starting signin process...');
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -108,11 +109,11 @@ function LoginContent() {
       });
 
       if (error) {
-        console.error('Signin error:', error);
+        devLog.error('Signin error:', error);
         throw error;
       }
 
-      console.log('Signin successful, redirecting');
+      devLog.log('Signin successful, redirecting');
       setMessage({
         type: 'success',
         text: 'ログインしました。移動します...',
@@ -123,7 +124,7 @@ function LoginContent() {
         router.push(redirectPath);
       }, 500);
     } catch (error: unknown) {
-      console.error('Signin error:', error);
+      devLog.error('Signin error:', error);
       const message = getErrorMessage(error);
       let errorMessage = 'ログインに失敗しました';
 
@@ -152,7 +153,7 @@ function LoginContent() {
     setMessage(null);
 
     try {
-      console.log('Verifying OTP code...');
+      devLog.log('Verifying OTP code...');
 
       // まず type: 'email' で試す
       let result = await supabase.auth.verifyOtp({
@@ -163,7 +164,7 @@ function LoginContent() {
 
       // 失敗した場合は type: 'signup' で再試行
       if (result.error) {
-        console.log('Trying with type: signup...');
+        devLog.log('Trying with type: signup...');
         result = await supabase.auth.verifyOtp({
           email,
           token: otpCode,
@@ -172,11 +173,11 @@ function LoginContent() {
       }
 
       if (result.error) {
-        console.error('OTP verification error:', result.error);
+        devLog.error('OTP verification error:', result.error);
         throw result.error;
       }
 
-      console.log('OTP verification successful');
+      devLog.log('OTP verification successful');
       setMessage({
         type: 'success',
         text: '認証成功！移動します...',
@@ -193,7 +194,7 @@ function LoginContent() {
         }
       }, 500);
     } catch (error: unknown) {
-      console.error('OTP error:', error);
+      devLog.error('OTP error:', error);
       const errorMsg = getErrorMessage(error);
       let displayMessage = 'コードの検証に失敗しました';
 

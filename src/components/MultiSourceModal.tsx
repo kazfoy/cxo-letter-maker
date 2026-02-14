@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { AnalysisPhase } from '@/types/letter';
 import { toast } from '@/hooks/use-toast';
+import { devLog } from '@/lib/logger';
 
 // PDF.js workerの設定
 if (typeof window !== 'undefined') {
@@ -113,7 +114,7 @@ export function MultiSourceModal({
 
       setPdfText(fullText.trim());
     } catch (error) {
-      console.error('PDF extraction error:', error);
+      devLog.error('PDF extraction error:', error);
       toast({ title: 'PDFの読み込みに失敗しました。別のファイルを試してください。', type: 'error' });
       setPdfFile(null);
       setPdfText(null);

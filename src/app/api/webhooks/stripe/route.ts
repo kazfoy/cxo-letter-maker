@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js'; // Use admin client for webhook updates
 import { getErrorMessage } from '@/lib/errorUtils';
+import { devLog } from '@/lib/logger';
 
 // Admin client required to update other users' profiles (bypass RLS)
 const supabase = createClient(
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
         );
     } catch (error: unknown) {
         const message = getErrorMessage(error);
-        console.error('Webhook signature verification failed.', message);
+        devLog.error('Webhook signature verification failed.', message);
         return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 });
     }
 
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
             }
         }
     } catch (error: unknown) {
-        console.error('Webhook handler failed:', error);
+        devLog.error('Webhook handler failed:', error);
         return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
     }
 

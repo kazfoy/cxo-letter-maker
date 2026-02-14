@@ -1,4 +1,5 @@
 import type { LetterHistory, LetterMode } from "@/types/letter";
+import { devLog } from '@/lib/logger';
 
 const STORAGE_KEY = 'cxo_guest_history';
 const MAX_ITEMS = 3;
@@ -24,7 +25,7 @@ export function getGuestHistory(): LetterHistory[] {
 
         return parsed;
     } catch (e) {
-        console.error('Failed to parse guest history', e);
+        devLog.error('Failed to parse guest history', e);
         return [];
     }
 }

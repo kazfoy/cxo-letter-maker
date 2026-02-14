@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/client';
+import { devLog } from '@/lib/logger';
 
 export interface Profile {
   id: string;
@@ -31,13 +32,13 @@ export async function getProfile(): Promise<Profile | null> {
       .single();
 
     if (error) {
-      console.error('Profile fetch error:', error);
+      devLog.error('Profile fetch error:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    devLog.error('Profile fetch error:', error);
     return null;
   }
 }
@@ -53,8 +54,8 @@ export async function updateProfile(profile: Partial<Omit<Profile, 'id' | 'email
     throw new Error('ログインが必要です');
   }
 
-  console.log('[Profile Update] Updating profile for user:', user.id);
-  console.log('[Profile Update] Data:', JSON.stringify(profile, null, 2));
+  devLog.log('[Profile Update] Updating profile for user:', user.id);
+  devLog.log('[Profile Update] Data:', JSON.stringify(profile, null, 2));
 
   const { data, error } = await supabase
     .from('profiles')
@@ -64,10 +65,10 @@ export async function updateProfile(profile: Partial<Omit<Profile, 'id' | 'email
     .single();
 
   if (error) {
-    console.error('[Profile Update] Supabase error:', error.code, error.message, error.details, error.hint);
+    devLog.error('[Profile Update] Supabase error:', error.code, error.message, error.details, error.hint);
     throw new Error(`プロフィール更新エラー: ${error.message}`);
   }
 
-  console.log('[Profile Update] Success:', data);
+  devLog.log('[Profile Update] Success:', data);
   return data;
 }

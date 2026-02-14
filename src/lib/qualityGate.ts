@@ -593,7 +593,7 @@ export function calculateDetailedScore(
     /課題.*お持ち/,
     /お悩み/,
     /ではないでしょうか/,
-    /と推察/,
+    /ご検討中/,
   ];
   const empathyHits = empathyPatterns.filter(p => p.test(body)).length;
   if (empathyHits >= 2) {
@@ -689,21 +689,20 @@ export function calculateDetailedScore(
     }
   }
 
-  // 一般論検出と減点（ファクトがある場合ほど減点を強める）
-  const generalStatementPatterns = [
-    /多くの企業では/,
-    /一般的に/,
-    /近年では/,
-  ];
-  const generalCount = generalStatementPatterns.filter(p => p.test(body)).length;
-  if (generalCount > 0) {
-    // ファクトがあるのに一般論を使う場合は強く減点
-    const penalty = factsForLetter?.length
-      ? generalCount * 7  // ファクトありで一般論は -7/回
-      : generalCount * 3; // ファクトなしでも -3/回
-    noNgExpressions -= penalty;
-    if (suggestions.length < 3 && factsForLetter?.length) {
-      suggestions.push('一般論ではなく、抽出したファクトを使用してください');
+  // 一般論検出と減点（URLあり && ファクトがある場合のみ減点）
+  // 仮説モード（URL未指定 or ファクト空）では一般論は許容される
+  if (hasTargetUrl && factsForLetter && factsForLetter.length > 0) {
+    const generalStatementPatterns = [
+      /多くの企業では/,
+      /一般的に/,
+      /近年では/,
+    ];
+    const generalCount = generalStatementPatterns.filter(p => p.test(body)).length;
+    if (generalCount > 0) {
+      noNgExpressions -= generalCount * 7;
+      if (suggestions.length < 3) {
+        suggestions.push('一般論ではなく、抽出したファクトを使用してください');
+      }
     }
   }
 

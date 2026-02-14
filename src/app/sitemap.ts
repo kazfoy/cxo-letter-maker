@@ -6,37 +6,37 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: new Date('2025-02-14'),
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
       url: `${baseUrl}/new`,
-      lastModified: new Date(),
+      lastModified: new Date('2025-02-14'),
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/login`,
-      lastModified: new Date(),
+      lastModified: new Date('2025-01-15'),
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
+      lastModified: new Date('2024-12-01'),
       changeFrequency: 'yearly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
+      lastModified: new Date('2024-12-01'),
       changeFrequency: 'yearly',
       priority: 0.5,
     },
     {
       url: `${baseUrl}/tokusho`,
-      lastModified: new Date(),
+      lastModified: new Date('2024-12-01'),
       changeFrequency: 'yearly',
       priority: 0.5,
     },

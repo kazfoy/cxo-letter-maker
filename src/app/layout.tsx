@@ -58,6 +58,9 @@ export const metadata: Metadata = {
     title: "CxO Letter Maker | 決裁者へ響く手紙をAIで作成",
     description: "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率を劇的に向上させます。",
   },
+  alternates: {
+    canonical: 'https://cxo-letter.jp',
+  },
   robots: {
     index: true,
     follow: true,

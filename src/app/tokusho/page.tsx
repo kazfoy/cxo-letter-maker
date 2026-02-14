@@ -8,6 +8,9 @@ export const metadata: Metadata = {
         index: false,
         follow: false,
     },
+    alternates: {
+        canonical: 'https://cxo-letter.jp/tokusho',
+    },
 };
 
 export default function TokushoPage() {

@@ -1,4 +1,13 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'プライバシーポリシー | CxO Letter Maker',
+  description: 'CxO Letter Makerのプライバシーポリシーです。',
+  alternates: {
+    canonical: 'https://cxo-letter.jp/privacy',
+  },
+};
 
 export default function PrivacyPage() {
   return (

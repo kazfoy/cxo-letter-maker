@@ -919,6 +919,8 @@ function NewLetterPageContent() {
       };
     } else {
       // salesモード: ランダムな実在企業サンプル
+      // 自社情報のみSAMPLE_DATAから使用し、ターゲット固有フィールドはクリア
+      // （URLベースの分析で自動取得するため）
       const salesSample = SAMPLE_DATA;
       sampleFormData = {
         myCompanyName: salesSample.myCompanyName,
@@ -929,12 +931,12 @@ function NewLetterPageContent() {
         position: salesSample.position,
         name: salesSample.name,
         targetUrl: randomCompany.targetUrl,
-        background: salesSample.background,
-        problem: salesSample.problem,
-        solution: salesSample.solution,
-        caseStudy: salesSample.caseStudy,
-        offer: salesSample.offer,
-        freeformInput: salesSample.freeformInput,
+        background: '',
+        problem: '',
+        solution: '',
+        caseStudy: '',
+        offer: '',
+        freeformInput: '',
         eventUrl: '',
         eventName: '',
         eventDateTime: '',

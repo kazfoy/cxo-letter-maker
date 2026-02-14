@@ -489,18 +489,17 @@ export default function LandingPage() {
                   </svg>
                 ))}
               </div>
-              <p className="text-stone-700 leading-relaxed mb-6">
-                「これまで1通20分かけていたレター作成が30秒で完了。しかも相手企業の情報を自動で分析してくれるので、質も向上しました。アポ率が2.5倍になったのは驚きです。」
+              <p className="text-stone-700 leading-relaxed mb-4">
+                「月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。」
               </p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 6ヶ月 / 月間生成数: 約30通</p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-stone-200 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-800 font-bold text-sm">
+                  SaaS
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">T.K. 様</p>
-                  <p className="text-sm text-stone-600">SaaS企業・営業マネージャー</p>
+                  <p className="font-semibold text-stone-900">SaaS企業・営業マネージャー</p>
+                  <p className="text-sm text-stone-500">従業員300名規模</p>
                 </div>
               </div>
             </div>
@@ -514,18 +513,17 @@ export default function LandingPage() {
                   </svg>
                 ))}
               </div>
-              <p className="text-stone-700 leading-relaxed mb-6">
-                「小規模チームで大手企業へのアプローチに苦戦していましたが、このツールのおかげで個別最適化されたレターを量産できるようになりました。決裁者からの返信率が劇的に向上しています。」
+              <p className="text-stone-700 leading-relaxed mb-4">
+                「5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。」
               </p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 4ヶ月 / CSV一括生成を活用</p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-stone-200 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-sm">
+                  BPO
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">M.S. 様</p>
-                  <p className="text-sm text-stone-600">コンサルティング企業・代表取締役</p>
+                  <p className="font-semibold text-stone-900">コンサルティング企業・代表取締役</p>
+                  <p className="text-sm text-stone-500">従業員15名規模</p>
                 </div>
               </div>
             </div>
@@ -539,18 +537,17 @@ export default function LandingPage() {
                   </svg>
                 ))}
               </div>
-              <p className="text-stone-700 leading-relaxed mb-6">
-                「新規事業の立ち上げで、限られたリソースの中で最大限の成果を出す必要がありました。このツールで営業効率が格段に上がり、3ヶ月で50社以上の決裁者とのアポイントを獲得できました。」
+              <p className="text-stone-700 leading-relaxed mb-4">
+                「創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に"丁寧なお手紙をありがとう"と言われることも。」
               </p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 3ヶ月 / 導入初月から成果</p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-stone-200 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-bold text-sm">
+                  Tech
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">T.Y. 様</p>
-                  <p className="text-sm text-stone-600">スタートアップ・事業開発責任者</p>
+                  <p className="font-semibold text-stone-900">スタートアップ・事業開発責任者</p>
+                  <p className="text-sm text-stone-500">シリーズA / 従業員20名規模</p>
                 </div>
               </div>
             </div>

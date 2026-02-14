@@ -456,7 +456,7 @@ export function calculateQualityScore(
 
   // 4. 構成 (20点)
   const hasTimingReason = /なぜ.*今|今回.*理由|このタイミング/.test(body);
-  const hasHypothesis = /ではないでしょうか|と推察|課題をお持ち|懸念されている/.test(body);
+  const hasHypothesis = /ではないでしょうか|とお見受けいたします|課題をお持ち|懸念されている/.test(body);
   if (!hasTimingReason) score -= 10;
   if (!hasHypothesis) score -= 10;
 
@@ -808,8 +808,7 @@ export function detectBridgeStructure(
   // 仮説表現検出
   const hypothesisPatterns = [
     /ではないでしょうか/,
-    /と推察/,
-    /かと存じます/,
+    /とお見受けいたします/,
     /のではないかと/,
     /かもしれません/,
   ];

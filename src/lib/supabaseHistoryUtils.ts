@@ -288,7 +288,7 @@ export async function getActiveBatchJobs(): Promise<Array<{
 export async function saveToHistory(
   inputs: LetterHistory['inputs'],
   content: string,
-  mode?: 'sales' | 'event',
+  mode?: LetterMode,
   options?: { sources?: LetterHistory['sources']; citations?: LetterHistory['citations'] }
 ): Promise<LetterHistory | null> {
   try {

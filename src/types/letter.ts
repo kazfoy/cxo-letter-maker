@@ -5,8 +5,8 @@
 import type { InformationSource } from './analysis';
 import type { Citation } from './generate-v2';
 
-// レターのモード（セールスレター or イベント招待状）
-export type LetterMode = 'sales' | 'event';
+// レターのモード（セールスレター / イベント招待状 / 相談型レター）
+export type LetterMode = 'sales' | 'event' | 'consulting';
 
 // レターの入力複雑度（かんたん or 詳細）
 export type InputComplexity = 'simple' | 'detailed';

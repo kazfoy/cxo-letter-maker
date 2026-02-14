@@ -1,4 +1,4 @@
-import { LetterHistory } from "@/types/letter";
+import type { LetterHistory, LetterMode } from "@/types/letter";
 
 const STORAGE_KEY = 'cxo_guest_history';
 const MAX_ITEMS = 3;
@@ -32,7 +32,7 @@ export function getGuestHistory(): LetterHistory[] {
 export function saveToGuestHistory(
     inputs: LetterHistory['inputs'],
     content: string,
-    mode: 'sales' | 'event' = 'sales'
+    mode: LetterMode = 'sales'
 ): LetterHistory {
     const histories = getGuestHistory();
 

@@ -45,7 +45,7 @@ export const GenerateV2RequestSchema = z.object({
   analysis_result: AnalysisResultSchema,
   user_overrides: UserOverridesSchema.optional(),
   sender_info: SenderInfoSchema,
-  mode: z.enum(['draft', 'complete', 'event']),
+  mode: z.enum(['draft', 'complete', 'event', 'consulting']),
   output_format: z.enum(['letter', 'email']),
 });
 
@@ -98,6 +98,19 @@ export const GenerateV2OutputSchema = z.object({
   variations: VariationsSchema.optional(),
   citations: z.array(CitationSchema).optional(),  // Phase 6: 本文での引用箇所
 });
+
+/**
+ * 相談型レター（consulting）の出力スキーマ
+ * 件名1つ + 本文1通 + 自己チェック3行
+ */
+export const ConsultingOutputSchema = z.object({
+  subject: z.string(),
+  body: z.string(),
+  selfCheck: z.array(z.string()).length(3),
+  citations: z.array(CitationSchema).optional(),
+});
+
+export type ConsultingOutput = z.infer<typeof ConsultingOutputSchema>;
 
 /**
  * 完全なレスポンススキーマ

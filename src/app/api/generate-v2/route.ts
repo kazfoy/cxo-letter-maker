@@ -6,9 +6,11 @@
  */
 
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { apiGuard } from '@/lib/api-guard';
 import { generateJson } from '@/lib/gemini';
 import { checkSubscriptionStatus } from '@/lib/subscription';
+import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { createClient } from '@/utils/supabase/server';
 import {
   validateLetterOutput,
@@ -368,7 +370,7 @@ ${factsList}
 
   if (!hasTargetUrl || factsForLetter.length === 0) {
     evidenceRule += `
-【仮説モード適用】具体数字・固有名詞は不可。すべて「〜ではないでしょうか」「〜かと存じます」形式。業界傾向は「〜業界では〜という傾向があると聞きます」の形式。`;
+【仮説モード適用】具体数字・固有名詞は不可。すべて「〜ではないでしょうか」「〜とお見受けいたします」形式。業界傾向は「〜業界では〜という傾向があると聞きます」の形式。`;
   }
 
   // 冒頭の宛名フォーマット
@@ -453,6 +455,42 @@ ${overrides?.additional_context ? `【追加コンテキスト】\n${sanitizeFor
 }
 
 /**
+ * ポストプロセス: 禁止ワード・プレースホルダーの自動置換/除去
+ *
+ * qualityGateで検出してリトライしても残る場合の最終防衛ライン
+ */
+function postProcessLetterBody(body: string, mode: 'draft' | 'complete' | 'event' | 'consulting'): string {
+  let processed = body;
+
+  // 1. 推察系の自動置換（complete/consulting/eventモード）
+  if (mode !== 'draft') {
+    processed = processed.replace(/推察いたします/g, 'ではないでしょうか');
+    processed = processed.replace(/推察します/g, 'ではないでしょうか');
+    processed = processed.replace(/と推察しております/g, 'ではないかと存じます');
+    processed = processed.replace(/と推察/g, 'ではないかと');
+    processed = processed.replace(/想定されます/g, 'ではないでしょうか');
+    processed = processed.replace(/と想定しております/g, 'ではないかと存じます');
+  }
+
+  // 2. プレースホルダーの除去（complete/event/consultingモード）
+  if (mode !== 'draft') {
+    // 【要確認: ...】を含む文を丸ごと除去
+    processed = processed.replace(/[^。\n]*【要確認[:：][^】]*】[^。\n]*[。]?/g, '');
+    processed = processed.replace(/[^。\n]*\[要確認[:：][^\]]*\][^。\n]*[。]?/g, '');
+    // 連続改行を整理
+    processed = processed.replace(/\n{3,}/g, '\n\n');
+  }
+
+  // 3. citation/注釈マーカーの除去（全モード）
+  processed = processed.replace(/\[citation[:：][^\]]*\]/gi, '');
+  processed = processed.replace(/【citation[:：][^】]*】/gi, '');
+  processed = processed.replace(/\[出典[:：][^\]]*\]/gi, '');
+  processed = processed.replace(/【出典[:：][^】]*】/gi, '');
+
+  return processed.trim();
+}
+
+/**
  * ProofPointを変換
  */
 function convertToQualityGateProofPoints(analysisProofPoints: AnalysisResult['proof_points']): ProofPoint[] {
@@ -471,14 +509,63 @@ export async function POST(request: Request) {
     async (data, _user) => {
       const { analysis_result, user_overrides, sender_info, mode, output_format } = data;
 
+      // サーバーサイドレート制限（ゲスト／Freeユーザー）
+      const supabaseForAuth = await createClient();
+      const { data: { user: currentUser } } = await supabaseForAuth.auth.getUser();
+
+      if (currentUser) {
+        // 認証済みユーザー: Freeプランの日次制限チェック
+        const today = new Date().toISOString().split('T')[0];
+        const { data: profile } = await supabaseForAuth
+          .from('profiles')
+          .select('plan, daily_usage_count, last_usage_date')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (profile) {
+          const dailyCount = profile.last_usage_date !== today ? 0 : (profile.daily_usage_count || 0);
+          if (profile.plan === 'free' && dailyCount >= 10) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: '無料プランの1日の生成上限（10回）に達しました。',
+                code: 'FREE_LIMIT_REACHED',
+                suggestion: 'Proプランにアップグレードすると無制限で利用できます。',
+              },
+              { status: 429 }
+            );
+          }
+        }
+      } else {
+        // ゲストユーザー: DBベースの日次制限チェック（3回/日）
+        const cookieStore = await cookies();
+        let guestId = cookieStore.get('guest_id')?.value || '';
+
+        if (!guestId) {
+          guestId = crypto.randomUUID();
+          devLog.log('Generated new guest_id in generate-v2 API:', guestId);
+        }
+
+        const { allowed, usage } = await checkAndIncrementGuestUsage(guestId);
+
+        if (!allowed) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'ゲスト利用の上限（1日3回）に達しました。',
+              code: 'GUEST_LIMIT_REACHED',
+              message: '無料枠の上限に達しました。ログインすると無制限で利用できます。',
+              usage,
+            },
+            { status: 429 }
+          );
+        }
+      }
+
       // Pro機能の認可チェック（complete/event/consultingはPro以上が必要）
       const PRO_MODES = ['complete', 'event', 'consulting'] as const;
       if ((PRO_MODES as readonly string[]).includes(mode)) {
-        // ユーザー認証を確認
-        const supabase = await createClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-
-        if (!authUser) {
+        if (!currentUser) {
           return NextResponse.json(
             { success: false, error: 'この機能を利用するにはログインが必要です', code: 'AUTH_REQUIRED' },
             { status: 401 }
@@ -486,7 +573,7 @@ export async function POST(request: Request) {
         }
 
         // プランチェック
-        const { isPro, isPremium } = await checkSubscriptionStatus(authUser.id);
+        const { isPro, isPremium } = await checkSubscriptionStatus(currentUser.id);
         if (!isPro && !isPremium) {
           return NextResponse.json(
             { success: false, error: 'この機能はProプラン以上で利用できます', code: 'PLAN_UPGRADE_REQUIRED' },
@@ -579,6 +666,15 @@ export async function POST(request: Request) {
                 schema: GenerateV2OutputSchema,
                 maxRetries: 1,
               });
+
+          // 2.5. ポストプロセス: 禁止ワード・プレースホルダーの自動置換
+          result.body = postProcessLetterBody(result.body, mode);
+          // バリエーションもポストプロセス
+          if (result.variations) {
+            result.variations.standard = postProcessLetterBody(result.variations.standard, mode);
+            result.variations.emotional = postProcessLetterBody(result.variations.emotional, mode);
+            result.variations.consultative = postProcessLetterBody(result.variations.consultative, mode);
+          }
 
           // 3. qualityGate 検証
           // event/consultingモードはプレースホルダー禁止なのでcomplete扱い（validateLetterOutput用）

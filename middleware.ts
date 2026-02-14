@@ -1,24 +1,34 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Note: middleware runs in Edge runtime, so we inline devLog here
-const isDevelopment = process.env.NODE_ENV === 'development';
-type LogArg = string | number | boolean | null | undefined | Record<string, unknown>;
-const devLog = {
-  log: (...args: LogArg[]) => {
-    if (isDevelopment) console.log(...args);
-  },
-  warn: (...args: LogArg[]) => {
-    if (isDevelopment) console.warn(...args);
-  },
-};
+// パブリックルート（認証チェック不要 = Supabase呼び出し不要）
+const PUBLIC_ROUTES = new Set([
+  '/login',
+  '/auth/callback',
+  '/',
+  '/new',
+  '/terms',
+  '/privacy',
+  '/tokusho',
+]);
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+// 認証チェックが不要なパスプレフィックス
+const PUBLIC_PREFIXES = ['/_next', '/api'];
+
+/**
+ * パスが認証チェック不要かどうかを判定する（Supabase呼び出し前に高速判定）
+ */
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_ROUTES.has(pathname)) return true;
+  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+/**
+ * 認証が必要なルートでのみ Supabase クライアントを作成し、getUser を呼び出す。
+ * パブリックルートでは外部通信を一切行わない。
+ */
+async function getAuthUser(request: NextRequest, response: NextResponse) {
+  let mutableResponse = response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,81 +40,58 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({
-            request,
-          });
+          mutableResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            mutableResponse.cookies.set(name, value, options)
           );
         },
       },
     }
   );
 
-  // セッションを更新（重要: これによりセッションが最新の状態に保たれる）
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  return { user, response: mutableResponse };
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  devLog.log('========== MIDDLEWARE ==========');
-  devLog.log('Path:', pathname);
-  devLog.log('Has user:', !!user);
-
-  // パブリックルート（未認証でもアクセス可能）
-  const publicRoutes = new Set(['/login', '/auth/callback', '/', '/new', '/terms', '/privacy', '/tokusho']);
-
-  // 正確な一致のみ許可（"/"で全ルートがマッチするのを防ぐ）
-  if (publicRoutes.has(pathname)) {
-    // トップページ: ログイン済みユーザーは /dashboard にリダイレクト
-
-    return response;
+  // --- 高速パス: パブリックルートは Supabase 呼び出しをスキップ ---
+  if (isPublicPath(pathname)) {
+    return NextResponse.next({
+      request: { headers: request.headers },
+    });
   }
 
-  // 静的アセット系はstartsWithで判定
-  if (pathname.startsWith('/_next') || pathname.startsWith('/api')) {
-    return response;
-  }
+  // --- 認証が必要なルート: ここで初めて Supabase を呼び出す ---
+  const baseResponse = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
-  // /setup-password は特別な処理
-  // Magic Link経由の初回アクセス時は認証済みだが、パスワード設定が必要
-  // 認証済みユーザーはアクセス可能、未認証ユーザーは /login へ
+  const { user, response } = await getAuthUser(request, baseResponse);
+
+  // /setup-password は認証済みユーザーのみアクセス可能
   if (pathname === '/setup-password' || pathname.startsWith('/setup-password')) {
     if (!user) {
-      // 未認証の場合は /login にリダイレクト
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = '/login';
       redirectUrl.searchParams.set('redirect', pathname);
-      devLog.log('Redirecting to login from setup-password (no auth)');
       return NextResponse.redirect(redirectUrl);
     }
-    // 認証済みユーザーは /setup-password にアクセス可能
-    devLog.log('Allowing access to setup-password (authenticated user)');
     return response;
   }
 
-  // 認証が必要なルート
+  // その他の保護ルート: 未認証ならログインへリダイレクト
   if (!user) {
-    // 未認証の場合は /login にリダイレクト
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/login';
     redirectUrl.searchParams.set('redirect', pathname);
-    devLog.log('Redirecting to login from:', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // ゲストIDの付与（未認証ユーザーかつCookieがない場合）
-  if (!user && !request.cookies.get('guest_id')) {
-    const guestId = crypto.randomUUID();
-    response.cookies.set('guest_id', guestId, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1年間有効
-      httpOnly: true,
-      sameSite: 'lax',
-    });
-    devLog.log('Generated new guest_id:', guestId);
-  }
-
-  // 認証済みユーザーは通過
   return response;
 }
 

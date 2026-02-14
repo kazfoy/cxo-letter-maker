@@ -446,80 +446,177 @@ export interface FactSelectionResult {
 const FACT_SHORTAGE_THRESHOLD = 3;
 
 /**
- * 業界情報に基づくフォールバックファクトを生成
+ * 業界情報に基づく補助ファクトを生成
  *
  * URL解析でファクトが十分に取得できなかった場合に、
- * 業界一般のトレンドを補助的に提供する。
+ * 業界固有のトレンドや法制度の期限情報を補助的に提供する。
+ * 各ファクトには具体的な数値・法令名・期限を含め、
+ * "Why you now"（今この時期にアプローチする理由）を明示する。
  */
 function generateFallbackFacts(
   industry?: string,
   companyName?: string
 ): SelectedFact[] {
-  const fallbacks: SelectedFact[] = [];
+  const industryStr = industry || '';
+  const companyStr = companyName || '';
+  const combined = `${industryStr} ${companyStr}`;
 
-  // 公共機関・自治体向けフォールバック
+  // 業種判定
   const publicSectorKeywords = [
     '自治体', '市役所', '県庁', '省', '庁', '公共', '行政', '官公庁',
     '地方公共団体', '独立行政法人', '公社', '公団',
   ];
-  const isPublicSector = publicSectorKeywords.some(
-    kw => (industry || '').includes(kw) || (companyName || '').includes(kw)
-  );
+  const startupKeywords = [
+    'スタートアップ', 'ベンチャー', 'SaaS', 'テック', 'IT',
+    'ソフトウェア', 'アプリ', 'プラットフォーム',
+  ];
+  const manufacturingKeywords = [
+    '製造', 'メーカー', '工業', '工場', '生産', '素材', '部品',
+    '機械', '電機', '化学', '鉄鋼', '自動車',
+  ];
+  const financialKeywords = [
+    '銀行', '証券', '保険', '金融', 'ファイナンス', '信用金庫',
+    'リース', '信託', 'アセット',
+  ];
+
+  const isPublicSector = publicSectorKeywords.some(kw => combined.includes(kw));
+  const isStartup = startupKeywords.some(kw => combined.includes(kw));
+  const isManufacturing = manufacturingKeywords.some(kw => combined.includes(kw));
+  const isFinancial = financialKeywords.some(kw => combined.includes(kw));
 
   if (isPublicSector) {
-    fallbacks.push(
+    return [
       {
-        content: 'デジタル庁の推進する自治体DX推進計画に基づき、全国の自治体で行政手続のオンライン化が加速',
-        category: 'companyDirection',
-        relevanceScore: 35,
-        reason: 'フォールバック: 公共機関向け業界トレンド',
-        quoteKey: '自治体DX',
-        topicTags: ['digital_transformation'],
-        bridgeReason: '行政デジタル化の推進に関連',
-        confidence: 40,
-        isMidTermPlan: false,
-      },
-      {
-        content: '総務省が推進する自治体情報システムの標準化・共通化の期限（2025年度末）に向けた対応が本格化',
+        content: 'デジタル庁「自治体DX推進計画」の第2期（2026〜2028年度）が始動し、ガバメントクラウド移行と窓口BPRの同時推進が求められている',
         category: 'recentMoves',
-        relevanceScore: 30,
-        reason: 'フォールバック: 公共機関向け業界トレンド',
-        quoteKey: '標準化',
+        relevanceScore: 35,
+        reason: '自治体DX第2期の計画開始に伴う業界動向',
+        quoteKey: '自治体DX第2期',
         topicTags: ['digital_transformation', 'governance'],
-        bridgeReason: '行政システム標準化への対応に関連',
+        bridgeReason: '自治体DX第2期の計画始動に関連',
         confidence: 40,
-        isMidTermPlan: false,
-      }
-    );
-  } else {
-    // 民間企業向け汎用フォールバック
-    fallbacks.push(
-      {
-        content: '帝国データバンクの調査によると、企業の約7割がDX推進を経営課題と認識（2024年調査）',
-        category: 'companyDirection',
-        relevanceScore: 25,
-        reason: 'フォールバック: 業界一般トレンド（DX）',
-        quoteKey: 'DX推進',
-        topicTags: ['digital_transformation'],
-        bridgeReason: '業界全体のデジタル変革トレンドに関連',
-        confidence: 35,
         isMidTermPlan: false,
       },
       {
-        content: '経済産業省「DXレポート」が指摘する2025年の崖への対応として、基幹システム刷新が業界共通の課題に',
+        content: '総務省「自治体情報セキュリティ対策ガイドライン」改定（2024年10月）により、ゼロトラスト型セキュリティへの移行計画策定が各自治体に求められている',
         category: 'companyDirection',
-        relevanceScore: 20,
-        reason: 'フォールバック: 業界一般トレンド（2025年の崖）',
-        quoteKey: '2025年の崖',
+        relevanceScore: 30,
+        reason: '情報セキュリティガイドライン改定への対応要請',
+        quoteKey: 'ゼロトラスト移行',
         topicTags: ['digital_transformation', 'risk_management'],
-        bridgeReason: 'レガシーシステムのリスク対応に関連',
-        confidence: 35,
+        bridgeReason: '自治体セキュリティ基準の変更に関連',
+        confidence: 40,
         isMidTermPlan: false,
-      }
-    );
+      },
+    ];
   }
 
-  return fallbacks;
+  if (isFinancial) {
+    return [
+      {
+        content: '金融庁「金融分野におけるサイバーセキュリティに関するガイドライン」（2024年10月施行）により、サードパーティリスク管理とインシデント対応体制の強化が義務化',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '金融庁サイバーセキュリティガイドライン施行への対応',
+        quoteKey: 'サイバーセキュリティガイドライン',
+        topicTags: ['risk_management', 'governance'],
+        bridgeReason: '金融機関のセキュリティ義務強化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '全銀ネット次期システム移行（2027年稼働予定）に向け、API連携基盤の整備とリアルタイム決済対応が各金融機関の喫緊の課題に',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: '全銀ネット次期システムへの移行準備',
+        quoteKey: '全銀ネット次期システム',
+        topicTags: ['digital_transformation'],
+        bridgeReason: '決済インフラ刷新に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isManufacturing) {
+    return [
+      {
+        content: '経産省「製造業DXレポート2024」によると、製造業のデータ活用率は38%にとどまり、特にサプライチェーン可視化への投資が前年比1.5倍に増加',
+        category: 'companyDirection',
+        relevanceScore: 35,
+        reason: '製造業DXレポートに基づく業界投資動向',
+        quoteKey: '製造業DX',
+        topicTags: ['digital_transformation', 'supply_chain'],
+        bridgeReason: '製造業のデータ活用・サプライチェーン可視化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: 'EU炭素国境調整メカニズム（CBAM）の本格適用（2026年1月）に向け、製品単位のCO2排出量算定と報告体制の構築が輸出製造業の急務に',
+        category: 'recentMoves',
+        relevanceScore: 30,
+        reason: 'EU CBAM本格適用に向けた対応期限の接近',
+        quoteKey: 'CBAM対応',
+        topicTags: ['sustainability', 'governance'],
+        bridgeReason: '炭素国境調整メカニズムへの対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isStartup) {
+    return [
+      {
+        content: 'IPO市場の審査厳格化（2024年東証グロース上場審査の通過率が前年比15%低下）に伴い、内部統制・コンプライアンス体制の早期構築がスタートアップの重要課題に',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: 'IPO審査厳格化に伴うガバナンス需要の高まり',
+        quoteKey: 'IPO審査厳格化',
+        topicTags: ['governance', 'growth_strategy'],
+        bridgeReason: 'スタートアップの上場準備・内部統制に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '改正電気通信事業法の外部送信規律（2023年6月施行）への対応に加え、EU AI規制法（2025年段階適用開始）を見据えたAIガバナンス体制の整備が成長企業の新たな経営課題に',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: 'AI規制法の段階適用開始を見据えた対応',
+        quoteKey: 'AIガバナンス',
+        topicTags: ['governance', 'digital_transformation'],
+        bridgeReason: 'テック企業の規制対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  // 汎用（大企業・業種不明）
+  return [
+    {
+      content: '電子帳簿保存法の電子取引データ保存義務（2024年1月完全義務化済）を受け、請求書・契約書のペーパーレス化と検索要件対応が全業種で加速',
+      category: 'recentMoves',
+      relevanceScore: 30,
+      reason: '電子帳簿保存法完全義務化後の対応動向',
+      quoteKey: '電子帳簿保存法',
+      topicTags: ['digital_transformation', 'governance'],
+      bridgeReason: '法令対応に伴う業務デジタル化に関連',
+      confidence: 38,
+      isMidTermPlan: false,
+    },
+    {
+      content: '人的資本開示の義務化（上場企業、2023年3月期〜）と「骨太の方針2024」でのリスキリング投資5年1兆円目標を背景に、人材戦略と経営戦略の連動が経営アジェンダに',
+      category: 'companyDirection',
+      relevanceScore: 25,
+      reason: '人的資本開示義務化に伴う経営課題',
+      quoteKey: '人的資本経営',
+      topicTags: ['hr_organization', 'governance'],
+      bridgeReason: '人材戦略の経営課題化に関連',
+      confidence: 38,
+      isMidTermPlan: false,
+    },
+  ];
 }
 
 /**

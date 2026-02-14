@@ -164,17 +164,17 @@ export default function LandingPage() {
                 URLを入れるだけ。独自の営業メソッドに基づいた<br className="hidden md:block" />個別最適化レターを自動生成。
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link
                   href="/new"
-                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-stone-900 text-stone-50 rounded-md font-semibold text-lg hover:bg-stone-800 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 min-h-[44px] bg-stone-900 text-stone-50 rounded-md font-bold text-lg hover:bg-stone-800 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
-                  30秒で手紙を作成する（無料）
+                  無料で試す
                   <Mail className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
-              <p className="text-sm text-stone-500 pt-2">
-                ※ クレジットカード不要・登録不要ですぐに使えます
+              <p className="text-sm text-stone-400 pt-3">
+                登録不要・30秒で完成・クレカ不要
               </p>
             </div>
 
@@ -356,11 +356,14 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-stone-900 text-white rounded-md font-semibold hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-stone-900 text-white rounded-md font-bold hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl"
             >
-              30秒で手紙を作成する（無料）
+              無料で試す
               <Mail className="w-5 h-5" />
             </Link>
+            <p className="text-sm text-stone-400 mt-3">
+              登録不要・30秒で完成・クレカ不要
+            </p>
           </div>
         </div>
       </section>
@@ -452,13 +455,13 @@ export default function LandingPage() {
           <div className="text-center mt-16">
             <Link
               href="/new"
-              className="group inline-flex items-center justify-center gap-2 px-12 py-6 bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+              className="group inline-flex items-center justify-center gap-2 px-12 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              30秒で手紙を作成してみる（無料）
+              無料で試す
               <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="mt-4 text-base text-stone-600 font-medium">
-              登録不要・クレジットカード不要ですぐに使えます
+            <p className="mt-4 text-sm text-stone-400 font-medium">
+              登録不要・30秒で完成・クレカ不要
             </p>
           </div>
         </div>
@@ -603,9 +606,9 @@ export default function LandingPage() {
                 </p>
                 <Link
                   href="/new"
-                  className="block w-full py-3 px-4 bg-white border-2 border-stone-200 text-stone-900 font-bold text-center rounded-lg hover:bg-stone-50 transition-colors"
+                  className="block w-full py-3 px-4 min-h-[44px] bg-white border-2 border-stone-200 text-stone-900 font-bold text-center rounded-lg hover:bg-stone-50 transition-colors"
                 >
-                  30秒で手紙を作成する（無料）
+                  無料で試す
                 </Link>
               </div>
 
@@ -945,9 +948,9 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-amber-800 text-white rounded-md font-semibold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
-              30秒で手紙を作成する（無料）
+              無料で試す
               <Mail className="w-5 h-5" />
             </Link>
           </div>
@@ -966,11 +969,14 @@ export default function LandingPage() {
 
           <Link
             href="/new"
-            className="group inline-flex items-center justify-center gap-3 px-12 py-6 bg-stone-900 text-white rounded-lg font-bold text-xl hover:bg-stone-800 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
+            className="group inline-flex items-center justify-center gap-3 px-14 py-6 min-h-[44px] bg-stone-900 text-white rounded-lg font-bold text-xl hover:bg-stone-800 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
-            30秒で手紙を作成する（無料）
+            無料で試す
             <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </Link>
+          <p className="text-sm text-stone-400 mt-4">
+            登録不要・30秒で完成・クレカ不要
+          </p>
 
           <div className="mt-12 pt-12 border-t border-stone-200">
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8">

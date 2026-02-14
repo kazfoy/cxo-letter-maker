@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
+import { Header } from '@/components/Header';
 
 export default function LandingPage() {
   const { handleUpgrade, loading: upgrading } = useCheckout();
@@ -166,6 +167,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-stone-50">
+      <Header />
       {/* JSON-LD構造化データ */}
       <script
         type="application/ld+json"
@@ -617,7 +619,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-24 md:py-32 bg-white">
+      <section id="pricing" className="py-24 md:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">

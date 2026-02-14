@@ -35,6 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
       }
+    }).catch((error) => {
+      devLog.error('Failed to get session:', error);
+      setUser(null);
+      setLoading(false);
     });
 
     // Listen for auth changes

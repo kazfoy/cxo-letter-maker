@@ -58,7 +58,7 @@ export default async function Image() {
               marginBottom: 24,
             }}
           >
-            決裁者へのアポ率を3倍にする。
+            決裁者へのアポ率を変える。
           </div>
           <div
             style={{

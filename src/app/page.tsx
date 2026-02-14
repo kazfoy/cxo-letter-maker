@@ -147,19 +147,19 @@ export default function LandingPage() {
         "@type": "Review",
         "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
         "author": { "@type": "Person", "name": "SaaS企業 営業マネージャー" },
-        "reviewBody": "月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。"
+        "reviewBody": "月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。（個人の感想であり、効果を保証するものではありません）"
       },
       {
         "@type": "Review",
         "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
         "author": { "@type": "Person", "name": "コンサルティング企業 代表取締役" },
-        "reviewBody": "5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。"
+        "reviewBody": "5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。（個人の感想であり、効果を保証するものではありません）"
       },
       {
         "@type": "Review",
         "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
         "author": { "@type": "Person", "name": "スタートアップ 事業開発責任者" },
-        "reviewBody": "創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に丁寧なお手紙をありがとうと言われることも。"
+        "reviewBody": "創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に丁寧なお手紙をありがとうと言われることも。（個人の感想であり、効果を保証するものではありません）"
       }
     ]
   };
@@ -390,7 +390,7 @@ export default function LandingPage() {
 
           <div className="mt-12 text-center">
             <p className="text-lg text-stone-700 font-medium mb-6">
-              アポ率を上げながら、作業時間を<span className="text-amber-800 font-bold">40分の1</span>に短縮できます。
+              アポ率の向上と、作業時間の<span className="text-amber-800 font-bold">大幅短縮</span>を両立できます。
             </p>
             <Link
               href="/new"
@@ -530,7 +530,7 @@ export default function LandingPage() {
               <p className="text-stone-700 leading-relaxed mb-4">
                 「月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。」
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 6ヶ月 / 月間生成数: 約30通</p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 6ヶ月 / 月間生成数: 約30通 ※個人の感想であり、効果を保証するものではありません</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-800 font-bold text-sm">
                   SaaS
@@ -554,7 +554,7 @@ export default function LandingPage() {
               <p className="text-stone-700 leading-relaxed mb-4">
                 「5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。」
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 4ヶ月 / CSV一括生成を活用</p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 4ヶ月 / CSV一括生成を活用 ※個人の感想であり、効果を保証するものではありません</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-sm">
                   BPO
@@ -578,7 +578,7 @@ export default function LandingPage() {
               <p className="text-stone-700 leading-relaxed mb-4">
                 「創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に"丁寧なお手紙をありがとう"と言われることも。」
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 3ヶ月 / 導入初月から成果</p>
+              <p className="text-xs text-stone-400 mb-4">利用期間: 3ヶ月 / 導入初月から成果 ※個人の感想であり、効果を保証するものではありません</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-bold text-sm">
                   Tech
@@ -594,9 +594,9 @@ export default function LandingPage() {
           {/* Stats */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center group">
-              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍</p>
-              <p className="text-stone-600 font-medium">平均アポ獲得率</p>
-              <p className="text-xs text-stone-400 mt-1">※ 自社調べ（2024年実施、導入企業の平均値）</p>
+              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍<span className="text-lg align-top">※</span></p>
+              <p className="text-stone-600 font-medium">導入企業の平均アポ率</p>
+              <p className="text-xs text-stone-400 mt-1">※ 自社調べ。2024年実施、導入企業の実績に基づく平均値。効果には個人差があります</p>
             </div>
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">30秒</p>
@@ -996,7 +996,7 @@ export default function LandingPage() {
       <section className="pt-16 pb-24 md:pt-20 md:pb-32 bg-gradient-to-b from-amber-50/30 to-stone-50">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-stone-900 mb-6 leading-tight">
-            アポ率を3倍にする手紙を、今すぐ無料で作成できます。
+            アポ率の大幅改善を実現する手紙を、今すぐ無料で作成できます。
           </h2>
           <p className="text-xl text-stone-600 mb-12 leading-relaxed">
             登録不要、クレジットカード不要。<br className="md:hidden" />URLを入力するだけで、30秒後には本格的なレターが完成します。

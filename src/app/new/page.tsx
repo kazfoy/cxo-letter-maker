@@ -84,6 +84,7 @@ function NewLetterPageContent() {
   const [isSampleCooldown, setIsSampleCooldown] = useState(false);
   const [selfCheck, setSelfCheck] = useState<string[] | undefined>(undefined);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // 再分析が必要か判定
   const shouldReanalyze = useCallback((
@@ -568,6 +569,7 @@ function NewLetterPageContent() {
 
     setIsGeneratingV2(true);
     setIsGenerating(true);
+    setModalError(null);
 
     // eventモードの場合、formDataからイベント情報をマージ
     // consultingモードの場合、追加コンテキストをマージ
@@ -686,8 +688,8 @@ function NewLetterPageContent() {
       const errorDetails = getErrorDetails(error);
       devLog.error('V2生成エラー:', errorDetails);
       const friendly = getUserFriendlyError(error, 'generation');
-      setGenerationError(friendly.message);
-      setGenerationErrorKind(friendly.kind);
+      // モーダル内にエラーを表示（ページ側ではなく）
+      setModalError(friendly.message);
     } finally {
       setIsGeneratingV2(false);
       setIsGenerating(false);
@@ -1249,12 +1251,18 @@ function NewLetterPageContent() {
       {/* V2分析プレビューモーダル */}
       <AnalysisPreviewModal
         isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
+        onClose={() => { setShowAnalysisModal(false); setModalError(null); }}
         analysisResult={analysisResult}
         onConfirm={handleGenerateV2}
         isLoading={isGeneratingV2}
         hasUrl={Boolean(resolvedTargetUrl)}
         letterMode={mode}
+        error={modalError}
+        onClearError={() => setModalError(null)}
+        onDraftFallback={() => {
+          setModalError(null);
+          handleGenerateV2({}, 'draft');
+        }}
       />
     </div>
   );

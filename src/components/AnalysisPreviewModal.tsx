@@ -80,6 +80,9 @@ interface AnalysisPreviewModalProps {
   isLoading: boolean;
   hasUrl: boolean;
   letterMode?: 'sales' | 'event' | 'consulting';  // ページレベルのモード
+  error?: string | null;
+  onClearError?: () => void;
+  onDraftFallback?: () => void;
 }
 
 export function AnalysisPreviewModal({
@@ -90,6 +93,9 @@ export function AnalysisPreviewModal({
   isLoading,
   hasUrl,
   letterMode = 'sales',
+  error = null,
+  onClearError,
+  onDraftFallback,
 }: AnalysisPreviewModalProps) {
   // Draftモード自動判定: URLなし または 情報が少ない場合
   const shouldDefaultToDraft = !hasUrl || (analysisResult?.missing_info.filter(m => m.priority === 'high').length ?? 0) > 2;
@@ -431,6 +437,41 @@ export function AnalysisPreviewModal({
 
         {/* Footer */}
         <div className="p-4 border-t bg-slate-50">
+          {/* エラー表示（モーダル内） */}
+          {error && (
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700">{error}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      onClick={() => { onClearError?.(); handleConfirm(); }}
+                      className="px-3 py-1 text-xs bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors"
+                    >
+                      もう一度試す
+                    </button>
+                    {onDraftFallback && (
+                      <button
+                        onClick={onDraftFallback}
+                        className="px-3 py-1 text-xs bg-white border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors"
+                      >
+                        下書きモードで試す
+                      </button>
+                    )}
+                    <button
+                      onClick={onClose}
+                      className="px-3 py-1 text-xs bg-white border border-slate-300 text-slate-600 rounded-md hover:bg-slate-50 transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {isLoading && <ModalGenerationProgress />}
           <div className="flex gap-3">
             <button

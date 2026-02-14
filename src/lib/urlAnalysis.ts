@@ -17,18 +17,26 @@ import { z } from 'zod';
 
 // サブルート候補（優先度順）- 末尾スラッシュありなし両方試行
 const SUB_ROUTE_CANDIDATES_BASE = [
-  'news', 'newsroom', 'topics', 'press', 'release',  // ニュース系（最優先）
-  'sustainability', 'esg', 'csr',                     // サステナビリティ
-  'ir', 'investor', 'investors',                      // IR
-  'report', 'annual-report',                          // レポート
-  'about', 'about-us', 'company', 'corporate', 'profile',  // 企業情報
-  'recruit', 'careers', 'jobs',                       // 採用
-  'service', 'services', 'product', 'products', 'solution', 'solutions',  // サービス
-  'mobility',  // 自動車業界向け
+  // ニュース・プレスリリース系（最優先）
+  'news', 'newsroom', 'topics', 'press', 'release', 'news/press',
+  // IR系（深いページ含む）
+  'ir', 'investor', 'investors', 'ir/news', 'ir/library', 'ir/management',
+  // サステナビリティ
+  'sustainability', 'esg', 'csr',
+  // レポート
+  'report', 'annual-report',
+  // 企業情報
+  'about', 'about-us', 'company', 'corporate', 'profile',
+  // サービス・製品
+  'service', 'services', 'product', 'products', 'solution', 'solutions',
+  // 採用
+  'recruit', 'careers', 'jobs',
+  // 業界固有
+  'mobility',
 ];
 // 末尾スラッシュありなし両方を生成
 const SUB_ROUTE_CANDIDATES = SUB_ROUTE_CANDIDATES_BASE.flatMap(p => [`/${p}/`, `/${p}`]);
-const MAX_PAGES = 6;  // Phase 6: コスト保護しつつ粒度向上
+const MAX_PAGES = 8;  // Phase 6: IR/ニュース系を優先しつつコスト保護
 const MAX_ARTICLES_PER_LISTING = 2;  // 一覧ページから取得する記事数
 
 /**
@@ -40,7 +48,10 @@ const LISTING_PAGE_PATTERNS = [
   /\/topics\/?$/i,
   /\/press\/?$/i,
   /\/release\/?$/i,
+  /\/news\/press\/?$/i,
   /\/ir\/?$/i,
+  /\/ir\/news\/?$/i,
+  /\/ir\/library\/?$/i,
   /\/investor\/?$/i,
 ];
 
@@ -254,10 +265,7 @@ async function fetchPageContent(url: string): Promise<FetchResult | null> {
       url,
       {
         headers: {
-          // ブラウザに近いUser-Agentを使用（ブロック回避）
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },
       },
       FETCH_TIMEOUT,
@@ -283,9 +291,7 @@ async function fetchPageContentWithHtml(url: string): Promise<FetchResultWithHtm
       url,
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },
       },
       FETCH_TIMEOUT,
@@ -658,47 +664,62 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
       })
     );
 
-    // 成功したページを収集
-    for (const settled of subRouteResults) {
-      if (pageContents.length >= MAX_PAGES) break;
+    // 成功したページを収集（カテゴリ別に振り分け）
+    const highPriorityPages: Array<{ url: string; result: FetchResultWithHtml }> = []; // news, ir
+    const normalPages: Array<{ url: string; result: FetchResultWithHtml }> = [];
 
+    for (const settled of subRouteResults) {
       if (settled.status === 'fulfilled' && settled.value.result) {
         const { url: subUrl, result } = settled.value;
         const normalizedSubUrl = normalizeUrl(subUrl);
 
-        // 重複排除
         if (!sourceMap.has(normalizedSubUrl)) {
-          // タイトル優先順位: 抽出タイトル > URLパスから生成
-          let fallbackTitle: string | undefined;
-          try {
-            const urlObj = new URL(subUrl);
-            const pathParts = urlObj.pathname.split('/').filter(Boolean);
-            fallbackTitle = pathParts.length > 0 ? pathParts[pathParts.length - 1] : undefined;
-          } catch { /* ignore */ }
-
-          const pageTitle = result.title || fallbackTitle;
-
-          // 一覧ページの場合はHTMLを保持（後で記事取得に使用）
-          if (isListingPage(subUrl)) {
-            listingPagesHtml.push({ url: subUrl, html: result.html });
-            // 一覧ページ自体はソースには追加するが、ファクト抽出対象にはしない
-            sourceMap.set(normalizedSubUrl, {
-              url: subUrl,
-              title: pageTitle,
-              category: detectCategory(subUrl),
-              isPrimary: false,
-            });
+          const category = detectCategory(subUrl);
+          if (category === 'news' || category === 'ir') {
+            highPriorityPages.push({ url: subUrl, result });
           } else {
-            // 通常ページはファクト抽出対象に追加
-            pageContents.push({ url: subUrl, content: result.content, title: pageTitle });
-            sourceMap.set(normalizedSubUrl, {
-              url: subUrl,
-              title: pageTitle,
-              category: detectCategory(subUrl),
-              isPrimary: false,
-            });
+            normalPages.push({ url: subUrl, result });
           }
         }
+      }
+    }
+
+    // 高優先度ページを先に処理し、残り枠で通常ページを処理
+    const orderedPages = [...highPriorityPages, ...normalPages];
+
+    for (const { url: subUrl, result } of orderedPages) {
+      if (pageContents.length >= MAX_PAGES) break;
+
+      const normalizedSubUrl = normalizeUrl(subUrl);
+      if (sourceMap.has(normalizedSubUrl)) continue;
+
+      // タイトル優先順位: 抽出タイトル > URLパスから生成
+      let fallbackTitle: string | undefined;
+      try {
+        const urlObj = new URL(subUrl);
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        fallbackTitle = pathParts.length > 0 ? pathParts[pathParts.length - 1] : undefined;
+      } catch { /* ignore */ }
+
+      const pageTitle = result.title || fallbackTitle;
+
+      // 一覧ページの場合はHTMLを保持（後で記事取得に使用）
+      if (isListingPage(subUrl)) {
+        listingPagesHtml.push({ url: subUrl, html: result.html });
+        sourceMap.set(normalizedSubUrl, {
+          url: subUrl,
+          title: pageTitle,
+          category: detectCategory(subUrl),
+          isPrimary: false,
+        });
+      } else {
+        pageContents.push({ url: subUrl, content: result.content, title: pageTitle });
+        sourceMap.set(normalizedSubUrl, {
+          url: subUrl,
+          title: pageTitle,
+          category: detectCategory(subUrl),
+          isPrimary: false,
+        });
       }
     }
 

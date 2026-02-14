@@ -78,7 +78,7 @@ const FORBIDDEN_PATTERNS: { pattern: RegExp; label: string }[] = [
   // 抽象的な時代背景フレーズ
   { pattern: /急速に変化する/, label: '急速に変化する' },
   { pattern: /ますます重要性を増/, label: 'ますます重要性を増す' },
-  { pattern: /近年の/, label: '近年の' },
+  { pattern: /近年の(?:市場|業界|環境|動向|トレンド|情勢|潮流)/, label: '近年の（一般論）' },
   { pattern: /昨今の/, label: '昨今の' },
   { pattern: /目まぐるしく変化/, label: '目まぐるしく変化' },
   { pattern: /激変する.*環境/, label: '激変する環境' },

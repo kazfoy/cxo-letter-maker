@@ -8,6 +8,8 @@
 import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
 import { generateJson } from '@/lib/gemini';
+import { checkSubscriptionStatus } from '@/lib/subscription';
+import { createClient } from '@/utils/supabase/server';
 import {
   validateLetterOutput,
   calculateDetailedScore,
@@ -554,6 +556,30 @@ export async function POST(request: Request) {
     GenerateV2RequestSchema,
     async (data, _user) => {
       const { analysis_result, user_overrides, sender_info, mode, output_format } = data;
+
+      // Pro機能の認可チェック（complete/event/consultingはPro以上が必要）
+      const PRO_MODES = ['complete', 'event', 'consulting'] as const;
+      if ((PRO_MODES as readonly string[]).includes(mode)) {
+        // ユーザー認証を確認
+        const supabase = await createClient();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        if (!authUser) {
+          return NextResponse.json(
+            { success: false, error: 'この機能を利用するにはログインが必要です', code: 'AUTH_REQUIRED' },
+            { status: 401 }
+          );
+        }
+
+        // プランチェック
+        const { isPro, isPremium } = await checkSubscriptionStatus(authUser.id);
+        if (!isPro && !isPremium) {
+          return NextResponse.json(
+            { success: false, error: 'この機能はProプラン以上で利用できます', code: 'PLAN_UPGRADE_REQUIRED' },
+            { status: 403 }
+          );
+        }
+      }
 
       const maxAttempts = 2; // 最大2回（初稿 + 1回リライト）
       let bestResult: GenerateV2Output | null = null;

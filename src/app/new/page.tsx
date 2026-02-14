@@ -1034,13 +1034,17 @@ function NewLetterPageContent() {
       {!user && usage && (
         <div className="bg-amber-50 border-b border-amber-200 py-2">
           <div className="container mx-auto px-4 flex justify-center items-center gap-2 text-sm text-amber-900">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="font-medium">ゲスト利用中：本日あと <span className="font-bold text-lg">{usage.remaining}</span> 回</span>
-            {usage.isLimitReached && (
-              <Link href="/login" className="ml-2 underline hover:text-amber-700">
+            {usage.isLimitReached ? (
+              <Link href="/login" className="ml-2 underline font-bold hover:text-amber-700">
                 ログインして制限を解除
+              </Link>
+            ) : (
+              <Link href="/login" className="ml-2 text-amber-800 hover:text-amber-900 font-medium">
+                無料登録で10回/日に増やす &rarr;
               </Link>
             )}
           </div>

@@ -238,12 +238,20 @@ export function Header() {
                     </div>
                   </>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="px-4 py-2 bg-stone-900 text-white rounded-md font-medium hover:bg-stone-800 transition-colors"
-                  >
-                    ログイン
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 text-stone-700 font-medium hover:text-stone-900 transition-colors"
+                    >
+                      ログイン
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo-700 transition-colors text-sm shadow-sm"
+                    >
+                      無料で登録
+                    </Link>
+                  </div>
                 )}
               </>
             )}

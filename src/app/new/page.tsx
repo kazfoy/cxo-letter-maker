@@ -351,6 +351,7 @@ function NewLetterPageContent() {
     setIsGenerating(true);
     setIsGeneratingV2(true);
     setGenerationError(null);
+    setGenerationErrorKind(null);
 
     try {
       // 1. 統一されたtargetUrl解決
@@ -402,6 +403,8 @@ function NewLetterPageContent() {
     setIsAnalyzing(true);
     setAnalysisResult(null);
     _setUrlWarning(null);
+    setGenerationError(null);
+    setGenerationErrorKind(null);
 
     try {
       // 統一されたtargetUrl解決
@@ -631,6 +634,9 @@ function NewLetterPageContent() {
         setVariations(undefined);
         setEmailData(undefined);
         setSelfCheck(undefined);
+        setGenerationError(null);
+        setGenerationErrorKind(null);
+        setModalError(null);
 
         // 本文をセット
         setGeneratedLetter(normalizeLetterText(data.data.body));

@@ -593,7 +593,7 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍<span className="text-lg align-top">※</span></p>
               <p className="text-stone-600 font-medium">導入企業の平均アポ率</p>
@@ -628,9 +628,9 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
             {/* Free Plan */}
-            <div className="bg-stone-50 rounded-2xl p-8 border border-stone-200 shadow-sm flex flex-col">
+            <div className="bg-stone-50 rounded-2xl p-5 sm:p-8 border border-stone-200 shadow-sm flex flex-col">
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-stone-900 mb-2">Free Plan</h3>
                 <div className="flex items-baseline gap-1">
@@ -682,7 +682,7 @@ export default function LandingPage() {
             </div>
 
             {/* Pro Plan */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-amber-800 shadow-xl relative flex flex-col">
+            <div className="bg-white rounded-2xl p-5 sm:p-8 border-2 border-amber-800 shadow-xl relative flex flex-col">
               <div className="absolute top-0 right-0 bg-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
                 RECOMMENDED
               </div>
@@ -755,7 +755,7 @@ export default function LandingPage() {
             </div>
 
             {/* Premium Plan */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 border-2 border-slate-700 shadow-2xl relative flex flex-col text-white">
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 sm:p-8 border-2 border-slate-700 shadow-2xl relative flex flex-col text-white">
               <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
                 BUSINESS
               </div>

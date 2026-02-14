@@ -130,6 +130,40 @@ export default function LandingPage() {
     ]
   };
 
+  // レビュー構造化データ（テスティモニアルをGoogle検索結果に反映）
+  const reviewSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "CxO Letter Maker",
+    "description": "AIを活用した決裁者向けセールスレター自動生成ツール",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "bestRating": "5",
+      "ratingCount": "95"
+    },
+    "review": [
+      {
+        "@type": "Review",
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "author": { "@type": "Person", "name": "SaaS企業 営業マネージャー" },
+        "reviewBody": "月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。"
+      },
+      {
+        "@type": "Review",
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "author": { "@type": "Person", "name": "コンサルティング企業 代表取締役" },
+        "reviewBody": "5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。"
+      },
+      {
+        "@type": "Review",
+        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
+        "author": { "@type": "Person", "name": "スタートアップ 事業開発責任者" },
+        "reviewBody": "創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に丁寧なお手紙をありがとうと言われることも。"
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-stone-50">
       {/* JSON-LD構造化データ */}
@@ -140,6 +174,10 @@ export default function LandingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewSchema) }}
       />
 
       {/* Hero Section */}

@@ -37,6 +37,12 @@ interface InputFormProps {
   isQuickDrafting?: boolean;
   /** 根拠付き生成中（分析中）フラグ */
   isAnalyzing?: boolean;
+  /** ゲスト残り回数 */
+  guestRemaining?: number;
+  /** ゲスト日次制限 */
+  guestLimit?: number;
+  /** ログイン済みかどうか */
+  isLoggedIn?: boolean;
 }
 
 export function InputForm({
@@ -54,6 +60,9 @@ export function InputForm({
   onAnalyzeAndGenerate,
   isQuickDrafting = false,
   isAnalyzing = false,
+  guestRemaining,
+  guestLimit,
+  isLoggedIn = false,
 }: InputFormProps) {
   const {
     // State
@@ -185,6 +194,25 @@ export function InputForm({
           />
         )}
 
+
+        {/* ゲスト→無料会員メリット表示 */}
+        {!isLoggedIn && guestRemaining !== undefined && guestLimit !== undefined && (
+          <div className={`rounded-lg p-3 text-sm ${guestRemaining <= 1 ? 'bg-red-50 border border-red-200' : guestRemaining <= 3 ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-200'}`}>
+            <div className="flex items-center justify-between">
+              <span className={`font-medium ${guestRemaining <= 1 ? 'text-red-800' : guestRemaining <= 3 ? 'text-amber-800' : 'text-slate-700'}`}>
+                本日の残り生成回数: <span className="font-bold text-lg">{guestRemaining}</span>/{guestLimit}
+              </span>
+              {guestRemaining <= 3 && (
+                <a href="/login" className={`text-xs font-semibold underline ${guestRemaining <= 1 ? 'text-red-700 hover:text-red-900' : 'text-amber-700 hover:text-amber-900'}`}>
+                  無料登録で10回/日に増やす →
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              アカウント作成で履歴保存・高品質モードが利用可能に
+            </p>
+          </div>
+        )}
 
         {/* 送信ボタンエリア - 2レーン統合（sales/event共通） */}
         <div className="space-y-3">

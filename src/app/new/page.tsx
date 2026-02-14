@@ -79,6 +79,7 @@ function NewLetterPageContent() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isQuickDrafting, setIsQuickDrafting] = useState(false);
   const [isSampleCooldown, setIsSampleCooldown] = useState(false);
+  const [selfCheck, setSelfCheck] = useState<string[] | undefined>(undefined);
 
   // 再分析が必要か判定
   const shouldReanalyze = useCallback((
@@ -186,16 +187,24 @@ function NewLetterPageContent() {
             company_name: inputFormData.companyName,
             person_name: inputFormData.name,
             person_position: inputFormData.position,
-            additional_context: inputFormData.freeformInput,
+            additional_context: mode === 'consulting'
+              ? [
+                  inputFormData.productStrength && `強み: ${inputFormData.productStrength}`,
+                  inputFormData.solution && `できること: ${inputFormData.solution}`,
+                  inputFormData.caseStudy && `実績: ${inputFormData.caseStudy}`,
+                  inputFormData.targetChallenges && `課題仮説: ${inputFormData.targetChallenges}`,
+                  inputFormData.freeformInput,
+                ].filter(Boolean).join('\n')
+              : inputFormData.freeformInput,
             target_url: targetUrl,
           },
           sender_info: {
             company_name: inputFormData.myCompanyName,
-            department: '',
+            department: inputFormData.myDepartment || '',
             name: inputFormData.myName,
             service_description: inputFormData.myServiceDescription,
           },
-          mode: 'complete',
+          mode: mode === 'consulting' ? 'consulting' : 'complete',
           output_format: outputFormat,
         }),
       });
@@ -245,6 +254,7 @@ function NewLetterPageContent() {
         setVariations(undefined);
         setEmailData(undefined);
         setGenerationError(null);
+        setSelfCheck(undefined);
 
         if (outputFormat === 'email') {
           // メール形式
@@ -259,7 +269,12 @@ function NewLetterPageContent() {
           setGeneratedLetter(normalizeLetterText(data.data.body));
         }
 
-        // バリエーションがあればセット
+        // consultingモードのselfCheck保存
+        if (data.data.selfCheck) {
+          setSelfCheck(data.data.selfCheck);
+        }
+
+        // バリエーションがあればセット（consultingモードではなし）
         if (data.data.variations) {
           setVariations({
             standard: normalizeLetterText(data.data.variations.standard),
@@ -526,21 +541,36 @@ function NewLetterPageContent() {
   }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
   // V2フロー: 分析結果を使ってレター生成
-  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete' | 'event') => {
+  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete' | 'event' | 'consulting') => {
     if (!analysisResult) return;
 
     setIsGeneratingV2(true);
     setIsGenerating(true);
 
     // eventモードの場合、formDataからイベント情報をマージ
-    const finalOverrides: UserOverrides = generateMode === 'event'
-      ? {
-          ...overrides,
-          event_name: formData.eventName || overrides.event_name,
-          event_datetime: formData.eventDateTime || overrides.event_datetime,
-          event_speakers: formData.eventSpeakers || overrides.event_speakers,
-        }
-      : overrides;
+    // consultingモードの場合、追加コンテキストをマージ
+    let finalOverrides: UserOverrides;
+    if (generateMode === 'event') {
+      finalOverrides = {
+        ...overrides,
+        event_name: formData.eventName || overrides.event_name,
+        event_datetime: formData.eventDateTime || overrides.event_datetime,
+        event_speakers: formData.eventSpeakers || overrides.event_speakers,
+      };
+    } else if (generateMode === 'consulting') {
+      finalOverrides = {
+        ...overrides,
+        additional_context: [
+          formData.productStrength && `強み: ${formData.productStrength}`,
+          formData.solution && `できること: ${formData.solution}`,
+          formData.caseStudy && `実績: ${formData.caseStudy}`,
+          formData.targetChallenges && `課題仮説: ${formData.targetChallenges}`,
+          overrides.additional_context,
+        ].filter(Boolean).join('\n'),
+      };
+    } else {
+      finalOverrides = overrides;
+    }
 
     try {
       const response = await fetch('/api/generate-v2', {
@@ -576,11 +606,17 @@ function NewLetterPageContent() {
         // リセット
         setVariations(undefined);
         setEmailData(undefined);
+        setSelfCheck(undefined);
 
         // 本文をセット
         setGeneratedLetter(normalizeLetterText(data.data.body));
 
-        // バリエーションがあればセット
+        // consultingモードのselfCheck保存
+        if (data.data.selfCheck) {
+          setSelfCheck(data.data.selfCheck);
+        }
+
+        // バリエーションがあればセット（consultingモードではなし）
         if (data.data.variations) {
           setVariations({
             standard: normalizeLetterText(data.data.variations.standard),
@@ -823,6 +859,7 @@ function NewLetterPageContent() {
     setEmailData(undefined);
     setGeneratedSources(undefined);
     setGeneratedCitations(undefined);
+    setSelfCheck(undefined);
   };
 
   const handleSampleExperience = async () => {
@@ -845,6 +882,7 @@ function NewLetterPageContent() {
 
     if (mode === 'event') {
       const eventSample = SAMPLE_EVENT_DATA;
+
       sampleFormData = {
         myCompanyName: eventSample.myCompanyName,
         myName: eventSample.myName,
@@ -947,6 +985,15 @@ function NewLetterPageContent() {
                   }`}
               >
                 🎫 イベント招待
+              </button>
+              <button
+                onClick={() => setMode('consulting')}
+                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'consulting'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+              >
+                💬 相談型レター
               </button>
             </div>
 
@@ -1057,6 +1104,9 @@ function NewLetterPageContent() {
                 onAnalyzeAndGenerate={handleAnalyzeAndGenerate}
                 isQuickDrafting={isQuickDrafting}
                 isAnalyzing={isAnalyzing}
+                guestRemaining={usage?.remaining}
+                guestLimit={usage?.limit}
+                isLoggedIn={!!user}
               />
             </div>
 
@@ -1067,8 +1117,6 @@ function NewLetterPageContent() {
                 content={generatedLetter}
                 onContentChange={(newContent) => {
                   setGeneratedLetter(newContent);
-                  // 編集されたら、現在のバリエーションの内容も更新しておく（タブ切り替えで戻れるようにするかは要検討だが、
-                  // ここではシンプルに「現在表示中のバリエーション」の中身も更新する挙動にする）
                   if (variations) {
                     setVariations({
                       ...variations,
@@ -1079,9 +1127,8 @@ function NewLetterPageContent() {
                 isGenerating={isGenerating}
                 currentLetterId={currentLetterId}
                 currentStatus={currentLetterStatus}
-
                 onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}
-                variations={variations}
+                variations={mode !== 'consulting' ? variations : undefined}
                 activeVariation={activeVariation}
                 onVariationSelect={(variation) => {
                   setActiveVariation(variation);
@@ -1098,6 +1145,8 @@ function NewLetterPageContent() {
                 sources={generatedSources}
                 citations={generatedCitations}
                 hasUrl={Boolean(resolvedTargetUrl || formData.targetUrl)}
+                selfCheck={selfCheck}
+                letterMode={mode}
               />
             </div>
           </div>

@@ -450,22 +450,57 @@ export function PreviewArea({
       </div>
 
       {/* 自動編集ボタン */}
-      {content && (
+      {content && (() => {
+        const guestRemaining = EDIT_LIMIT - guestEditUsage;
+        const freeRemaining = FREE_REWRITE_LIMIT - rewriteCount;
+        const isGuestLimitReached = !user && guestRemaining <= 0;
+        const isFreeLimitReached = !!(user && isFree && freeRemaining <= 0);
+        const isEditDisabled = isEditing || isGuestLimitReached || isFreeLimitReached;
+
+        return (
         <div className="mb-6 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-700">自動編集</p>
             {!user && (
-              <p className="text-xs text-slate-500 bg-purple-50 px-2 py-1 rounded border border-purple-200">
-                お試し: あと{EDIT_LIMIT - guestEditUsage}回
+              <p className={`text-xs px-2 py-1 rounded border ${
+                guestRemaining <= 0
+                  ? 'text-red-600 bg-red-50 border-red-200'
+                  : 'text-slate-500 bg-purple-50 border-purple-200'
+              }`}>
+                お試し: あと{Math.max(0, guestRemaining)}回
+              </p>
+            )}
+            {user && isFree && (
+              <p className={`text-xs px-2 py-1 rounded border ${
+                freeRemaining <= 0
+                  ? 'text-red-600 bg-red-50 border-red-200'
+                  : 'text-slate-500 bg-blue-50 border-blue-200'
+              }`}>
+                あと{Math.max(0, freeRemaining)}回 / 生成
               </p>
             )}
           </div>
+
+          {/* 制限到達時のアップグレード案内 */}
+          {isGuestLimitReached && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              お試し利用回数を使い切りました。
+              <Link href="/login" className="ml-1 font-bold text-amber-900 underline hover:text-amber-700">
+                無料登録で回数を増やす
+              </Link>
+            </div>
+          )}
+          {isFreeLimitReached && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              この手紙の編集回数上限に達しました。新しい手紙を生成するとリセットされます。
+            </div>
+          )}
 
           {/* おすすめ3つ */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleAutoEdit('shorten')}
-              disabled={isEditing}
+              disabled={isEditDisabled}
               className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="文章を短縮"
             >
@@ -474,7 +509,7 @@ export function PreviewArea({
             </button>
             <button
               onClick={() => handleAutoEdit('proofread')}
-              disabled={isEditing}
+              disabled={isEditDisabled}
               className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="誤字脱字・表現チェック"
             >
@@ -483,7 +518,7 @@ export function PreviewArea({
             </button>
             <button
               onClick={() => handleAutoEdit('emphasize')}
-              disabled={isEditing}
+              disabled={isEditDisabled}
               className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="事例を強調"
             >
@@ -508,7 +543,7 @@ export function PreviewArea({
               <div className="flex flex-wrap gap-2 mt-2">
                 <button
                   onClick={() => handleAutoEdit('casual')}
-                  disabled={isEditing}
+                  disabled={isEditDisabled}
                   className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="カジュアルな表現に変更"
                   title="堅い表現をやわらかくします"
@@ -517,7 +552,7 @@ export function PreviewArea({
                 </button>
                 <button
                   onClick={() => handleAutoEdit('passionate')}
-                  disabled={isEditing}
+                  disabled={isEditDisabled}
                   className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="もっと情熱的に"
                   title="熱意を感じる表現に書き換えます"
@@ -526,7 +561,7 @@ export function PreviewArea({
                 </button>
                 <button
                   onClick={() => handleAutoEdit('concise')}
-                  disabled={isEditing}
+                  disabled={isEditDisabled}
                   className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="もっと簡潔に（8割の長さに）"
                   title="全体を8割程度の長さに圧縮します"
@@ -535,7 +570,7 @@ export function PreviewArea({
                 </button>
                 <button
                   onClick={() => handleAutoEdit('businesslike')}
-                  disabled={isEditing}
+                  disabled={isEditDisabled}
                   className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="ビジネスライクに修正"
                   title="フォーマルなビジネス文体に整えます"
@@ -544,7 +579,7 @@ export function PreviewArea({
                 </button>
                 <button
                   onClick={handleQualityImprove}
-                  disabled={isEditing}
+                  disabled={isEditDisabled}
                   className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
                   aria-label="Gemini Proで品質改善"
                   title="AIが全体の品質を総合的に改善します"
@@ -556,7 +591,8 @@ export function PreviewArea({
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* プレビューエリア */}
       <div className="relative border border-gray-300 rounded-md min-h-[600px] bg-white">

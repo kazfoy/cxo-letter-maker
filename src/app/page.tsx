@@ -588,7 +588,7 @@ export default function LandingPage() {
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍</p>
               <p className="text-stone-600 font-medium">平均アポ獲得率</p>
-              <p className="text-xs text-stone-400 mt-1">※ 導入企業実績に基づく</p>
+              <p className="text-xs text-stone-400 mt-1">※ 自社調べ（2024年実施、導入企業の平均値）</p>
             </div>
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">30秒</p>
@@ -601,7 +601,7 @@ export default function LandingPage() {
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">95%</p>
               <p className="text-stone-600 font-medium">ユーザー満足度</p>
-              <p className="text-xs text-stone-400 mt-1">※ 利用者アンケートより</p>
+              <p className="text-xs text-stone-400 mt-1">※ 自社調べ（2024年利用者アンケート結果）</p>
             </div>
           </div>
         </div>

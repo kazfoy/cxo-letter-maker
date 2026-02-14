@@ -80,6 +80,7 @@ export function PreviewArea({
 
   const [guestEditUsage, setGuestEditUsage] = useState(0);
   const [rewriteCount, setRewriteCount] = useState(0); // FREE user rewrite count for *current generation*
+  const [showMoreEdits, setShowMoreEdits] = useState(false);
 
   // Sync letterStatus when currentStatus changes
   useEffect(() => {
@@ -459,72 +460,100 @@ export function PreviewArea({
               </p>
             )}
           </div>
+
+          {/* おすすめ3つ */}
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleAutoEdit('casual')}
-              disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="カジュアルな表現に変更"
-            >
-              カジュアルに
-            </button>
-            <button
-              onClick={() => handleAutoEdit('emphasize')}
-              disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="事例を強調"
-            >
-              事例を強調
-            </button>
             <button
               onClick={() => handleAutoEdit('shorten')}
               disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="文章を短縮"
             >
               もっと短く
-            </button>
-            <button
-              onClick={() => handleAutoEdit('passionate')}
-              disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="もっと情熱的に"
-            >
-              もっと情熱的に
-            </button>
-            <button
-              onClick={() => handleAutoEdit('concise')}
-              disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="もっと簡潔に（8割の長さに）"
-            >
-              もっと簡潔に（8割）
-            </button>
-            <button
-              onClick={() => handleAutoEdit('businesslike')}
-              disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="ビジネスライクに修正"
-            >
-              ビジネスライクに
+              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
             </button>
             <button
               onClick={() => handleAutoEdit('proofread')}
               disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="誤字脱字・表現チェック"
             >
               誤字脱字チェック
+              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
             </button>
             <button
-              onClick={handleQualityImprove}
+              onClick={() => handleAutoEdit('emphasize')}
               disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
-              aria-label="Gemini Proで品質改善"
+              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              aria-label="事例を強調"
             >
-              品質改善
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
+              事例を強調
+              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
             </button>
+          </div>
+
+          {/* その他の編集（折りたたみ） */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowMoreEdits(!showMoreEdits)}
+              className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 transition-colors"
+            >
+              <svg className={`w-3 h-3 transition-transform ${showMoreEdits ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              その他の編集
+            </button>
+            {showMoreEdits && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                <button
+                  onClick={() => handleAutoEdit('casual')}
+                  disabled={isEditing}
+                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="カジュアルな表現に変更"
+                  title="堅い表現をやわらかくします"
+                >
+                  カジュアルに
+                </button>
+                <button
+                  onClick={() => handleAutoEdit('passionate')}
+                  disabled={isEditing}
+                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="もっと情熱的に"
+                  title="熱意を感じる表現に書き換えます"
+                >
+                  もっと情熱的に
+                </button>
+                <button
+                  onClick={() => handleAutoEdit('concise')}
+                  disabled={isEditing}
+                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="もっと簡潔に（8割の長さに）"
+                  title="全体を8割程度の長さに圧縮します"
+                >
+                  もっと簡潔に（8割）
+                </button>
+                <button
+                  onClick={() => handleAutoEdit('businesslike')}
+                  disabled={isEditing}
+                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="ビジネスライクに修正"
+                  title="フォーマルなビジネス文体に整えます"
+                >
+                  ビジネスライクに
+                </button>
+                <button
+                  onClick={handleQualityImprove}
+                  disabled={isEditing}
+                  className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
+                  aria-label="Gemini Proで品質改善"
+                  title="AIが全体の品質を総合的に改善します"
+                >
+                  品質改善
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

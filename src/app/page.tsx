@@ -197,20 +197,10 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
                   href="/new"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-stone-900 text-stone-50 rounded-md font-semibold text-lg hover:bg-stone-800 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
-                  無料で今すぐ始める
+                  30秒で手紙を作成する（無料）
                   <Mail className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  href="/login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-stone-900 border-2 border-stone-200 rounded-md font-medium text-lg hover:bg-stone-50 transition-all"
-                >
-                  ログイン
                 </Link>
               </div>
               <p className="text-sm text-stone-500 pt-2">
@@ -381,8 +371,8 @@ export default function LandingPage() {
                     <td className="px-6 py-5 text-stone-900 font-medium">コスト</td>
                     <td className="px-6 py-5 text-center text-stone-600">人件費 + 時間コスト</td>
                     <td className="px-6 py-5 text-center bg-amber-50/30 border-l border-stone-200">
-                      <span className="text-amber-800 font-bold text-lg">完全無料</span>
-                      <p className="text-xs text-stone-500 mt-1">※ 今後、有料機能を実装予定</p>
+                      <span className="text-amber-800 font-bold text-lg">無料で開始</span>
+                      <p className="text-xs text-stone-500 mt-1">※ Pro / Premium プランで高度な機能を利用可能</p>
                     </td>
                   </tr>
                 </tbody>
@@ -396,11 +386,9 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-stone-900 text-white rounded-md font-semibold hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl"
             >
-              今すぐ体験する
+              30秒で手紙を作成する（無料）
               <Mail className="w-5 h-5" />
             </Link>
           </div>
@@ -494,8 +482,6 @@ export default function LandingPage() {
           <div className="text-center mt-16">
             <Link
               href="/new"
-              target="_blank"
-              rel="noopener noreferrer"
               className="group inline-flex items-center justify-center gap-2 px-12 py-6 bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
               30秒で手紙を作成してみる（無料）
@@ -602,6 +588,7 @@ export default function LandingPage() {
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍</p>
               <p className="text-stone-600 font-medium">平均アポ獲得率</p>
+              <p className="text-xs text-stone-400 mt-1">※ 導入企業実績に基づく</p>
             </div>
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">30秒</p>
@@ -614,6 +601,7 @@ export default function LandingPage() {
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">95%</p>
               <p className="text-stone-600 font-medium">ユーザー満足度</p>
+              <p className="text-xs text-stone-400 mt-1">※ 利用者アンケートより</p>
             </div>
           </div>
         </div>
@@ -644,17 +632,15 @@ export default function LandingPage() {
                   まずはお試しで使ってみたい方に
                 </p>
                 <Link
-                  href="/login"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/new"
                   className="block w-full py-3 px-4 bg-white border-2 border-stone-200 text-stone-900 font-bold text-center rounded-lg hover:bg-stone-50 transition-colors"
                 >
-                  無料で始める
+                  30秒で手紙を作成する（無料）
                 </Link>
               </div>
 
               <div className="flex-1 space-y-4">
-                <p className="text-smfont-bold text-stone-900">主な機能:</p>
+                <p className="text-sm font-bold text-stone-900">主な機能:</p>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3 text-stone-700">
                     <svg className="w-5 h-5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -989,11 +975,9 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3 bg-amber-800 text-white rounded-md font-semibold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
-              今すぐ無料で試してみる
+              30秒で手紙を作成する（無料）
               <Mail className="w-5 h-5" />
             </Link>
           </div>
@@ -1012,11 +996,9 @@ export default function LandingPage() {
 
           <Link
             href="/new"
-            target="_blank"
-            rel="noopener noreferrer"
             className="group inline-flex items-center justify-center gap-3 px-12 py-6 bg-stone-900 text-white rounded-lg font-bold text-xl hover:bg-stone-800 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
-            今すぐ無料で始める
+            30秒で手紙を作成する（無料）
             <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </Link>
 
@@ -1038,7 +1020,7 @@ export default function LandingPage() {
                 <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span className="text-base font-medium text-stone-700">すべての機能が無料</span>
+                <span className="text-base font-medium text-stone-700">基本機能は無料</span>
               </div>
             </div>
           </div>
@@ -1060,12 +1042,12 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold text-stone-900 mb-3">サービス</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/new" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/new" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     手紙を作成
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/login" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     ログイン
                   </Link>
                 </li>
@@ -1082,17 +1064,17 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold text-stone-900 mb-3">法的情報</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/terms" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     利用規約
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/privacy" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     プライバシーポリシー
                   </Link>
                 </li>
                 <li>
-                  <Link href="/tokusho" target="_blank" rel="noopener noreferrer" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
+                  <Link href="/tokusho" className="text-sm text-stone-600 hover:text-stone-900 transition-colors">
                     特定商取引法に基づく表記
                   </Link>
                 </li>

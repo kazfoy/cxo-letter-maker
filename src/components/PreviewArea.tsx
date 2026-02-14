@@ -12,6 +12,7 @@ import { SourcesDisplay } from './SourcesDisplay';
 import type { LetterStatus } from '@/types/letter';
 import type { InformationSource } from '@/types/analysis';
 import type { Citation } from '@/types/generate-v2';
+import type { LetterMode } from '@/types/letter';
 import { normalizeLetterText } from '@/lib/textNormalize';
 
 // LocalStorageキー
@@ -43,6 +44,8 @@ interface PreviewAreaProps {
   sources?: InformationSource[];
   citations?: Citation[];
   hasUrl?: boolean;
+  selfCheck?: string[];
+  letterMode?: LetterMode;
 }
 
 export function PreviewArea({
@@ -61,6 +64,8 @@ export function PreviewArea({
   sources,
   citations,
   hasUrl = false,
+  selfCheck,
+  letterMode,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const { isPro, isPremium, isFree } = useUserPlan();
@@ -369,6 +374,9 @@ export function PreviewArea({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Word出力
+                  {!isPro && !isPremium && (
+                    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
+                  )}
                 </button>
               </div>
             )}
@@ -431,6 +439,9 @@ export function PreviewArea({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Word
+                {!isPro && !isPremium && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
+                )}
               </button>
             </div>
           )}
@@ -508,10 +519,11 @@ export function PreviewArea({
             <button
               onClick={handleQualityImprove}
               disabled={isEditing}
-              className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="px-3 py-1.5 text-sm bg-green-50 text-green-700 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-1"
               aria-label="Gemini Proで品質改善"
             >
-              品質改善 (Pro)
+              品質改善
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
             </button>
           </div>
         </div>
@@ -631,6 +643,21 @@ export function PreviewArea({
           </div>
         )}
       </div>
+
+      {/* 相談型レター: 自己チェック表示（コピー対象外） */}
+      {selfCheck && selfCheck.length > 0 && letterMode === 'consulting' && (
+        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <h3 className="text-sm font-semibold text-amber-800 mb-2">レターの狙い（自己チェック）</h3>
+          <ul className="space-y-1">
+            {selfCheck.map((check, i) => (
+              <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">✓</span>
+                <span>{check}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 情報ソース表示（生成後のみ） */}
       {content && (

@@ -1150,6 +1150,7 @@ export function BulkGenerator() {
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
                     CSV / Excelファイルのアップロード
+                    <span className="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded">Pro</span>
                 </h2>
 
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:bg-slate-50 transition-colors relative">

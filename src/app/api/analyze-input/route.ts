@@ -109,7 +109,7 @@ export async function POST(request: Request) {
                   Accept: 'text/html,application/xhtml+xml',
                 },
               },
-              15000, // 15秒タイムアウト
+              20000, // 20秒タイムアウト
               5 * 1024 * 1024 // 5MB制限
             );
 

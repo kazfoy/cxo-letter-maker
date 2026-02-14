@@ -585,16 +585,12 @@ export async function POST(request: Request) {
 
       devLog.log(`Selected ${factsForLetter.length} facts for letter${usedFallback ? ' (with fallback)' : ''}`);
 
-      // targetUrl あり && factsForLetter 空 → 422 URL_FACTS_EMPTY
-      // ただしEvent/Consultingモードはイベント情報があれば生成可能
+      // targetUrl有無の判定（プロンプト構築で使用）
       const hasTargetUrl = Boolean(user_overrides?.target_url || analysis_result.target_url);
-      const hasEventInfo = mode === 'event' && Boolean(user_overrides?.event_name);
-      if (hasTargetUrl && factsForLetter.length === 0 && !hasEventInfo && mode !== 'consulting') {
-        return NextResponse.json({
-          success: false,
-          error: 'URL_FACTS_EMPTY',
-          message: 'URLからファクトを抽出できませんでした。再分析または別URLを試してください。',
-        }, { status: 422 });
+
+      // ファクト0件でも仮説モードで生成を続行（ハードエラーにしない）
+      if (hasTargetUrl && factsForLetter.length === 0) {
+        devLog.warn('URL provided but no facts extracted. Proceeding in hypothesis mode.');
       }
 
       // ファクトの数値/固有名詞有無を判定

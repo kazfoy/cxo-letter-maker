@@ -544,7 +544,12 @@ export function selectFactsForLetter(
   options?: { industry?: string; companyName?: string }
 ): FactSelectionResult {
   if (!extractedFacts) {
-    return { factsForLetter: [], rejectedFacts: [], usedFallback: false };
+    // ファクト未取得でもフォールバックで生成を試みる
+    const fallbackFacts = generateFallbackFacts(
+      options?.industry,
+      options?.companyName
+    );
+    return { factsForLetter: fallbackFacts, rejectedFacts: [], usedFallback: true };
   }
 
   // 中間データ構造（正規化＋日付解析＋中計判定）

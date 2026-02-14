@@ -154,7 +154,7 @@ function isListingPage(url: string): boolean {
     return false;
   }
 }
-const FETCH_TIMEOUT = 10000;
+const FETCH_TIMEOUT = 15000;
 const MAX_SIZE = 5 * 1024 * 1024;
 
 /**

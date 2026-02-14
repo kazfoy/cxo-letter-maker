@@ -57,6 +57,17 @@ const CXO_KEYWORDS = [
   'BPR',
   'リスク',
   '内部統制',
+  // 公共機関・自治体向け
+  '行政改革',
+  '住民サービス',
+  '官民連携',
+  'デジタル庁',
+  '自治体DX',
+  '電子行政',
+  'スマートシティ',
+  '公共調達',
+  '行政手続',
+  'マイナンバー',
 ];
 
 // Phase 6: トピックタグのキーワードマッピング
@@ -65,12 +76,12 @@ const TOPIC_TAG_KEYWORDS: Record<TopicTag, string[]> = {
   compliance: ['コンプライアンス', '法令遵守', '規制', '適正', '不正防止'],
   supply_chain: ['サプライチェーン', '調達', '物流', 'SCM', '供給'],
   finance_ops: ['財務', '経理', '会計', '決算', '予算', '連結'],
-  digital_transformation: ['DX', 'デジタル', 'IT', 'AI', 'クラウド', '自動化', 'RPA'],
+  digital_transformation: ['DX', 'デジタル', 'IT', 'AI', 'クラウド', '自動化', 'RPA', '自治体DX', 'デジタル庁', '電子行政', 'スマートシティ'],
   sustainability: ['サステナビリティ', 'ESG', 'カーボンニュートラル', '脱炭素', '環境', 'SDGs'],
   global_expansion: ['グローバル', '海外', '国際', '進出', '越境'],
   hr_organization: ['人事', '組織', '採用', '人材', 'タレント', '働き方'],
   risk_management: ['リスク', 'BCP', '危機管理', 'セキュリティ', '情報管理'],
-  growth_strategy: ['成長', 'M&A', '新規事業', '投資', '戦略'],
+  growth_strategy: ['成長', 'M&A', '新規事業', '投資', '戦略', '行政改革', '官民連携', '公共調達'],
   other: [],
 };
 
@@ -427,6 +438,88 @@ function containsNgKeyword(content: string): boolean {
 export interface FactSelectionResult {
   factsForLetter: SelectedFact[];
   rejectedFacts: SelectedFact[];
+  /** ファクトが不足しており、フォールバックファクトで補強された場合 true */
+  usedFallback: boolean;
+}
+
+// ファクト不足の閾値（これ未満の場合フォールバックを使用）
+const FACT_SHORTAGE_THRESHOLD = 3;
+
+/**
+ * 業界情報に基づくフォールバックファクトを生成
+ *
+ * URL解析でファクトが十分に取得できなかった場合に、
+ * 業界一般のトレンドを補助的に提供する。
+ */
+function generateFallbackFacts(
+  industry?: string,
+  companyName?: string
+): SelectedFact[] {
+  const fallbacks: SelectedFact[] = [];
+
+  // 公共機関・自治体向けフォールバック
+  const publicSectorKeywords = [
+    '自治体', '市役所', '県庁', '省', '庁', '公共', '行政', '官公庁',
+    '地方公共団体', '独立行政法人', '公社', '公団',
+  ];
+  const isPublicSector = publicSectorKeywords.some(
+    kw => (industry || '').includes(kw) || (companyName || '').includes(kw)
+  );
+
+  if (isPublicSector) {
+    fallbacks.push(
+      {
+        content: 'デジタル庁の推進する自治体DX推進計画に基づき、全国の自治体で行政手続のオンライン化が加速',
+        category: 'companyDirection',
+        relevanceScore: 35,
+        reason: 'フォールバック: 公共機関向け業界トレンド',
+        quoteKey: '自治体DX',
+        topicTags: ['digital_transformation'],
+        bridgeReason: '行政デジタル化の推進に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '総務省が推進する自治体情報システムの標準化・共通化の期限（2025年度末）に向けた対応が本格化',
+        category: 'recentMoves',
+        relevanceScore: 30,
+        reason: 'フォールバック: 公共機関向け業界トレンド',
+        quoteKey: '標準化',
+        topicTags: ['digital_transformation', 'governance'],
+        bridgeReason: '行政システム標準化への対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      }
+    );
+  } else {
+    // 民間企業向け汎用フォールバック
+    fallbacks.push(
+      {
+        content: '帝国データバンクの調査によると、企業の約7割がDX推進を経営課題と認識（2024年調査）',
+        category: 'companyDirection',
+        relevanceScore: 25,
+        reason: 'フォールバック: 業界一般トレンド（DX）',
+        quoteKey: 'DX推進',
+        topicTags: ['digital_transformation'],
+        bridgeReason: '業界全体のデジタル変革トレンドに関連',
+        confidence: 35,
+        isMidTermPlan: false,
+      },
+      {
+        content: '経済産業省「DXレポート」が指摘する2025年の崖への対応として、基幹システム刷新が業界共通の課題に',
+        category: 'companyDirection',
+        relevanceScore: 20,
+        reason: 'フォールバック: 業界一般トレンド（2025年の崖）',
+        quoteKey: '2025年の崖',
+        topicTags: ['digital_transformation', 'risk_management'],
+        bridgeReason: 'レガシーシステムのリスク対応に関連',
+        confidence: 35,
+        isMidTermPlan: false,
+      }
+    );
+  }
+
+  return fallbacks;
 }
 
 /**
@@ -438,6 +531,7 @@ export interface FactSelectionResult {
  * @param targetChallenges - ターゲットの課題
  * @param proposalTheme - 提案テーマ（ブリッジ理由生成用）
  * @param confidenceThreshold - 信頼度閾値（デフォルト60）
+ * @param options - 追加オプション（業界名、企業名など、フォールバック用）
  * @returns 選定されたファクトと却下されたファクト
  */
 export function selectFactsForLetter(
@@ -446,10 +540,11 @@ export function selectFactsForLetter(
   productStrength?: string,
   targetChallenges?: string,
   proposalTheme?: string,
-  confidenceThreshold: number = 60
+  confidenceThreshold: number = 60,
+  options?: { industry?: string; companyName?: string }
 ): FactSelectionResult {
   if (!extractedFacts) {
-    return { factsForLetter: [], rejectedFacts: [] };
+    return { factsForLetter: [], rejectedFacts: [], usedFallback: false };
   }
 
   // 中間データ構造（正規化＋日付解析＋中計判定）
@@ -600,12 +695,26 @@ export function selectFactsForLetter(
     }
   }
 
-  // 4. 残りは却下リストへ
+  // 4. ファクト不足時のフォールバック: 業界一般トレンドで補強
+  let usedFallback = false;
+  if (factsForLetter.length < FACT_SHORTAGE_THRESHOLD) {
+    const fallbackFacts = generateFallbackFacts(
+      options?.industry,
+      options?.companyName
+    );
+    for (const fallback of fallbackFacts) {
+      if (factsForLetter.length >= FACT_SHORTAGE_THRESHOLD) break;
+      factsForLetter.push(fallback);
+      usedFallback = true;
+    }
+  }
+
+  // 5. 残りは却下リストへ
   for (const fact of allFacts) {
     if (!factsForLetter.includes(fact)) {
       rejectedFacts.push(fact);
     }
   }
 
-  return { factsForLetter, rejectedFacts };
+  return { factsForLetter, rejectedFacts, usedFallback };
 }

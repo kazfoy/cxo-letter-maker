@@ -12,6 +12,7 @@ import {
   validateLetterOutput,
   calculateDetailedScore,
   calculateEventQualityScore,
+  calculateConsultingQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
 import { selectFactsForLetter } from '@/lib/factSelector';
@@ -21,9 +22,11 @@ import type { AnalysisResult, SelectedFact } from '@/types/analysis';
 import {
   GenerateV2RequestSchema,
   GenerateV2OutputSchema,
+  ConsultingOutputSchema,
   type SenderInfo,
   type UserOverrides,
   type GenerateV2Output,
+  type ConsultingOutput,
   type Quality,
   type Citation,
 } from '@/types/generate-v2';
@@ -105,18 +108,148 @@ function buildEventModeInstructions(
 }
 
 /**
+ * 相談型レター（consulting）モード専用のプロンプトを構築
+ */
+function buildConsultingPrompt(
+  analysis: AnalysisResult,
+  overrides: UserOverrides | undefined,
+  sender: SenderInfo,
+  factsForLetter: SelectedFact[] = [],
+  improvementPoints?: string[],
+  _hasTargetUrl: boolean = false
+): string {
+  const companyName = overrides?.company_name || analysis.facts.company_name || '';
+  const personName = overrides?.person_name || analysis.facts.person_name || '';
+  const personPosition = overrides?.person_position || analysis.facts.person_position || '';
+
+  // リライト時の改善指示
+  let retryInstruction = '';
+  if (improvementPoints && improvementPoints.length > 0) {
+    retryInstruction = `\n\n【リライト注意】前回の生成は品質基準を満たしませんでした。以下の点を改善してください：
+${improvementPoints.map(p => `- ${p}`).join('\n')}`;
+  }
+
+  // 選定ファクトの引用指示
+  let factsInstruction = '';
+  if (factsForLetter.length > 0) {
+    const factsList = factsForLetter.map(f =>
+      `- [${f.category}] ${f.quoteKey}: ${f.content}${f.sourceUrl ? ` (出典: ${f.sourceUrl})` : ''}`
+    ).join('\n');
+    factsInstruction = `\n\n【必須引用ファクト（冒頭2行で必ず1つ以上使用）】
+${factsList}`;
+  }
+
+  // 証拠ポイント
+  const proofPointsList = analysis.proof_points.length > 0
+    ? analysis.proof_points.map(p => `- [${p.type}] ${p.content} (確度: ${p.confidence})`).join('\n')
+    : '（証拠ポイントなし）';
+
+  // 追加コンテキスト
+  const additionalContext = overrides?.additional_context || '';
+
+  // 宛名
+  const recipientFormat = personName
+    ? `${companyName} ${personPosition} ${personName}様`
+    : companyName
+    ? `${companyName} ${personPosition || 'ご担当者'}様`
+    : '';
+
+  // citations出力指示
+  const citationInstruction = factsForLetter.length > 0
+    ? `\n\n【citations出力ルール】
+- bodyの中でfactsForLetterを引用した文ごとにcitationを出力
+- sentenceは引用を含む1文（最大50文字、省略は「...」）
+- quoteKeyはfactsForLetterのquoteKeyと一致させる
+- body本文に「[citation:...]」等のマーカーは絶対に入れないこと`
+    : '';
+
+  return `あなたは大手企業のCxO（経営層）から「15分だけ話を聞こう」を引き出すことに長けた、トップクラスのBDR（ビジネス開発担当）です。
+以下の分析結果を基に、相談型レター（メール）を作成してください。${retryInstruction}${factsInstruction}${citationInstruction}
+
+【相談型レター - 絶対ルール（厳守）】
+
+■ 冒頭ルール
+- 型で始めない。「突然のご連絡失礼いたします」は禁止
+- 冒頭2行で相手の公開ファクトに触れ、経営テーマに接続する
+- 宛名: 「${recipientFormat || '【企業名】【役職】【氏名】様'}」で始め、その直後にファクト引用
+
+■ 構造ルール
+- 2段落目で論点を1つに絞り、断定せず質問形にする
+  - OK: 「御社ではこの点についてどのような状況でしょうか」
+  - NG: 「貴社では〇〇が課題です」「推察します」
+- 価値提案はアウトカムで1行 + できること2つ（箇条書き可）
+- 15分の理由を明確に書く（例: 「論点チェックリストを持参し、現状の優先度だけ確認させてください」）
+
+■ CTAルール（2択、二重取り禁止）
+- 2択CTAで終わる:
+  1. 15分だけ相談したい
+  2. まずは要点資料だけ欲しい
+- NG: 「資料をお送りします」と「15分ください」の両方を入れる（二重取り）
+
+■ 文字数・文体
+- 700-900文字（1文を短く、敬意は厚く、売り込み臭は薄く）
+- すべての文は「です」「ます」「でしょうか」「ください」で終える
+- 体言止め禁止
+
+■ 禁止ワード【HARD NO】
+- 「推察します」「確信しております」「言われています」
+- 抽象語のみで構成された段落（必ず具体ファクトか数字を1つ以上含める）
+- 競合名は入力に明示されている場合のみ言及可
+
+■ 差出人
+- 署名: ${sanitizeForPrompt(sender.name, 100)}（${sanitizeForPrompt(sender.company_name, 200)}${sender.department ? ` ${sanitizeForPrompt(sender.department, 200)}` : ''}）
+
+【ターゲット情報】
+企業名: ${sanitizeForPrompt(companyName, 200) || '（未指定）'}
+担当者名: ${sanitizeForPrompt(personName, 100) || '（未指定）'}
+役職: ${sanitizeForPrompt(personPosition, 100) || '（未指定）'}
+業界: ${analysis.facts.industry || '（未指定）'}
+
+【活用できる証拠】
+${proofPointsList}
+
+【差出人サービス概要】
+${sanitizeForPrompt(sender.service_description, 1000)}
+
+${additionalContext ? `【追加コンテキスト】\n${sanitizeForPrompt(additionalContext, 1000)}` : ''}
+
+【出力形式】
+以下のJSON形式で出力してください：
+{
+  "subject": "件名（25文字目安、相手の関心に寄せる）",
+  "body": "本文テキスト（700-900文字）",
+  "selfCheck": [
+    "チェック1: 冒頭2行で公開ファクトに触れているか",
+    "チェック2: 論点が1つに絞られ質問形になっているか",
+    "チェック3: 2択CTAで終わっているか"
+  ]${factsForLetter.length > 0 ? `,
+  "citations": [
+    {
+      "sentence": "〜を拝見しました...",
+      "quoteKey": "factsForLetterのquoteKey"
+    }
+  ]` : ''}
+}`;
+}
+
+/**
  * 生成プロンプトを構築
  */
 function buildGenerationPrompt(
   analysis: AnalysisResult,
   overrides: UserOverrides | undefined,
   sender: SenderInfo,
-  mode: 'draft' | 'complete' | 'event',
+  mode: 'draft' | 'complete' | 'event' | 'consulting',
   format: 'letter' | 'email',
   factsForLetter: SelectedFact[] = [],
   improvementPoints?: string[],
   hasTargetUrl: boolean = false
 ): string {
+  // consultingモードは専用プロンプトを使用
+  if (mode === 'consulting') {
+    return buildConsultingPrompt(analysis, overrides, sender, factsForLetter, improvementPoints, hasTargetUrl);
+  }
+
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
   const personName = overrides?.person_name || analysis.facts.person_name || '';
   const personPosition = overrides?.person_position || analysis.facts.person_position || '';
@@ -437,19 +570,26 @@ export async function POST(request: Request) {
       // ファクト選定
       const targetPosition = user_overrides?.person_position || (analysis_result.facts.person_position ?? undefined);
       const productStrength = sender_info.service_description;
-      const { factsForLetter } = selectFactsForLetter(
+      const { factsForLetter, usedFallback } = selectFactsForLetter(
         analysis_result.extracted_facts,
         targetPosition,
-        productStrength
+        productStrength,
+        undefined, // targetChallenges
+        undefined, // proposalTheme
+        60, // confidenceThreshold
+        {
+          industry: analysis_result.facts.industry ?? undefined,
+          companyName: user_overrides?.company_name || (analysis_result.facts.company_name ?? undefined),
+        }
       );
 
-      devLog.log(`Selected ${factsForLetter.length} facts for letter`);
+      devLog.log(`Selected ${factsForLetter.length} facts for letter${usedFallback ? ' (with fallback)' : ''}`);
 
       // targetUrl あり && factsForLetter 空 → 422 URL_FACTS_EMPTY
-      // ただしEventモードはイベント情報があれば生成可能
+      // ただしEvent/Consultingモードはイベント情報があれば生成可能
       const hasTargetUrl = Boolean(user_overrides?.target_url || analysis_result.target_url);
       const hasEventInfo = mode === 'event' && Boolean(user_overrides?.event_name);
-      if (hasTargetUrl && factsForLetter.length === 0 && !hasEventInfo) {
+      if (hasTargetUrl && factsForLetter.length === 0 && !hasEventInfo && mode !== 'consulting') {
         return NextResponse.json({
           success: false,
           error: 'URL_FACTS_EMPTY',
@@ -479,28 +619,56 @@ export async function POST(request: Request) {
             hasTargetUrl
           );
 
-          // 2. 生成
-          const result = await generateJson({
-            prompt,
-            schema: GenerateV2OutputSchema,
-            maxRetries: 1,
-          });
+          // 2. 生成（consultingモードは専用スキーマ）
+          const isConsulting = mode === 'consulting';
+          const result = isConsulting
+            ? await (async () => {
+                const consultingResult = await generateJson({
+                  prompt,
+                  schema: ConsultingOutputSchema,
+                  maxRetries: 1,
+                }) as ConsultingOutput;
+                // GenerateV2Output互換に変換
+                return {
+                  subjects: [consultingResult.subject],
+                  body: consultingResult.body,
+                  rationale: [{ type: 'selfCheck', content: consultingResult.selfCheck.join(' / ') }],
+                  citations: consultingResult.citations,
+                  // consulting固有データを保持
+                  _selfCheck: consultingResult.selfCheck,
+                } as GenerateV2Output & { _selfCheck: string[] };
+              })()
+            : await generateJson({
+                prompt,
+                schema: GenerateV2OutputSchema,
+                maxRetries: 1,
+              });
 
           // 3. qualityGate 検証
-          // eventモードはプレースホルダー禁止なのでcomplete扱い
-          const validationMode = mode === 'event' ? 'complete' : mode;
+          // event/consultingモードはプレースホルダー禁止なのでcomplete扱い（validateLetterOutput用）
+          const validationMode = mode === 'event' ? 'complete' : mode === 'consulting' ? 'consulting' : mode;
           const validation = validateLetterOutput(result.body, proofPoints, {
             mode: validationMode,
+            minChars: isConsulting ? 700 : undefined,
+            maxChars: isConsulting ? 900 : undefined,
             hasProofPoints: analysis_result.proof_points.length > 0,
             hasRecentNews: analysis_result.recent_news.length > 0,
             eventPosition: user_overrides?.event_position,
           });
 
           // 4. 詳細スコア計算（factsForLetter を使用）
-          // eventモードはEvent専用スコア、それ以外は従来の詳細スコア
+          // モード別に専用スコアを使用
           let detailedScore: { total: number; suggestions: string[]; breakdown?: Record<string, number> };
 
-          if (mode === 'event') {
+          if (mode === 'consulting') {
+            const consultingScore = calculateConsultingQualityScore(result.body);
+            detailedScore = {
+              total: consultingScore.total,
+              suggestions: consultingScore.issues,
+              breakdown: consultingScore.penalties as unknown as Record<string, number>,
+            };
+            devLog.log(`Consulting quality score: ${consultingScore.total}, penalties:`, consultingScore.penalties);
+          } else if (mode === 'event') {
             const eventScore = calculateEventQualityScore(
               result.body,
               user_overrides?.event_position
@@ -556,7 +724,9 @@ export async function POST(request: Request) {
                   score: detailedScore.total,
                   passed: detailedScore.total >= 80 && validation.ok,
                   issues: [...validation.reasons, ...detailedScore.suggestions],
-                  evaluation_comment: mode === 'event'
+                  evaluation_comment: mode === 'consulting'
+                    ? `Consulting quality score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`
+                    : mode === 'event'
                     ? `Event quality score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`
                     : `Detailed score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`,
                 },
@@ -565,6 +735,8 @@ export async function POST(request: Request) {
                 sources: analysis_result.sources || [],
                 factsForLetter: factsForLetter,
                 citations,  // Phase 6: citations追加
+                // consulting固有フィールド
+                ...(isConsulting && '_selfCheck' in result ? { selfCheck: (result as GenerateV2Output & { _selfCheck: string[] })._selfCheck } : {}),
               },
             });
           }

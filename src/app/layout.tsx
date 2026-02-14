@@ -22,7 +22,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://cxo-letter-maker.com'),
+  metadataBase: new URL('https://cxo-letter.jp'),
   title: "CxO Letter Maker | 決裁者へ響く手紙をAIで作成",
   description: "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率を劇的に向上させます。",
   keywords: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    url: "https://cxo-letter-maker.com",
+    url: "https://cxo-letter.jp",
     title: "CxO Letter Maker | 決裁者へ響く手紙をAIで作成",
     description: "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率を劇的に向上させます。",
     siteName: "CxO Letter Maker",

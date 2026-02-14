@@ -166,7 +166,7 @@ export function InputForm({
                 <span>{BUTTON_TEXTS.sample}</span>
               </button>
               <p className="text-xs text-slate-400 max-w-[200px] text-right leading-tight">
-                サンプル企業は実在しますが、本サービスとは無関係です。検証用表示。
+                サンプル企業は実在しますが、本サービスとは無関係です。
               </p>
             </div>
           )}

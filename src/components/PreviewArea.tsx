@@ -663,12 +663,32 @@ export function PreviewArea({
 
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center min-h-[600px] text-gray-400 px-8">
-            <div className="text-6xl mb-4">✉️</div>
-            <p className="text-lg font-medium text-gray-600 mb-2">ここに手紙が表示されます</p>
-            <p className="text-sm text-gray-500 text-center max-w-md">
-              AIがプロ品質の手紙を書きます。左側のフォームに情報を入力して「手紙を作成する」をクリックしてください。
-            </p>
+          <div className="relative min-h-[600px]">
+            {/* サンプルレター（グレーアウト） */}
+            <div className="p-8 font-serif text-gray-800 leading-relaxed text-[15px] opacity-[0.15] select-none pointer-events-none" style={{ lineHeight: '1.8' }}>
+              <p>株式会社サンプル商事</p>
+              <p>代表取締役社長 山田太郎 様</p>
+              <p className="mt-4">突然のご連絡失礼いたします。</p>
+              <p>株式会社テクノロジーズの田中と申します。</p>
+              <p className="mt-3">貴社が先日発表された中期経営計画における「デジタル基盤の刷新」に関する取り組みを拝見し、ご連絡差し上げました。</p>
+              <p className="mt-3">弊社は、大手企業様を中心に500社以上のDX推進を支援してまいりました。直近では、同業界のA社様において、基幹システムの刷新により業務処理時間を40%削減した実績がございます。</p>
+              <p className="mt-3">貴社の掲げる「2026年度までの全社デジタル化」の実現に向け、弊社の知見がお役に立てるのではないかと考えております。</p>
+              <p className="mt-3">まずは15分ほどのお時間をいただき、情報交換の機会を頂戴できませんでしょうか。</p>
+            </div>
+            {/* オーバーレイ */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70">
+              <div className="text-center px-8">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-semibold text-slate-800 mb-2">URLを入力してレターを生成</p>
+                <p className="text-sm text-slate-500 max-w-sm">
+                  こんなレターが生成されます。左のフォームに企業URLを入力して、30秒で完成。
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

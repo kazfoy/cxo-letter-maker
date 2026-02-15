@@ -11,6 +11,7 @@ import type {
   SelectedFact,
   TopicTag,
   SourceCategory,
+  InformationSource,
 } from '@/types/analysis';
 
 // NGキーワード（レターに不適切なファクト）
@@ -1188,4 +1189,30 @@ export function selectFactsForLetter(
   }
 
   return { factsForLetter, rejectedFacts, usedFallback };
+}
+
+/**
+ * Phase 6: InformationSourceにextractedFactsを追加
+ * SelectedFactのsourceUrlから逆引きして、各ソースから抽出されたファクトを紐づける
+ */
+export function enrichSourcesWithFacts(
+  sources: InformationSource[],
+  selectedFacts: SelectedFact[]
+): InformationSource[] {
+  // sourceUrlごとにファクトをグループ化
+  const factsByUrl = new Map<string, string[]>();
+
+  for (const fact of selectedFacts) {
+    if (fact.sourceUrl) {
+      const existing = factsByUrl.get(fact.sourceUrl) || [];
+      existing.push(fact.content);
+      factsByUrl.set(fact.sourceUrl, existing);
+    }
+  }
+
+  // InformationSourceにextractedFactsを追加
+  return sources.map(source => ({
+    ...source,
+    extractedFacts: factsByUrl.get(source.url) || [],
+  }));
 }

@@ -14,11 +14,11 @@ interface SourcesDisplayProps {
 }
 
 const CATEGORY_LABELS: Record<SourceCategory, string> = {
-  corporate: '企業情報',
-  news: 'ニュース',
-  recruit: '採用',
-  ir: 'IR',
-  product: '製品',
+  corporate: 'コーポレート（企業概要・経営方針）',
+  news: 'プレスリリース・ニュース',
+  recruit: '採用情報',
+  ir: 'IR・決算情報',
+  product: '製品・サービス情報',
   other: 'その他',
 };
 
@@ -29,7 +29,7 @@ const CATEGORY_COLORS: Record<SourceCategory, string> = {
   corporate: 'bg-blue-50 text-blue-700 border-blue-200',
   news: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   recruit: 'bg-teal-50 text-teal-700 border-teal-200',
-  ir: 'bg-amber-50 text-amber-700 border-amber-200',
+  ir: 'bg-purple-50 text-purple-700 border-purple-200',
   product: 'bg-rose-50 text-rose-700 border-rose-200',
   other: 'bg-slate-50 text-slate-700 border-slate-200',
 };
@@ -304,38 +304,70 @@ function SourceItemWithCitations({
         title={source.url}
         className="block p-3 hover:bg-slate-50 transition-colors group"
       >
-        <div className="flex items-start gap-3">
-          {/* カテゴリバッジ */}
-          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border flex-shrink-0 ${categoryColor}`}>
-            {categoryLabel}
-          </span>
-
+        <div className="space-y-2">
           {/* タイトル・URL */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-800 truncate group-hover:text-amber-700">
-              {source.title || displayPath}
-            </p>
-            <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
-              {displayPath}
-            </p>
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-800 truncate group-hover:text-amber-700">
+                {source.title || displayPath}
+              </p>
+              <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
+                {displayPath}
+              </p>
+            </div>
+
+            {/* 外部リンクアイコン */}
+            <svg
+              className="w-4 h-4 text-slate-400 group-hover:text-amber-700 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
           </div>
 
-          {/* 外部リンクアイコン */}
-          <svg
-            className="w-4 h-4 text-slate-400 group-hover:text-amber-700 flex-shrink-0 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
+          {/* カテゴリバッジ */}
+          <div>
+            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${categoryColor}`}>
+              {categoryLabel}
+            </span>
+          </div>
         </div>
       </a>
 
+      {/* 抽出された情報（extractedFacts） */}
+      {source.extractedFacts && source.extractedFacts.length > 0 && (
+        <div className="border-t border-slate-100 bg-emerald-50 p-3">
+          <p className="text-xs font-medium text-emerald-700 mb-2 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            抽出した情報:
+          </p>
+          <ul className="space-y-1 text-xs text-slate-700">
+            {source.extractedFacts.slice(0, 5).map((fact, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="text-emerald-600 flex-shrink-0 mt-0.5">・</span>
+                <span className="leading-relaxed">{fact}</span>
+              </li>
+            ))}
+            {source.extractedFacts.length > 5 && (
+              <li className="text-slate-400 text-xs italic pl-3">
+                他{source.extractedFacts.length - 5}件
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
       {/* このソースからの引用（利用箇所） */}
       {citations.length > 0 && (
-        <div className="border-t border-slate-100 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500 mb-2">
+        <div className="border-t border-slate-100 bg-amber-50 p-3">
+          <p className="text-xs font-medium text-amber-700 mb-2 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
             レターでの使用箇所:
           </p>
           <div className="space-y-1.5">
@@ -348,7 +380,7 @@ function SourceItemWithCitations({
               return (
                 <div key={i} className="flex items-start gap-2 text-xs">
                   {location && (
-                    <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                    <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                       {location}
                     </span>
                   )}
@@ -360,8 +392,8 @@ function SourceItemWithCitations({
         </div>
       )}
 
-      {/* 利用箇所がない場合の表示 */}
-      {citations.length === 0 && (
+      {/* 利用箇所もファクトもない場合の表示 */}
+      {citations.length === 0 && (!source.extractedFacts || source.extractedFacts.length === 0) && (
         <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
           <p className="text-xs text-slate-400">
             参考情報として取得

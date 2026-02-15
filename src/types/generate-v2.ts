@@ -50,6 +50,7 @@ export const GenerateV2RequestSchema = z.object({
   sender_info: SenderInfoSchema,
   mode: z.enum(['draft', 'complete', 'event', 'consulting']),
   output_format: z.enum(['letter', 'email']),
+  is_sample: z.boolean().optional(),
 });
 
 /**

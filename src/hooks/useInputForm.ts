@@ -161,6 +161,10 @@ export function useInputForm({
       if (pdfText) {
         formDataToSend.append('pdfText', pdfText);
       }
+      // サンプル判定用の送信者企業名
+      if (formData.myCompanyName) {
+        formDataToSend.append('senderCompany', formData.myCompanyName);
+      }
 
       // SSE対応APIを使用
       const response = await fetch('/api/analyze-source-stream', {

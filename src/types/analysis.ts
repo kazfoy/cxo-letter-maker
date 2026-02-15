@@ -165,6 +165,8 @@ export const InformationSourceSchema = z.object({
   title: z.string().optional(),
   category: SourceCategorySchema,
   isPrimary: z.boolean().default(false),
+  // Phase 6: このソースから抽出されたファクト（表示用）
+  extractedFacts: z.array(z.string()).optional(),
 });
 
 export type InformationSource = z.infer<typeof InformationSourceSchema>;

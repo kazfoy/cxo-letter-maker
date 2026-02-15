@@ -11,6 +11,43 @@ import { devLog } from '@/lib/logger';
 type TabType = 'login' | 'signup';
 type AuthMethod = 'magic_link' | 'otp_code';
 
+/**
+ * 認証エラーをユーザー向けメッセージに変換
+ */
+function getAuthErrorMessage(error: unknown, context: 'signup' | 'signin' | 'otp' | 'reset'): string {
+  const raw = getErrorMessage(error).toLowerCase();
+
+  // ネットワーク/通信エラー（Failed to fetch等）
+  if (raw.includes('fetch') || raw.includes('network') || raw.includes('econnrefused') || raw.includes('dns') || raw.includes('load failed')) {
+    return 'サーバーに接続できません。ネットワーク接続を確認して、しばらく経ってからお試しください。';
+  }
+
+  // タイムアウト
+  if (raw.includes('timeout') || raw.includes('timed out') || raw.includes('aborted')) {
+    return 'リクエストがタイムアウトしました。もう一度お試しください。';
+  }
+
+  // レート制限
+  if (raw.includes('rate limit') || raw.includes('too many') || raw.includes('429')) {
+    return 'リクエストが集中しています。しばらく待ってからお試しください。';
+  }
+
+  // サーバーエラー
+  if (raw.includes('500') || raw.includes('502') || raw.includes('503') || raw.includes('server')) {
+    return 'サーバーで一時的なエラーが発生しました。しばらく待ってからお試しください。';
+  }
+
+  // コンテキスト別のデフォルトメッセージ
+  const defaults: Record<string, string> = {
+    signup: '登録リンクの送信に失敗しました。もう一度お試しください。',
+    signin: 'ログインに失敗しました。もう一度お試しください。',
+    otp: 'コードの検証に失敗しました。もう一度お試しください。',
+    reset: 'リセットリンクの送信に失敗しました。もう一度お試しください。',
+  };
+
+  return defaults[context] || 'エラーが発生しました。もう一度お試しください。';
+}
+
 function LoginContent() {
   const [activeTab, setActiveTab] = useState<TabType>('login');
   const [email, setEmail] = useState('');
@@ -21,6 +58,10 @@ function LoginContent() {
   // OTP (6桁コード) 関連の状態
   const [authMethod, setAuthMethod] = useState<AuthMethod>('magic_link');
   const [otpCode, setOtpCode] = useState('');
+  // パスワードリセット関連の状態
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,7 +128,7 @@ function LoginContent() {
       devLog.error('Signup error:', error);
       setMessage({
         type: 'error',
-        text: getErrorMessage(error) || '登録リンクの送信に失敗しました。もう一度お試しください。',
+        text: getAuthErrorMessage(error, 'signup'),
       });
     } finally {
       setLoading(false);
@@ -125,16 +166,15 @@ function LoginContent() {
       }, 500);
     } catch (error: unknown) {
       devLog.error('Signin error:', error);
-      const message = getErrorMessage(error);
-      let errorMessage = 'ログインに失敗しました';
+      const raw = getErrorMessage(error);
 
-      // Provide more specific error messages
-      if (message.includes('Invalid login credentials')) {
+      let errorMessage: string;
+      if (raw.includes('Invalid login credentials')) {
         errorMessage = 'メールアドレスまたはパスワードが正しくありません';
-      } else if (message.includes('Email not confirmed')) {
+      } else if (raw.includes('Email not confirmed')) {
         errorMessage = 'メールアドレスが確認されていません。登録用リンクから登録を完了してください';
-      } else if (message) {
-        errorMessage = message;
+      } else {
+        errorMessage = getAuthErrorMessage(error, 'signin');
       }
 
       setMessage({
@@ -195,15 +235,15 @@ function LoginContent() {
       }, 500);
     } catch (error: unknown) {
       devLog.error('OTP error:', error);
-      const errorMsg = getErrorMessage(error);
-      let displayMessage = 'コードの検証に失敗しました';
+      const raw = getErrorMessage(error);
 
-      if (errorMsg.includes('expired')) {
+      let displayMessage: string;
+      if (raw.includes('expired')) {
         displayMessage = 'コードの有効期限が切れています。新しいリンクを送信してください。';
-      } else if (errorMsg.includes('invalid')) {
+      } else if (raw.includes('invalid')) {
         displayMessage = 'コードが正しくありません。再度入力してください。';
-      } else if (errorMsg) {
-        displayMessage = errorMsg;
+      } else {
+        displayMessage = getAuthErrorMessage(error, 'otp');
       }
 
       setMessage({
@@ -214,6 +254,176 @@ function LoginContent() {
       setLoading(false);
     }
   };
+
+  // パスワードリセットリンクを送信
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      devLog.log('Sending password reset email...');
+
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/setup-password`,
+      });
+
+      if (error) {
+        devLog.error('Password reset error:', error);
+        throw error;
+      }
+
+      devLog.log('Password reset email sent successfully');
+      setResetSent(true);
+    } catch (error: unknown) {
+      devLog.error('Password reset error:', error);
+      setMessage({
+        type: 'error',
+        text: getAuthErrorMessage(error, 'reset'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // パスワードリセット送信完了画面
+  if (resetSent) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-3">
+                メールを確認してください
+              </h1>
+              <p className="text-lg text-slate-700 mb-6">
+                パスワードリセット用のリンクを送信しました
+              </p>
+
+              <div className="bg-gradient-to-r from-amber-50 to-blue-50 border-2 border-amber-300 rounded-lg p-6 mb-6">
+                <p className="text-base text-slate-900 mb-4 font-medium">
+                  送信先: <strong className="text-amber-700">{resetEmail}</strong>
+                </p>
+                <div className="bg-white/60 rounded-md p-4 mb-4">
+                  <p className="text-sm text-slate-900 font-semibold mb-2">
+                    次のステップ
+                  </p>
+                  <ol className="text-sm text-slate-800 space-y-2 text-left">
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">1.</span>
+                      <span>メールボックスを確認</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">2.</span>
+                      <span>メール内のリンクをクリック</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-bold">3.</span>
+                      <span>新しいパスワードを設定</span>
+                    </li>
+                  </ol>
+                </div>
+                <p className="text-xs text-slate-600">
+                  メールが届かない場合は、迷惑メールフォルダもご確認ください
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setResetSent(false);
+                  setShowResetForm(false);
+                  setActiveTab('login');
+                  setResetEmail('');
+                  setMessage(null);
+                }}
+                className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium"
+              >
+                ログイン画面に戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // パスワードリセットフォーム画面
+  if (showResetForm) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                パスワードリセット
+              </h1>
+              <p className="text-slate-600">
+                登録済みのメールアドレスを入力してください
+              </p>
+            </div>
+
+            <form onSubmit={handlePasswordReset} className="space-y-6">
+              <div>
+                <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700 mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
+                  placeholder="your@email.com"
+                  disabled={loading}
+                  autoFocus
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  パスワードリセット用のリンクを送信します
+                </p>
+              </div>
+
+              {message && (
+                <div
+                  className={`p-4 rounded-md ${message.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '送信中...' : 'リセットリンクを送信'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetForm(false);
+                  setResetEmail('');
+                  setMessage(null);
+                }}
+                className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium"
+              >
+                ログイン画面に戻る
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Magic Link送信完了画面
   if (magicLinkSent) {
@@ -436,6 +646,19 @@ function LoginContent() {
                   placeholder="••••••••"
                   disabled={loading}
                 />
+                <div className="mt-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetForm(true);
+                      setResetEmail(email);
+                      setMessage(null);
+                    }}
+                    className="text-sm text-amber-700 hover:text-amber-900 transition-colors font-medium"
+                  >
+                    パスワードをお忘れですか?
+                  </button>
+                </div>
               </div>
 
               {message && (

@@ -19,8 +19,9 @@ import {
   calculateConsultingQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
-import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany, detectCelebrationFromFacts } from '@/lib/factSelector';
+import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany, detectCelebrationFromFacts, enrichSourcesWithFacts } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { SAMPLE_SENDER_COMPANIES } from '@/lib/sampleData';
 import { devLog } from '@/lib/logger';
 import type { AnalysisResult, SelectedFact } from '@/types/analysis';
 import {
@@ -617,9 +618,13 @@ export async function POST(request: Request) {
     request,
     GenerateV2RequestSchema,
     async (data, _user) => {
-      const { analysis_result, user_overrides, sender_info, mode, output_format } = data;
+      const { analysis_result, user_overrides, sender_info, mode, output_format, is_sample } = data;
 
-      // サーバーサイドレート制限（ゲスト／Freeユーザー）
+      // サンプルリクエストの検証（クライアントからのフラグをサーバーサイドで検証）
+      const isSampleRequest = is_sample === true &&
+        (SAMPLE_SENDER_COMPANIES as readonly string[]).includes(sender_info.company_name);
+
+      // サーバーサイドレート制限（ゲスト／Freeユーザー）— サンプルはスキップ
       const supabaseForAuth = await createClient();
       const { data: { user: currentUser } } = await supabaseForAuth.auth.getUser();
 
@@ -646,8 +651,8 @@ export async function POST(request: Request) {
             );
           }
         }
-      } else {
-        // ゲストユーザー: DBベースの日次制限チェック（3回/日）
+      } else if (!isSampleRequest) {
+        // ゲストユーザー: DBベースの日次制限チェック（3回/日）— サンプルはスキップ
         const cookieStore = await cookies();
         let guestId = cookieStore.get('guest_id')?.value || '';
 
@@ -948,6 +953,12 @@ export async function POST(request: Request) {
                 };
               });
 
+              // Phase 6: sourcesにextractedFactsを追加
+              const enrichedSources = enrichSourcesWithFacts(
+                analysis_result.sources || [],
+                factsForLetter
+              );
+
               return NextResponse.json({
                 success: true,
                 data: {
@@ -956,7 +967,7 @@ export async function POST(request: Request) {
                   rationale: bestResult.rationale,
                   quality: bestQuality,
                   variations: bestResult.variations,
-                  sources: analysis_result.sources || [],
+                  sources: enrichedSources,
                   factsForLetter: factsForLetter,
                   citations,  // Phase 6: citations追加
                 },

@@ -8,6 +8,15 @@
 export type SampleType = 'real';
 
 /**
+ * サンプルリクエスト判定用の送信者企業名リスト
+ * サーバーサイドでクライアントの is_sample フラグを検証するために使用
+ */
+export const SAMPLE_SENDER_COMPANIES = [
+  '株式会社ネクサスソリューションズ',
+  '一般社団法人 日本DX推進協会',
+] as const;
+
+/**
  * 実在企業サンプル（URL起点のファクト抽出を体験）
  */
 export const SAMPLE_DATA = {

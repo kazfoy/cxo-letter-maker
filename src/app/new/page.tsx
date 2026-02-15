@@ -315,6 +315,7 @@ function NewLetterPageContent() {
           },
           mode: mode === 'consulting' ? 'consulting' : 'complete',
           output_format: outputFormat,
+          ...(isDemoModeRef.current ? { is_sample: true } : {}),
         }),
       });
 
@@ -726,6 +727,7 @@ function NewLetterPageContent() {
           },
           mode: generateMode,
           output_format: 'letter',
+          ...(isDemoModeRef.current ? { is_sample: true } : {}),
         }),
       });
 
@@ -947,11 +949,7 @@ function NewLetterPageContent() {
     // 連打防止（2秒クールダウン）
     if (isSampleCooldown) return;
 
-    // ゲスト制限チェック
-    if (usage?.isLimitReached && !user) {
-      setShowLimitModal(true);
-      return;
-    }
+    // サンプル体験はゲスト制限チェックをスキップ（回数にもカウントしない）
 
     setIsSampleCooldown(true);
 
@@ -1017,6 +1015,9 @@ function NewLetterPageContent() {
 
     // フォームにデータをセット
     setFormData(sampleFormData);
+
+    // サンプル体験中はデモモードフラグを立てる（API呼び出しでis_sample=trueを送信）
+    isDemoModeRef.current = true;
 
     try {
       // サンプルは常にV2フロー（分析→モーダル→生成）を使用

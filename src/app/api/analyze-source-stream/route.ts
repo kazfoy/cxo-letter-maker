@@ -8,6 +8,7 @@ import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
 import { getGoogleSearchConfig } from '@/lib/env';
 import { createClient } from '@/utils/supabase/server';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
+import { SAMPLE_SENDER_COMPANIES } from '@/lib/sampleData';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
 export const maxDuration = 60;
@@ -121,8 +122,20 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-  if (!currentUser) {
-    // ゲストユーザー: DBベースの日次制限チェック（3回/日）
+  // サンプルリクエストの検証（FormDataから先読みできないため、クローン）
+  const requestClone = request.clone();
+  let isSampleRequest = false;
+  try {
+    const peekData = await requestClone.formData();
+    const senderCompany = peekData.get('senderCompany') as string | null;
+    isSampleRequest = !!senderCompany &&
+      (SAMPLE_SENDER_COMPANIES as readonly string[]).includes(senderCompany);
+  } catch {
+    // FormData解析失敗 → サンプルではない
+  }
+
+  if (!currentUser && !isSampleRequest) {
+    // ゲストユーザー: DBベースの日次制限チェック（3回/日）— サンプルはスキップ
     const cookieStore = await cookies();
     let guestId = cookieStore.get('guest_id')?.value || '';
 

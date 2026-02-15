@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { apiGuard } from '@/lib/api-guard';
-import { generateJson } from '@/lib/gemini';
+import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { checkSubscriptionStatus } from '@/lib/subscription';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { createClient } from '@/utils/supabase/server';
@@ -19,7 +19,7 @@ import {
   calculateConsultingQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
-import { selectFactsForLetter } from '@/lib/factSelector';
+import { selectFactsForLetter, isPublicSectorOrg } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 import type { AnalysisResult, SelectedFact } from '@/types/analysis';
@@ -112,6 +112,37 @@ function buildEventModeInstructions(
 }
 
 /**
+ * 公共機関向け文体・CTA指示を構築
+ */
+function buildPublicSectorInstructions(): string {
+  return `
+【公共機関・教育機関向け — 文体・CTA特別ルール（厳守）】
+
+■ 文体ルール
+- 「ご面談のお時間」→「情報交換の機会」に置き換え
+- 「弊社のソリューション」→「弊社の取り組み・事例」に置き換え
+- 「導入」→「活用」に置き換え
+- 「ご提案」→「情報提供」に置き換え
+- 「お打ち合わせ」→「意見交換」に置き換え
+- 敬語レベルを官公庁対応に引き上げる（「いただけますと幸いです」「賜れますと幸甚に存じます」等）
+- 営業色を排除し、あくまで情報提供・事例共有のスタンスを維持
+
+■ CTA（行動喚起）ルール
+- NG: 「15分のお打ち合わせ」「ご商談」「デモのご依頼」
+- OK: 「事例共有の機会」「情報提供のお時間」「意見交換の場」
+- 2択は以下のいずれか:
+  1. 「事例資料をお送りする」
+  2. 「30分ほど情報交換の機会をいただく」
+
+■ 禁止表現（公共機関向け追加）
+- 「売上」「収益」「利益率」（公共機関には不適切）
+- 「競合他社」「市場シェア」（競争文脈を避ける）
+- 「ROI」「コスト削減」（民間企業の指標）
+→ 代替: 「住民サービスの向上」「行政運営の高度化」「業務の質的改善」
+`;
+}
+
+/**
  * 相談型レター（consulting）モード専用のプロンプトを構築
  */
 function buildConsultingPrompt(
@@ -120,7 +151,8 @@ function buildConsultingPrompt(
   sender: SenderInfo,
   factsForLetter: SelectedFact[] = [],
   improvementPoints?: string[],
-  _hasTargetUrl: boolean = false
+  _hasTargetUrl: boolean = false,
+  isPublicSector: boolean = false
 ): string {
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
   const personName = overrides?.person_name || analysis.facts.person_name || '';
@@ -167,8 +199,11 @@ ${factsList}`;
 - body本文に「[citation:...]」等のマーカーは絶対に入れないこと`
     : '';
 
+  // 公共機関向け指示
+  const publicSectorInstruction = isPublicSector ? buildPublicSectorInstructions() : '';
+
   return `あなたは大手企業のCxO（経営層）から「15分だけ話を聞こう」を引き出すことに長けた、トップクラスのBDR（ビジネス開発担当）です。
-以下の分析結果を基に、相談型レター（メール）を作成してください。${retryInstruction}${factsInstruction}${citationInstruction}
+以下の分析結果を基に、相談型レター（メール）を作成してください。${retryInstruction}${factsInstruction}${citationInstruction}${publicSectorInstruction}
 
 【相談型レター - 絶対ルール（厳守）】
 
@@ -247,11 +282,12 @@ function buildGenerationPrompt(
   format: 'letter' | 'email',
   factsForLetter: SelectedFact[] = [],
   improvementPoints?: string[],
-  hasTargetUrl: boolean = false
+  hasTargetUrl: boolean = false,
+  isPublicSector: boolean = false
 ): string {
   // consultingモードは専用プロンプトを使用
   if (mode === 'consulting') {
-    return buildConsultingPrompt(analysis, overrides, sender, factsForLetter, improvementPoints, hasTargetUrl);
+    return buildConsultingPrompt(analysis, overrides, sender, factsForLetter, improvementPoints, hasTargetUrl, isPublicSector);
   }
 
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
@@ -385,10 +421,13 @@ ${factsList}
     ? `\n\n【citations】引用文ごとにsentence(50文字以内)+quoteKeyを出力。body本文に[citation:]等のマーカーは絶対不可。`
     : '';
 
+  // 公共機関向け指示
+  const publicSectorInstruction = isPublicSector ? buildPublicSectorInstructions() : '';
+
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}
+${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}${publicSectorInstruction}
 
 【絶対ルール】
 1. 架空禁止。提供データのみ使用可
@@ -615,6 +654,16 @@ export async function POST(request: Request) {
       // targetUrl有無の判定（プロンプト構築で使用）
       const hasTargetUrl = Boolean(user_overrides?.target_url || analysis_result.target_url);
 
+      // 公共機関判定（文体・CTA切り替えに使用）
+      const isPublicSector = isPublicSectorOrg({
+        targetUrl: user_overrides?.target_url || analysis_result.target_url || undefined,
+        companyName: user_overrides?.company_name || (analysis_result.facts.company_name ?? undefined),
+        industry: analysis_result.facts.industry ?? undefined,
+      });
+      if (isPublicSector) {
+        devLog.log('Public sector detected: applying public sector tone/CTA rules');
+      }
+
       // ファクト0件でも仮説モードで生成を続行（ハードエラーにしない）
       if (hasTargetUrl && factsForLetter.length === 0) {
         devLog.warn('URL provided but no facts extracted. Proceeding in hypothesis mode.');
@@ -639,7 +688,8 @@ export async function POST(request: Request) {
             output_format,
             factsForLetter,
             attempt > 1 ? improvementPoints : undefined,
-            hasTargetUrl
+            hasTargetUrl,
+            isPublicSector
           );
 
           // 2. 生成（consultingモードは専用スキーマ）
@@ -650,6 +700,7 @@ export async function POST(request: Request) {
                   prompt,
                   schema: ConsultingOutputSchema,
                   maxRetries: 1,
+                  temperature: TEMPERATURE.generation,
                 }) as ConsultingOutput;
                 // GenerateV2Output互換に変換
                 return {
@@ -665,6 +716,7 @@ export async function POST(request: Request) {
                 prompt,
                 schema: GenerateV2OutputSchema,
                 maxRetries: 1,
+                temperature: TEMPERATURE.generation,
               });
 
           // 2.5. ポストプロセス: 禁止ワード・プレースホルダーの自動置換

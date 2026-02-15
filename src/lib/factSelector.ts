@@ -85,12 +85,55 @@ const PUBLIC_SECTOR_DETECT_KEYWORDS = [
   '機構', '財団法人', '社団法人', '公共', '行政',
 ];
 
+// 公共機関URL判定パターン
+const PUBLIC_SECTOR_URL_PATTERNS = [
+  /\.go\.jp/i,    // 国の機関
+  /\.lg\.jp/i,    // 地方公共団体
+  /\.ac\.jp/i,    // 大学・学術機関
+  /\.ed\.jp/i,    // 教育機関
+];
+
+// 公共機関名判定キーワード（企業名・組織名で使用）
+const PUBLIC_SECTOR_NAME_KEYWORDS = [
+  '省', '庁', '府', '大学', '学園', '市', '区', '町', '村', '県',
+  '都', '道', '国立', '公立', '学校法人',
+];
+
 /**
  * 企業名・業界から公共機関かどうかを判定
  */
 function detectPublicSector(industry?: string, companyName?: string): boolean {
   const combined = `${industry || ''} ${companyName || ''}`;
   return PUBLIC_SECTOR_DETECT_KEYWORDS.some(kw => combined.includes(kw));
+}
+
+/**
+ * 公共機関かどうかを総合判定（URL + 企業名 + 業界）
+ *
+ * generate-v2から利用。URL、企業名、業界のいずれかが
+ * 公共機関パターンに合致すればtrueを返す。
+ */
+export function isPublicSectorOrg(options: {
+  targetUrl?: string;
+  companyName?: string;
+  industry?: string;
+}): boolean {
+  // 1. URL判定
+  if (options.targetUrl) {
+    if (PUBLIC_SECTOR_URL_PATTERNS.some(p => p.test(options.targetUrl!))) {
+      return true;
+    }
+  }
+
+  // 2. 企業名判定
+  if (options.companyName) {
+    if (PUBLIC_SECTOR_NAME_KEYWORDS.some(kw => options.companyName!.includes(kw))) {
+      return true;
+    }
+  }
+
+  // 3. 業界判定（既存ロジック）
+  return detectPublicSector(options.industry, options.companyName);
 }
 
 /**
@@ -510,11 +553,33 @@ function generateFallbackFacts(
     '銀行', '証券', '保険', '金融', 'ファイナンス', '信用金庫',
     'リース', '信託', 'アセット',
   ];
+  const aviationKeywords = [
+    '航空', 'エアライン', '空港', '運輸', '旅客', 'ANA', 'JAL',
+  ];
+  const logisticsKeywords = [
+    '物流', '運送', '倉庫', '配送', '宅配', 'ロジスティクス', '貨物',
+  ];
+  const constructionKeywords = [
+    '建設', 'ゼネコン', '建築', '土木', '施工', '不動産開発',
+  ];
+  const healthcareKeywords = [
+    '医療', '病院', 'クリニック', '製薬', 'ヘルスケア', '医薬',
+    '医療法人', '介護',
+  ];
+  const retailKeywords = [
+    '小売', 'リテール', '百貨店', 'スーパー', 'ドラッグストア',
+    'コンビニ', '量販店', 'ホームセンター', '専門店',
+  ];
 
   const isPublicSector = publicSectorKeywords.some(kw => combined.includes(kw));
   const isStartup = startupKeywords.some(kw => combined.includes(kw));
   const isManufacturing = manufacturingKeywords.some(kw => combined.includes(kw));
   const isFinancial = financialKeywords.some(kw => combined.includes(kw));
+  const isAviation = aviationKeywords.some(kw => combined.includes(kw));
+  const isLogistics = logisticsKeywords.some(kw => combined.includes(kw));
+  const isConstruction = constructionKeywords.some(kw => combined.includes(kw));
+  const isHealthcare = healthcareKeywords.some(kw => combined.includes(kw));
+  const isRetail = retailKeywords.some(kw => combined.includes(kw));
 
   if (isPublicSector) {
     return [
@@ -557,7 +622,7 @@ function generateFallbackFacts(
         isMidTermPlan: false,
       },
       {
-        content: '全銀ネット次期システム移行（2027年稼働予定）に向け、API連携基盤の整備とリアルタイム決済対応が各金融機関の喫緊の課題に',
+        content: '全銀ネット次期システム移行（2027年稼働予定）に向け、API連携基盤の整備とリアルタイム決済対応が各金融機関の重要度の高い経営課題に',
         category: 'companyDirection',
         relevanceScore: 30,
         reason: '全銀ネット次期システムへの移行準備',
@@ -584,7 +649,7 @@ function generateFallbackFacts(
         isMidTermPlan: false,
       },
       {
-        content: 'EU炭素国境調整メカニズム（CBAM）の本格適用（2026年1月）に向け、製品単位のCO2排出量算定と報告体制の構築が輸出製造業の急務に',
+        content: 'EU炭素国境調整メカニズム（CBAM）の本格適用（2026年1月）に向け、製品単位のCO2排出量算定と報告体制の構築が輸出製造業において優先的に取り組むべき課題に',
         category: 'recentMoves',
         relevanceScore: 30,
         reason: 'EU CBAM本格適用に向けた対応期限の接近',
@@ -618,6 +683,141 @@ function generateFallbackFacts(
         quoteKey: 'AIガバナンス',
         topicTags: ['governance', 'digital_transformation'],
         bridgeReason: 'テック企業の規制対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isAviation) {
+    return [
+      {
+        content: '2024年4月の改正航空法施行により、安全管理体制（SMS）の対象拡大と報告義務の強化が求められ、航空各社でバックオフィス業務を含むオペレーション全体の見直しが進んでいる',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '改正航空法施行に伴う安全管理体制の見直し',
+        quoteKey: '改正航空法2024',
+        topicTags: ['governance', 'risk_management'],
+        bridgeReason: '航空法改正に伴う管理体制強化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '訪日外国人旅行者数が2024年に3,687万人（JNTO速報値）を記録し過去最高を更新、インバウンド需要の急回復に伴いバックオフィス業務の効率化が各社の経営テーマに浮上',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: 'インバウンド急回復に伴う業務効率化ニーズ',
+        quoteKey: '訪日旅行者3687万人',
+        topicTags: ['digital_transformation', 'growth_strategy'],
+        bridgeReason: 'インバウンド急増に伴う業務体制整備に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isLogistics) {
+    return [
+      {
+        content: '2024年4月の働き方改革関連法によるドライバーの時間外労働上限規制（年960時間）が施行され、物流業界では配車計画・庫内作業・管理業務の抜本的なプロセス改革が経営課題に',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '物流2024年問題（時間外労働上限規制）への対応',
+        quoteKey: '物流2024年問題',
+        topicTags: ['hr_organization', 'digital_transformation'],
+        bridgeReason: '物流業界の労働規制対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '経産省・国交省「物流革新に向けた政策パッケージ」（2023年6月閣議決定）に基づき、荷主・物流事業者双方にトラック待機時間の削減と経費精算・請求管理の標準化が要請されている',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: '物流革新政策パッケージに基づく標準化要請',
+        quoteKey: '物流革新政策パッケージ',
+        topicTags: ['supply_chain', 'digital_transformation'],
+        bridgeReason: '物流業務の標準化・デジタル化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isConstruction) {
+    return [
+      {
+        content: '2024年4月の建設業における時間外労働上限規制の適用開始により、現場管理のデジタル化とBIM/CIM活用による工程短縮が業界全体のテーマになっている',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '建設業2024年問題（時間外労働上限規制）への対応',
+        quoteKey: '建設業2024年問題',
+        topicTags: ['hr_organization', 'digital_transformation'],
+        bridgeReason: '建設業の労働規制対応とデジタル化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: 'CCUS（建設キャリアアップシステム）の登録技能者数が2024年12月時点で140万人を超え、国交省はCCUS活用を公共工事の入札条件に段階的に拡大する方針を示している',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: 'CCUS拡大に伴う管理業務の標準化ニーズ',
+        quoteKey: 'CCUS登録140万人',
+        topicTags: ['digital_transformation', 'governance'],
+        bridgeReason: '建設キャリアアップシステム拡大に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isHealthcare) {
+    return [
+      {
+        content: '2024年4月の医師の働き方改革施行（A水準: 年960時間上限）により、病院経営では診療以外の業務効率化とタスクシフトの実行計画が経営層のアジェンダになっている',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '医師の働き方改革施行に伴う経営効率化',
+        quoteKey: '医師働き方改革2024',
+        topicTags: ['hr_organization', 'governance'],
+        bridgeReason: '医療機関の働き方改革対応に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: '厚労省の電子処方箋管理サービスが2023年1月に運用開始、2025年3月末時点で対応施設数が1万件を超え、医療機関のDX対応が本格化している',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: '電子処方箋普及に伴う医療DXの加速',
+        quoteKey: '電子処方箋1万施設',
+        topicTags: ['digital_transformation', 'governance'],
+        bridgeReason: '医療DXの本格化に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+    ];
+  }
+
+  if (isRetail) {
+    return [
+      {
+        content: '2024年10月の最低賃金改定で全国加重平均が1,055円（前年比51円増、過去最大の引き上げ幅）となり、小売業では人件費上昇に対応する店舗運営の効率化が経営課題に',
+        category: 'recentMoves',
+        relevanceScore: 35,
+        reason: '最低賃金引き上げに伴う店舗運営効率化の必要性',
+        quoteKey: '最低賃金1055円',
+        topicTags: ['hr_organization', 'finance_ops'],
+        bridgeReason: '人件費上昇に伴う小売業の経営課題に関連',
+        confidence: 40,
+        isMidTermPlan: false,
+      },
+      {
+        content: 'インボイス制度（2023年10月開始）の経過措置期間中に、中小小売業者では仕入税額控除の管理と経理業務の負荷が増加し、請求書・経費処理の自動化ニーズが高まっている',
+        category: 'companyDirection',
+        relevanceScore: 30,
+        reason: 'インボイス制度対応に伴う経理業務負荷の増加',
+        quoteKey: 'インボイス経過措置',
+        topicTags: ['finance_ops', 'digital_transformation'],
+        bridgeReason: 'インボイス制度対応に関連',
         confidence: 40,
         isMidTermPlan: false,
       },

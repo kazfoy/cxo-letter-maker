@@ -6,7 +6,7 @@ import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
-import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT, TEMPERATURE } from '@/lib/gemini';
 
 export const maxDuration = 60;
 
@@ -159,6 +159,7 @@ JSON形式のみを出力してください（Markdownのコードブロック�
         const result = await generateText({
           model: model,
           prompt: extractPrompt,
+          temperature: TEMPERATURE.analysis,
         });
 
         const responseText = result.text.trim();

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Target, Zap, FileText, Download, Sparkles, X } from 'lucide-react';
+import { Mail, Target, Zap, FileText, Download, Sparkles } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { Header } from '@/components/Header';
 
@@ -61,7 +61,7 @@ export default function LandingPage() {
         "name": "本当に無料で使えますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "はい、無料プランをご用意しております。ただし、1日10回までの生成、履歴の閲覧は最新10件まで、Word形式でのダウンロードは不可（テキストコピーは可能）、CSV一括生成機能は利用不可といった制限がございます。より高度な機能が必要な場合は、Proプラン（月額980円）またはPremiumプラン（月額9,800円）をご検討ください。"
+          "text": "はい、無料プランをご用意しております。1日10回までの生成、履歴の閲覧は最新10件まで、テキストコピーでのご利用が可能です。Word形式ダウンロードやCSV一括生成はProプラン以上でご利用いただけます。Proプラン（月額980円）またはPremiumプラン（月額9,800円）をご検討ください。"
         }
       },
       {
@@ -201,13 +201,13 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg md:text-xl text-stone-600 leading-relaxed mt-4">
-                URLを入れるだけ。独自の営業メソッドに基づいた<br className="hidden md:block" />個別最適化レターを自動生成。
+                企業のIR・ニュースから根拠を自動抽出。<br className="hidden md:block" />CxOが返信したくなるレターを30秒で生成。
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link
                   href="/new"
-                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 min-h-[44px] bg-stone-900 text-stone-50 rounded-md font-bold text-lg hover:bg-stone-800 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+                  className="group inline-flex items-center justify-center gap-2 px-10 py-4 min-h-[44px] bg-amber-800 text-white rounded-md font-bold text-lg hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
                   無料で試す
                   <Mail className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -396,7 +396,7 @@ export default function LandingPage() {
             </p>
             <Link
               href="/new"
-              className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-stone-900 text-white rounded-md font-bold hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
               無料で試す
               <Mail className="w-5 h-5" />
@@ -671,13 +671,21 @@ export default function LandingPage() {
                     </svg>
                     <span>AIによる企業分析 & 生成</span>
                   </li>
-                  <li className="flex items-start gap-3 text-stone-400">
-                    <X className="w-5 h-5 flex-shrink-0" />
-                    <span>Word形式ダウンロード (不可)</span>
+                  <li className="flex items-start gap-3 text-stone-500">
+                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    <a href="#pricing" className="hover:text-amber-800 transition-colors">
+                      Word形式ダウンロード <span className="text-amber-700 font-semibold">Proで利用可</span>
+                    </a>
                   </li>
-                  <li className="flex items-start gap-3 text-stone-400">
-                    <X className="w-5 h-5 flex-shrink-0" />
-                    <span>CSV一括生成 (不可)</span>
+                  <li className="flex items-start gap-3 text-stone-500">
+                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    <a href="#pricing" className="hover:text-amber-800 transition-colors">
+                      CSV一括生成 <span className="text-amber-700 font-semibold">Proで利用可</span>
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -685,8 +693,8 @@ export default function LandingPage() {
 
             {/* Pro Plan */}
             <div className="bg-white rounded-2xl p-5 sm:p-8 border-2 border-amber-800 shadow-xl relative flex flex-col">
-              <div className="absolute top-0 right-0 bg-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
-                RECOMMENDED
+              <div className="absolute top-0 right-0 bg-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
+                おすすめ
               </div>
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-amber-800 mb-2">Pro Plan</h3>
@@ -856,8 +864,8 @@ export default function LandingPage() {
                 <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600">
                   <li>1日10回までの生成</li>
                   <li>履歴の閲覧は最新10件まで</li>
-                  <li>Word形式でのダウンロードは不可（テキストコピーは可能）</li>
-                  <li>CSV一括生成機能は利用不可</li>
+                  <li>テキストコピーが可能（Word形式ダウンロードはProプラン以上）</li>
+                  <li>CSV一括生成はProプラン以上で利用可能</li>
                 </ul>
                 <br />
                 より高度な機能が必要な場合は、以下の有料プランをご検討ください：
@@ -1007,7 +1015,7 @@ export default function LandingPage() {
 
           <Link
             href="/new"
-            className="group inline-flex items-center justify-center gap-3 px-14 py-6 min-h-[44px] bg-stone-900 text-white rounded-lg font-bold text-xl hover:bg-stone-800 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
+            className="group inline-flex items-center justify-center gap-3 px-14 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
             無料で試す
             <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />

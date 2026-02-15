@@ -4,7 +4,7 @@
  * analyze-input と generate-v2 の両方から利用
  */
 
-import { generateJson } from '@/lib/gemini';
+import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
 import {
@@ -470,6 +470,7 @@ async function extractFactsFromPage(
       prompt,
       schema: SimpleExtractedFactsSchema,
       maxRetries: 1,
+      temperature: TEMPERATURE.analysis,
     });
 
     return {

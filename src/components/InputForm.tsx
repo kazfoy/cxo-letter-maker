@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { useInputForm } from '@/hooks/useInputForm';
 import { SalesForm } from '@/components/forms/SalesForm';
@@ -115,25 +115,6 @@ export function InputForm({
   // 2レーン用：ボタン無効化判定（sales/event共通）
   const isTwoLaneButtonDisabled = disabled || isQuickDrafting || isAnalyzing || isGeneratingLocal;
 
-  // ツールチップの表示管理
-  const [showQuickTip, setShowQuickTip] = useState(false);
-  const [showAnalyzeTip, setShowAnalyzeTip] = useState(false);
-  const [hasSeenTips, setHasSeenTips] = useState(true);
-
-  // 初回ユーザー判定: ツールチップをデフォルト表示
-  useEffect(() => {
-    const seen = localStorage.getItem('two_lane_tips_seen');
-    if (!seen) {
-      setHasSeenTips(false);
-      setShowAnalyzeTip(true);
-      const timer = setTimeout(() => {
-        setShowAnalyzeTip(false);
-        localStorage.setItem('two_lane_tips_seen', '1');
-        setHasSeenTips(true);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
@@ -222,113 +203,62 @@ export function InputForm({
           </div>
         )}
 
-        {/* 送信ボタンエリア - 2レーン統合（sales/event共通） */}
+        {/* 送信ボタンエリア - 統合CTA */}
         <div className="space-y-3">
-          {/* 2つの生成方法の説明 */}
-          <div className="text-xs text-stone-500 space-y-1 mb-1">
-            <p>&#9999;&#65039; <strong>まずは下書き</strong> — 企業名だけで素早く生成</p>
-            <p>&#128269; <strong>根拠付きで生成</strong> — URLから企業分析して最適化（おすすめ）</p>
-          </div>
-          {/* まずは下書き（クイック）ボタン */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={onQuickDraft}
-              disabled={isTwoLaneButtonDisabled}
-              className={`w-full py-3 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2
-                ${isQuickDrafting
-                  ? 'bg-slate-400 text-white cursor-wait'
-                  : mode === 'event'
-                    ? 'bg-purple-50 text-purple-700 border border-purple-300 hover:bg-purple-100 focus:ring-purple-400'
-                    : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 focus:ring-slate-400'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isQuickDrafting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>下書き生成中...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg">&#9999;&#65039;</span>
-                  <span>まずは下書き（クイック）</span>
-                  <button
-                    type="button"
-                    className="ml-1 text-slate-400 hover:text-slate-600 transition-colors"
-                    onMouseEnter={() => setShowQuickTip(true)}
-                    onMouseLeave={() => setShowQuickTip(false)}
-                    onClick={(e) => { e.stopPropagation(); setShowQuickTip(v => !v); }}
-                    aria-label="クイック生成の説明"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                </>
-              )}
-            </button>
-            {showQuickTip && (
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-10">
-                シンプルな営業レターを素早く生成
-                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
-              </div>
-            )}
-          </div>
+          {/* URL入力のヒント */}
+          <p className="text-xs text-stone-500">
+            URLを入れると、企業分析に基づいた高品質なレターを生成します
+          </p>
 
-          {/* 根拠付きで生成（分析）ボタン - メインCTA */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={onAnalyzeAndGenerate}
-              disabled={isTwoLaneButtonDisabled}
-              className={`w-full py-3.5 px-4 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg
-                ${generationSuccess
-                  ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
-                  : isAnalyzing
-                    ? mode === 'event' ? 'bg-purple-500 text-white cursor-wait' : 'bg-indigo-500 text-white cursor-wait'
-                    : mode === 'event'
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white hover:shadow-xl focus:ring-purple-500'
-                      : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-xl focus:ring-indigo-500'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {generationSuccess ? (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>{BUTTON_TEXTS.generationComplete}</span>
-                </>
-              ) : isAnalyzing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>分析中...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg">&#128269;</span>
-                  <span>根拠付きで生成（分析）</span>
-                  <button
-                    type="button"
-                    className="ml-1 text-white/60 hover:text-white transition-colors"
-                    onMouseEnter={() => setShowAnalyzeTip(true)}
-                    onMouseLeave={() => setShowAnalyzeTip(false)}
-                    onClick={(e) => { e.stopPropagation(); setShowAnalyzeTip(v => !v); }}
-                    aria-label="根拠付き生成の説明"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                </>
-              )}
-            </button>
-            {(showAnalyzeTip || !hasSeenTips) && (
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg z-10 max-w-[260px] text-center">
-                企業分析に基づく詳細なレターを生成（おすすめ）
-                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
-              </div>
+          {/* 統合CTAボタン */}
+          <button
+            type="button"
+            onClick={() => {
+              // URL有無で自動分岐
+              const hasUrl = !!(formData.targetUrl?.trim() || formData.eventUrl?.trim());
+              if (hasUrl) {
+                // URLあり → 分析→モーダル→生成
+                onAnalyzeAndGenerate?.();
+              } else {
+                // URLなし → クイック下書き生成
+                onQuickDraft?.();
+              }
+            }}
+            disabled={isTwoLaneButtonDisabled}
+            className={`w-full py-3.5 px-4 rounded-md font-bold text-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg
+              ${generationSuccess
+                ? 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+                : isAnalyzing || isQuickDrafting
+                  ? 'bg-amber-700 text-white cursor-wait'
+                  : 'bg-amber-800 hover:bg-amber-900 text-white hover:shadow-xl focus:ring-amber-500'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {generationSuccess ? (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{BUTTON_TEXTS.generationComplete}</span>
+              </>
+            ) : isAnalyzing ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>企業を分析中...</span>
+              </>
+            ) : isQuickDrafting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>レターを生成中...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>レターを生成</span>
+              </>
             )}
-          </div>
+          </button>
         </div>
       </form>
 

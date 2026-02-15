@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
-import { generateJson } from '@/lib/gemini';
+import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { safeFetch, UrlAccessError } from '@/lib/url-validator';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
@@ -98,18 +98,18 @@ export async function POST(request: Request) {
           extractedFacts = cached.extractedFacts;
           extractedSources = cached.extractedSources;
         } else {
-          // キャッシュミス - 従来のfetch処理
+          // キャッシュミス - URL取得とファクト抽出
+          // Step 1: メインページのテキスト取得
           try {
             devLog.log('Fetching URL:', target_url);
             const response = await safeFetch(
               target_url,
               {
                 headers: {
-                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  Accept: 'text/html,application/xhtml+xml',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 },
               },
-              20000, // 20秒タイムアウト
+              10000, // 10秒タイムアウト
               5 * 1024 * 1024 // 5MB制限
             );
 
@@ -125,34 +125,39 @@ export async function POST(request: Request) {
                 severity: 'medium',
               });
             }
+          } catch (error) {
+            // メインページ取得失敗 - ファクト抽出は別途試行するため続行
+            const isBlocked = error instanceof UrlAccessError && error.isBlocked;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-            // Phase 5: サブルート探索でファクト抽出（並列実行）
+            devLog.warn('URL fetch failed:', error);
+            riskFlags.push({
+              type: 'missing_info',
+              message: isBlocked
+                ? 'URLがブロックされたため仮説モードで生成します'
+                : `メインページ取得失敗: ${errorMessage}`,
+              severity: isBlocked ? 'medium' : 'high',
+            });
+          }
+
+          // Step 2: サブルート探索でファクト抽出（メインページ取得とは独立して実行）
+          try {
             const factResult = await extractFactsFromUrl(target_url);
             if (factResult) {
               extractedFacts = factResult.facts;
               extractedSources = factResult.sources;
             }
+          } catch (error) {
+            devLog.warn('Fact extraction failed:', error);
+          }
 
-            // 成功時はキャッシュに保存
+          // 成功したデータがあればキャッシュに保存
+          if (extractedContent || extractedFacts) {
             setCachedAnalysis<CachedUrlData>(target_url, {
               extractedContent,
               extractedFacts,
               extractedSources,
             });
-          } catch (error) {
-            // UrlAccessError（403/401）の場合は仮説モードで継続
-            const isBlocked = error instanceof UrlAccessError && error.isBlocked;
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-            devLog.warn('URL extraction failed:', error);
-            riskFlags.push({
-              type: 'missing_info',
-              message: isBlocked
-                ? 'URLがブロックされたため仮説モードで生成します'
-                : `URL解析失敗: ${errorMessage}`,
-              severity: isBlocked ? 'medium' : 'high',
-            });
-            // 処理は継続（returnしない）
           }
         }
       }
@@ -233,6 +238,7 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
           prompt: analysisPrompt,
           schema: AnalysisResultSchema,
           maxRetries: 1,
+          temperature: TEMPERATURE.analysis,
         });
 
         // URL解析で発生したリスクフラグを追加

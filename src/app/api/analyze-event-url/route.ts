@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { apiGuard } from '@/lib/api-guard';
-import { generateJson } from '@/lib/gemini';
+import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { safeFetch } from '@/lib/url-validator';
 import { extractTextFromHtml } from '@/lib/urlAnalysis';
 import { z } from 'zod';
@@ -97,6 +97,7 @@ JSON形式のみ：
           prompt,
           schema: EventInfoSchema,
           maxRetries: 1,
+          temperature: TEMPERATURE.analysis,
         });
 
         // 少なくとも1つの情報が取得できたか確認

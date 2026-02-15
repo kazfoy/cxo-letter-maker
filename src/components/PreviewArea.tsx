@@ -48,6 +48,7 @@ interface PreviewAreaProps {
   hasUrl?: boolean;
   selfCheck?: string[];
   letterMode?: LetterMode;
+  onSampleFill?: () => void;
 }
 
 function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolean; isGenerating: boolean }) {
@@ -138,6 +139,7 @@ export function PreviewArea({
   hasUrl = false,
   selfCheck,
   letterMode,
+  onSampleFill,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const { isPro, isPremium, isFree } = useUserPlan();
@@ -787,7 +789,7 @@ export function PreviewArea({
         ) : (
           <div className="relative min-h-[600px]">
             {/* サンプルレター（グレーアウト） */}
-            <div className="p-8 font-serif text-gray-800 leading-relaxed text-[15px] opacity-[0.15] select-none pointer-events-none" style={{ lineHeight: '1.8' }}>
+            <div className="p-8 font-serif text-gray-800 leading-relaxed text-[15px] opacity-[0.12] select-none pointer-events-none" style={{ lineHeight: '1.8' }}>
               <p>株式会社サンプル商事</p>
               <p>代表取締役社長 山田太郎 様</p>
               <p className="mt-4">突然のご連絡失礼いたします。</p>
@@ -798,17 +800,29 @@ export function PreviewArea({
               <p className="mt-3">まずは15分ほどのお時間をいただき、情報交換の機会を頂戴できませんでしょうか。</p>
             </div>
             {/* オーバーレイ */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70">
-              <div className="text-center px-8">
-                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80">
+              <div className="text-center px-8 max-w-sm">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-lg font-semibold text-slate-800 mb-2">URLを入力してレターを生成</p>
-                <p className="text-sm text-slate-500 max-w-sm">
-                  こんなレターが生成されます。左のフォームに企業URLを入力して、30秒で完成。
+                <p className="text-lg font-semibold text-stone-800 mb-2">こんなレターが30秒で完成</p>
+                <p className="text-sm text-stone-500 mb-6">
+                  左のフォームに企業URLを入力するか、まずはサンプルで体験してみてください。
                 </p>
+                {onSampleFill && (
+                  <button
+                    onClick={onSampleFill}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-800 text-white rounded-lg font-bold text-base hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    サンプルで試してみる
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -850,33 +864,57 @@ export function PreviewArea({
         featureName={proFeatureName}
       />
 
-      {/* 編集機能制限到達モーダル */}
+      {/* 編集機能制限到達モーダル（損失回避フレーミング） */}
       {showLimitModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-purple-500"></div>
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-amber-700"></div>
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">お試し利用回数を使い切りました</h3>
-            <p className="text-slate-600 mb-8 leading-relaxed">
-              自動編集機能は1時間に3回までお試しいただけます。<br />
-              無料会員登録すると、無制限で利用可能です。
+            <h3 className="text-xl font-bold text-stone-900 mb-2 text-center">もう少しで理想の文面に！</h3>
+            <p className="text-stone-600 mb-6 leading-relaxed text-center">
+              無料登録すると、AI編集を無制限で利用できます。<br />
+              <span className="text-xs text-stone-400">30秒で完了・クレジットカード不要</span>
             </p>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <ul className="space-y-2.5">
+                <li className="flex items-start gap-2 text-sm text-stone-700">
+                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>AI編集が無制限</strong>に利用可能</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-stone-700">
+                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>作成したレターの<strong>履歴を保存</strong></span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-stone-700">
+                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>生成回数も<strong>1日10回</strong>に拡大</span>
+                </li>
+              </ul>
+            </div>
+
             <div className="space-y-3">
               <Link
                 href="/login"
-                className="block w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105"
+                className="block w-full py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 text-center"
               >
-                無料で会員登録・ログイン
+                無料で登録して続ける
               </Link>
               <button
                 onClick={() => setShowLimitModal(false)}
-                className="block w-full py-3 px-4 text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                className="block w-full py-3 px-4 text-stone-400 hover:text-stone-600 text-sm font-medium transition-colors"
               >
-                閉じる
+                登録不要で明日また使う
               </button>
             </div>
           </div>

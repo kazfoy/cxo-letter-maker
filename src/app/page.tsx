@@ -1,13 +1,10 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Target, Zap, FileText, Download, Sparkles } from 'lucide-react';
-import { useCheckout } from '@/hooks/useCheckout';
 import { Header } from '@/components/Header';
+import { UpgradeButton } from '@/components/UpgradeButton';
 
 export default function LandingPage() {
-  const { handleUpgrade, loading: upgrading } = useCheckout();
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
 
   // JSON-LD構造化データ for AI検索エンジン対策
@@ -206,7 +203,7 @@ export default function LandingPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link
-                  href="/new"
+                  href="/new?demo=true"
                   className="group inline-flex items-center justify-center gap-2 px-10 py-4 min-h-[44px] bg-amber-800 text-white rounded-md font-bold text-lg hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
                   無料で試す
@@ -395,7 +392,7 @@ export default function LandingPage() {
               アポ率の向上と、作業時間の<span className="text-amber-800 font-bold">大幅短縮</span>を両立できます。
             </p>
             <Link
-              href="/new"
+              href="/new?demo=true"
               className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
               無料で試す
@@ -494,7 +491,7 @@ export default function LandingPage() {
           {/* CTA */}
           <div className="text-center mt-16">
             <Link
-              href="/new"
+              href="/new?demo=true"
               className="group inline-flex items-center justify-center gap-2 px-12 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
               無料で試す
@@ -643,7 +640,7 @@ export default function LandingPage() {
                   まずはお試しで使ってみたい方に
                 </p>
                 <Link
-                  href="/new"
+                  href="/new?demo=true"
                   className="block w-full py-3 px-4 min-h-[44px] bg-white border-2 border-stone-200 text-stone-900 font-bold text-center rounded-lg hover:bg-stone-50 transition-colors"
                 >
                   無料で試す
@@ -705,13 +702,12 @@ export default function LandingPage() {
                 <p className="text-stone-600 mt-4 text-sm mb-6">
                   毎日のリスト消化を自動化し、商談数を最大化したい方に
                 </p>
-                <button
-                  onClick={() => handleUpgrade('pro')}
-                  disabled={upgrading}
+                <UpgradeButton
+                  plan="pro"
+                  label="7日間無料で試す"
                   className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02] disabled:opacity-50"
-                >
-                  {upgrading ? '処理中...' : 'Proプランで始める'}
-                </button>
+                />
+                <p className="text-xs text-stone-400 text-center mt-2">トライアル後 ¥980/月</p>
               </div>
 
               <div className="flex-1 space-y-4">
@@ -766,7 +762,7 @@ export default function LandingPage() {
 
             {/* Premium Plan */}
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 sm:p-8 border-2 border-slate-700 shadow-2xl relative flex flex-col text-white">
-              <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-600 to-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
                 BUSINESS
               </div>
               <div className="mb-8">
@@ -778,32 +774,30 @@ export default function LandingPage() {
                 <p className="text-slate-300 mt-4 text-sm mb-6">
                   展示会やイベント後の大量リードを、即座に商談へ繋げたい方に
                 </p>
-                <button
-                  onClick={() => handleUpgrade('premium')}
-                  disabled={upgrading}
-                  className="block w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-center rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
-                >
-                  {upgrading ? '処理中...' : 'Premiumプランで始める'}
-                </button>
+                <UpgradeButton
+                  plan="premium"
+                  label="Premiumプランで始める"
+                  className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
+                />
               </div>
 
               <div className="flex-1 space-y-4">
                 <p className="text-sm font-bold text-white">Proプランの全機能に加え:</p>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3 text-white font-medium">
-                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
-                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
+                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <span className="text-blue-400 font-bold text-lg">展示会名刺も即日対応。1日1,000件</span>
+                      <span className="text-amber-400 font-bold text-lg">展示会名刺も即日対応。1日1,000件</span>
                       <p className="text-xs text-slate-300 mt-0.5">月間最大30,000件のレター生成で機会損失ゼロへ</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
-                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
+                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -813,8 +807,8 @@ export default function LandingPage() {
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
-                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
+                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -824,8 +818,8 @@ export default function LandingPage() {
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-blue-500/20 rounded-full p-1 ring-2 ring-blue-400">
-                      <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
+                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -993,7 +987,7 @@ export default function LandingPage() {
               その他ご不明な点がございましたら、お気軽にお問い合わせください。
             </p>
             <Link
-              href="/new"
+              href="/new?demo=true"
               className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
               無料で試す
@@ -1014,7 +1008,7 @@ export default function LandingPage() {
           </p>
 
           <Link
-            href="/new"
+            href="/new?demo=true"
             className="group inline-flex items-center justify-center gap-3 px-14 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
             無料で試す

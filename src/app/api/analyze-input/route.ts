@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       // 1. URL解析（キャッシュ対応）
       if (target_url) {
         // キャッシュ確認
-        const cached = getCachedAnalysis<CachedUrlData>(target_url);
+        const cached = await getCachedAnalysis<CachedUrlData>(target_url);
         if (cached) {
           // キャッシュヒット - 外部アクセスなし
           extractedContent = cached.extractedContent;
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
 
           // 成功したデータがあればキャッシュに保存
           if (extractedContent || extractedFacts) {
-            setCachedAnalysis<CachedUrlData>(target_url, {
+            await setCachedAnalysis<CachedUrlData>(target_url, {
               extractedContent,
               extractedFacts,
               extractedSources,

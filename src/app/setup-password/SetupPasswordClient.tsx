@@ -120,7 +120,7 @@ export default function SetupPasswordClient({ user }: Props) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
                 placeholder="••••••••"
                 disabled={loading}
               />
@@ -140,7 +140,7 @@ export default function SetupPasswordClient({ user }: Props) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
                 placeholder="••••••••"
                 disabled={loading}
               />
@@ -160,7 +160,7 @@ export default function SetupPasswordClient({ user }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '設定中...' : 'パスワードを設定して完了'}
             </button>

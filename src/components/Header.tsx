@@ -15,7 +15,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  const { isPro, isPremium, loading: planLoading } = useUserPlan();
+  const { isPro, isPremium, isTrialing, trialDaysRemaining, loading: planLoading } = useUserPlan();
   useCheckout(); // Hook for potential upgrade functionality
 
   // LPページかどうかを判定（トップページのみLP扱い）
@@ -111,14 +111,21 @@ export function Header() {
                       {!planLoading && (
                         <>
                           {isPremium ? (
-                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 rounded-full font-bold text-xs flex items-center gap-1">
+                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 border border-amber-300 rounded-full font-bold text-xs flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                               </svg>
                               Premium
                             </span>
+                          ) : isPro && isTrialing ? (
+                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-300 rounded-full font-bold text-xs flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              トライアル残り{trialDaysRemaining}日
+                            </span>
                           ) : isPro ? (
-                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200 rounded-full font-bold text-xs flex items-center gap-1">
+                            <span className="mr-2 px-3 py-1 bg-gradient-to-r from-amber-50 to-stone-50 text-amber-700 border border-amber-200 rounded-full font-bold text-xs flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
@@ -247,7 +254,7 @@ export function Header() {
                     </Link>
                     <Link
                       href="/login"
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo-700 transition-colors text-sm shadow-sm"
+                      className="px-4 py-2 bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-colors text-sm shadow-sm"
                     >
                       無料で登録
                     </Link>

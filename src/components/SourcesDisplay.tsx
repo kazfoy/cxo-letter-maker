@@ -28,7 +28,7 @@ const MAX_DISPLAY_SOURCES = 3;
 const CATEGORY_COLORS: Record<SourceCategory, string> = {
   corporate: 'bg-blue-50 text-blue-700 border-blue-200',
   news: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  recruit: 'bg-purple-50 text-purple-700 border-purple-200',
+  recruit: 'bg-teal-50 text-teal-700 border-teal-200',
   ir: 'bg-amber-50 text-amber-700 border-amber-200',
   product: 'bg-rose-50 text-rose-700 border-rose-200',
   other: 'bg-slate-50 text-slate-700 border-slate-200',
@@ -200,11 +200,11 @@ export function SourcesDisplay({
         className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
           <span className="font-semibold text-slate-800">情報ソース（AI生成の根拠）</span>
-          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+          <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">
             {sources.length}件
           </span>
         </div>
@@ -312,7 +312,7 @@ function SourceItemWithCitations({
 
           {/* タイトル・URL */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-800 truncate group-hover:text-indigo-600">
+            <p className="text-sm font-medium text-slate-800 truncate group-hover:text-amber-700">
               {source.title || displayPath}
             </p>
             <p className="text-xs text-slate-400 truncate mt-0.5" title={source.url}>
@@ -322,7 +322,7 @@ function SourceItemWithCitations({
 
           {/* 外部リンクアイコン */}
           <svg
-            className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 flex-shrink-0 mt-0.5"
+            className="w-4 h-4 text-slate-400 group-hover:text-amber-700 flex-shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -348,7 +348,7 @@ function SourceItemWithCitations({
               return (
                 <div key={i} className="flex items-start gap-2 text-xs">
                   {location && (
-                    <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                    <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                       {location}
                     </span>
                   )}

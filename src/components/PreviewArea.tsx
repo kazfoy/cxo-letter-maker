@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { ProFeatureModal } from './ProFeatureModal';
 import { SourcesDisplay } from './SourcesDisplay';
+import { SuccessGuide } from './SuccessGuide';
 import type { LetterStatus } from '@/types/letter';
 import type { InformationSource } from '@/types/analysis';
 import type { Citation } from '@/types/generate-v2';
@@ -49,6 +50,8 @@ interface PreviewAreaProps {
   selfCheck?: string[];
   letterMode?: LetterMode;
   onSampleFill?: () => void;
+  isDemoMode?: boolean;
+  onExitDemo?: () => void;
 }
 
 function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolean; isGenerating: boolean }) {
@@ -83,19 +86,19 @@ function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolea
             const isCompleted = i < currentStepIndex;
             const isCurrent = step.active;
             return (
-              <div key={i} className={`flex items-center gap-3 ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
+              <div key={i} className={`flex items-center gap-3 ${isCurrent ? 'text-amber-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
                 <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                   {isCompleted ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : isCurrent ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-200 border-t-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-amber-200 border-t-amber-700"></div>
                   ) : (
                     <div className="w-3 h-3 rounded-full bg-slate-200"></div>
                   )}
                 </div>
-                <span className={`text-sm font-medium ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
+                <span className={`text-sm font-medium ${isCurrent ? 'text-amber-700' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
                   {step.label}
                 </span>
               </div>
@@ -106,7 +109,7 @@ function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolea
         {/* Progress bar */}
         <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
           <div
-            className="bg-indigo-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+            className="bg-amber-600 h-2 rounded-full transition-all duration-1000 ease-linear"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -140,6 +143,8 @@ export function PreviewArea({
   selfCheck,
   letterMode,
   onSampleFill,
+  isDemoMode = false,
+  onExitDemo,
 }: PreviewAreaProps) {
   const { user } = useAuth();
   const { isPro, isPremium, isFree } = useUserPlan();
@@ -442,7 +447,7 @@ export function PreviewArea({
                 </button>
                 <button
                   onClick={handleExportWord}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-800 text-white hover:bg-amber-900 rounded-md transition-colors font-semibold shadow-sm"
                   aria-label="Word形式でダウンロード"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -481,7 +486,7 @@ export function PreviewArea({
                     id="letter-status"
                     value={letterStatus}
                     onChange={(e) => handleStatusChange(e.target.value as LetterStatus)}
-                    className="pl-2 pr-8 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium cursor-pointer hover:border-slate-300 transition-colors"
+                    className="pl-2 pr-8 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium cursor-pointer hover:border-slate-300 transition-colors"
                   >
                     <option value="draft">下書き</option>
                     <option value="generated">作成済</option>
@@ -520,7 +525,7 @@ export function PreviewArea({
               </button>
               <button
                 onClick={handleExportWord}
-                className="flex-1 flex justify-center items-center gap-1 px-2.5 py-1.5 text-xs bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors font-semibold"
+                className="flex-1 flex justify-center items-center gap-1 px-2.5 py-1.5 text-xs bg-amber-800 text-white hover:bg-amber-900 rounded-md transition-colors font-semibold"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -551,7 +556,7 @@ export function PreviewArea({
               <p className={`text-xs px-2 py-1 rounded border ${
                 guestRemaining <= 0
                   ? 'text-red-600 bg-red-50 border-red-200'
-                  : 'text-slate-500 bg-purple-50 border-purple-200'
+                  : 'text-slate-500 bg-amber-50 border-amber-200'
               }`}>
                 お試し: あと{Math.max(0, guestRemaining)}回
               </p>
@@ -587,29 +592,29 @@ export function PreviewArea({
             <button
               onClick={() => handleAutoEdit('shorten')}
               disabled={isEditDisabled}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="文章を短縮"
             >
               もっと短く
-              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
+              <span className="text-[10px] text-amber-600 font-medium bg-amber-100 px-1 rounded">おすすめ</span>
             </button>
             <button
               onClick={() => handleAutoEdit('proofread')}
               disabled={isEditDisabled}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="誤字脱字・表現チェック"
             >
               誤字脱字チェック
-              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
+              <span className="text-[10px] text-amber-600 font-medium bg-amber-100 px-1 rounded">おすすめ</span>
             </button>
             <button
               onClick={() => handleAutoEdit('emphasize')}
               disabled={isEditDisabled}
-              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
               aria-label="事例を強調"
             >
               事例を強調
-              <span className="text-[10px] text-blue-500 font-medium bg-blue-100 px-1 rounded">おすすめ</span>
+              <span className="text-[10px] text-amber-600 font-medium bg-amber-100 px-1 rounded">おすすめ</span>
             </button>
           </div>
 
@@ -630,7 +635,7 @@ export function PreviewArea({
                 <button
                   onClick={() => handleAutoEdit('casual')}
                   disabled={isEditDisabled}
-                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="カジュアルな表現に変更"
                   title="堅い表現をやわらかくします"
                 >
@@ -639,7 +644,7 @@ export function PreviewArea({
                 <button
                   onClick={() => handleAutoEdit('passionate')}
                   disabled={isEditDisabled}
-                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="もっと情熱的に"
                   title="熱意を感じる表現に書き換えます"
                 >
@@ -648,7 +653,7 @@ export function PreviewArea({
                 <button
                   onClick={() => handleAutoEdit('concise')}
                   disabled={isEditDisabled}
-                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="もっと簡潔に（8割の長さに）"
                   title="全体を8割程度の長さに圧縮します"
                 >
@@ -657,7 +662,7 @@ export function PreviewArea({
                 <button
                   onClick={() => handleAutoEdit('businesslike')}
                   disabled={isEditDisabled}
-                  className="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 hover:bg-amber-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="ビジネスライクに修正"
                   title="フォーマルなビジネス文体に整えます"
                 >
@@ -692,7 +697,7 @@ export function PreviewArea({
             <button
               onClick={() => onVariationSelect && onVariationSelect('standard')}
               className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'standard'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-amber-700 text-amber-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
@@ -701,7 +706,7 @@ export function PreviewArea({
             <button
               onClick={() => onVariationSelect && onVariationSelect('emotional')}
               className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'emotional'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-amber-700 text-amber-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
@@ -710,7 +715,7 @@ export function PreviewArea({
             <button
               onClick={() => onVariationSelect && onVariationSelect('consultative')}
               className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'consultative'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-amber-700 text-amber-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
@@ -723,7 +728,7 @@ export function PreviewArea({
           isEditing ? (
             <div className="flex items-center justify-center min-h-[600px]">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
                 <p className="text-gray-600">編集中...</p>
               </div>
             </div>
@@ -765,7 +770,7 @@ export function PreviewArea({
                   navigator.clipboard.writeText(fullText);
                   showNotification('件名と本文をコピーしました', 'success');
                 }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 transition flex items-center gap-2"
+                className="px-4 py-2 bg-amber-800 text-white rounded shadow hover:bg-amber-900 transition flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                 コピー
@@ -777,7 +782,7 @@ export function PreviewArea({
             <textarea
               value={content}
               onChange={(e) => onContentChange(e.target.value)}
-              className="w-full min-h-[600px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-b-md resize-y font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
+              className="w-full min-h-[600px] p-8 pt-12 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-b-md resize-y font-serif text-gray-800 leading-relaxed bg-white text-[15px]"
               style={{
                 lineHeight: '1.8',
               }}
@@ -854,6 +859,29 @@ export function PreviewArea({
             defaultExpanded={false}
             bodyText={content}
           />
+        </div>
+      )}
+
+      {/* 成功への3ステップガイド（生成後のみ） */}
+      {content && !isGenerating && !isEditing && (
+        <SuccessGuide isFirstGeneration={!currentLetterId} />
+      )}
+
+      {/* デモモード完了CTA */}
+      {isDemoMode && content && !isGenerating && !isEditing && onExitDemo && (
+        <div className="mt-6 p-5 bg-gradient-to-r from-amber-50 to-stone-50 border border-amber-200 rounded-lg text-center">
+          <p className="text-sm text-stone-700 mb-3">
+            これはサンプルデータで生成したデモです。実際のターゲット企業で試してみましょう。
+          </p>
+          <button
+            onClick={onExitDemo}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-800 text-white rounded-lg font-bold text-sm hover:bg-amber-900 transition-all shadow-md"
+          >
+            自分の案件で作成する
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
         </div>
       )}
 

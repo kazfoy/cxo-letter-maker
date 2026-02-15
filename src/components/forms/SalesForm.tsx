@@ -87,7 +87,7 @@ export const SalesForm = React.memo(function SalesForm({
             name="companyName"
             value={formData.companyName}
             onChange={(e) => { handleChange(e); onClearError?.('companyName'); }}
-            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.companyName ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.companyName ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder={SALES_PLACEHOLDERS.companyName}
           />
           {formErrors.companyName && (
@@ -98,7 +98,7 @@ export const SalesForm = React.memo(function SalesForm({
               type="button"
               onClick={handleSearchNews}
               disabled={isSearching}
-              className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+              className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-100 transition-colors flex items-center gap-1 disabled:opacity-50"
             >
               {isSearching ? '検索中...' : '🔍 最新ニュースを検索'}
             </button>
@@ -108,7 +108,7 @@ export const SalesForm = React.memo(function SalesForm({
         {/* 相手企業URL */}
         <div>
           <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-            相手企業URL <span className="text-indigo-600 text-xs font-medium">（推奨）</span>
+            相手企業URL <span className="text-amber-700 text-xs font-medium">（推奨）</span>
           </label>
           <input
             type="url"
@@ -126,14 +126,14 @@ export const SalesForm = React.memo(function SalesForm({
                 // formErrorsの更新は親コンポーネントが管理するため、ここではclearのみ
               }
             }}
-            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.targetUrl ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.targetUrl ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder="https://example.com（サンプル実行時は自動入力）"
           />
           {formErrors.targetUrl && (
             <p className="mt-1 text-xs text-red-600">{formErrors.targetUrl}</p>
           )}
           <p className="mt-1 text-xs text-slate-500">
-            <span className="text-indigo-600 font-medium">URLを入れると、ニュース・採用・IRなどから具体的な根拠を抽出</span>し、説得力のあるレターを作成できます
+            <span className="text-amber-700 font-medium">URLを入れると、ニュース・採用・IRなどから具体的な根拠を抽出</span>し、説得力のあるレターを作成できます
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export const SalesForm = React.memo(function SalesForm({
             value={formData.myServiceDescription}
             onChange={(e) => { handleChange(e); onClearError?.('myServiceDescription'); }}
             rows={3}
-            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.myServiceDescription ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
+            className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500 ${formErrors.myServiceDescription ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}
             placeholder={SALES_PLACEHOLDERS.myServiceDescription}
             maxLength={300}
           />
@@ -178,7 +178,7 @@ export const SalesForm = React.memo(function SalesForm({
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
             placeholder="例: 山田太郎 様（未入力時は「ご担当者様」）"
           />
         </div>
@@ -212,7 +212,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="myCompanyName"
                     value={formData.myCompanyName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.myCompanyName}
                   />
                 </div>
@@ -226,7 +226,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="myDepartment"
                     value={formData.myDepartment || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.myDepartment}
                   />
                 </div>
@@ -240,7 +240,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="myName"
                     value={formData.myName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.myName}
                   />
                 </div>
@@ -255,7 +255,7 @@ export const SalesForm = React.memo(function SalesForm({
                     value={formData.productStrength || ''}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder="例: 導入実績500社以上、業界シェアNo.1、独自の特許技術で他社比30%効率化"
                     maxLength={300}
                   />
@@ -271,7 +271,7 @@ export const SalesForm = React.memo(function SalesForm({
                 <button
                   type="button"
                   onClick={() => handleOpenMultiSourceModal('target')}
-                  className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+                  className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-100 transition-colors text-sm font-medium"
                   aria-label={BUTTON_TEXTS.targetHp}
                 >
                   {ICONS.targetHp} {BUTTON_TEXTS.targetHp}
@@ -288,7 +288,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="department"
                     value={formData.department || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.department}
                   />
                 </div>
@@ -302,7 +302,7 @@ export const SalesForm = React.memo(function SalesForm({
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.position}
                   />
                 </div>
@@ -318,7 +318,7 @@ export const SalesForm = React.memo(function SalesForm({
                     value={formData.targetChallenges || ''}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder="例: DX推進の遅れ、人材不足、レガシーシステムの刷新、コンプライアンス対応"
                     maxLength={300}
                   />
@@ -338,11 +338,47 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.searchResults}
                       onChange={handleChange}
                       rows={4}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:outline-none focus:border-amber-500"
                       placeholder="検索結果がここに表示されます"
                     />
                   </div>
                 )}
+
+                {/* CxOの発信情報 */}
+                <div>
+                  <label htmlFor="cxoInsight" className="block text-sm font-medium text-slate-700 mb-2">
+                    CxOの発信情報 <span className="text-xs text-amber-700 font-medium">（任意・説得力UP）</span>
+                  </label>
+                  <textarea
+                    id="cxoInsight"
+                    name="cxoInsight"
+                    value={formData.cxoInsight || ''}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={"CxOの最近のSNS投稿、講演内容、インタビュー記事のURL等を入力してください\n\n例:\n・CEOがLinkedInで「DXは手段であり目的ではない」と投稿\n・CTOが日経クロステックのインタビューで内製化方針を語った\n・https://note.com/cxo/n/xxxxx"}
+                    maxLength={1000}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">CxO個人の発信に触れることで「あなたのことを理解しています」と伝えられます</p>
+                </div>
+
+                {/* 共通の知人・過去の接点 */}
+                <div>
+                  <label htmlFor="mutualConnection" className="block text-sm font-medium text-slate-700 mb-2">
+                    共通の知人・過去の接点 <span className="text-xs text-amber-700 font-medium">（任意・返信率UP）</span>
+                  </label>
+                  <textarea
+                    id="mutualConnection"
+                    name="mutualConnection"
+                    value={formData.mutualConnection || ''}
+                    onChange={handleChange}
+                    rows={2}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    placeholder={"例:\n・先日の○○カンファレンスで御社の△△様とお話しした\n・弊社の□□が御社の××様をご紹介いただいた\n・前職で御社と△△プロジェクトでご一緒した"}
+                    maxLength={500}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">共通の接点は返信率に最も影響する強力なフックです</p>
+                </div>
               </div>
             </div>
 
@@ -356,7 +392,7 @@ export const SalesForm = React.memo(function SalesForm({
                   type="button"
                   onClick={() => setInputMode('step')}
                   className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    ? 'text-amber-700 border-b-2 border-amber-700'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
@@ -366,7 +402,7 @@ export const SalesForm = React.memo(function SalesForm({
                   type="button"
                   onClick={() => setInputMode('freeform')}
                   className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    ? 'text-amber-700 border-b-2 border-amber-700'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
@@ -385,7 +421,7 @@ export const SalesForm = React.memo(function SalesForm({
                       <button
                         type="button"
                         onClick={() => handleAIAssist('background')}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
                         aria-label={BUTTON_TEXTS.aiAssist}
                       >
                         {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -397,7 +433,7 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.background}
                       onChange={handleChange}
                       rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={SALES_PLACEHOLDERS.background}
                       maxLength={500}
                     />
@@ -411,7 +447,7 @@ export const SalesForm = React.memo(function SalesForm({
                       <button
                         type="button"
                         onClick={() => handleAIAssist('problem')}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
                         aria-label={BUTTON_TEXTS.aiAssist}
                       >
                         {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -423,7 +459,7 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.problem}
                       onChange={handleChange}
                       rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={SALES_PLACEHOLDERS.problem}
                       maxLength={500}
                     />
@@ -437,7 +473,7 @@ export const SalesForm = React.memo(function SalesForm({
                       <button
                         type="button"
                         onClick={() => handleAIAssist('solution')}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
                         aria-label={BUTTON_TEXTS.aiAssist}
                       >
                         {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -449,7 +485,7 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.solution}
                       onChange={handleChange}
                       rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={SALES_PLACEHOLDERS.solution}
                       maxLength={500}
                     />
@@ -463,7 +499,7 @@ export const SalesForm = React.memo(function SalesForm({
                       <button
                         type="button"
                         onClick={() => handleAIAssist('caseStudy')}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
                         aria-label={BUTTON_TEXTS.aiAssist}
                       >
                         {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -475,7 +511,7 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.caseStudy}
                       onChange={handleChange}
                       rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={SALES_PLACEHOLDERS.caseStudy}
                       maxLength={500}
                     />
@@ -489,7 +525,7 @@ export const SalesForm = React.memo(function SalesForm({
                       <button
                         type="button"
                         onClick={() => handleAIAssist('offer')}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1"
                         aria-label={BUTTON_TEXTS.aiAssist}
                       >
                         {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -501,7 +537,7 @@ export const SalesForm = React.memo(function SalesForm({
                       value={formData.offer}
                       onChange={handleChange}
                       rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={SALES_PLACEHOLDERS.offer}
                       maxLength={500}
                     />
@@ -519,7 +555,7 @@ export const SalesForm = React.memo(function SalesForm({
                     <button
                       type="button"
                       onClick={handleOpenStructureSuggestion}
-                      className="text-sm bg-purple-50 text-purple-700 border border-purple-300 px-4 py-1.5 rounded-md hover:bg-purple-100 transition-colors font-medium flex items-center gap-1"
+                      className="text-sm bg-amber-50 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-md hover:bg-amber-100 transition-colors font-medium flex items-center gap-1"
                       aria-label={BUTTON_TEXTS.structureSuggestion}
                     >
                       {BUTTON_TEXTS.structureSuggestion}
@@ -531,7 +567,7 @@ export const SalesForm = React.memo(function SalesForm({
                     value={formData.freeformInput || ''}
                     onChange={handleChange}
                     rows={15}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={SALES_PLACEHOLDERS.freeformInput}
                   />
                   <p className="mt-2 text-xs text-gray-500">{MESSAGES.info.freeformHelp}</p>

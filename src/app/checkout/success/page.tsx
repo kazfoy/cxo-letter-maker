@@ -43,7 +43,7 @@ function SuccessContent() {
 
                         <div className="text-center space-y-4">
                             <p className="text-slate-600">
-                                本日から、CSV一括生成が <span className="text-indigo-600 font-bold">{planInfo.limit}/日</span> までご利用いただけます。
+                                本日から、CSV一括生成が <span className="text-amber-700 font-bold">{planInfo.limit}/日</span> までご利用いただけます。
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                                 <Link
@@ -79,7 +79,7 @@ export default function CheckoutSuccessPage() {
         <div className="min-h-screen bg-slate-50 py-12 px-4 md:py-20">
             <Suspense fallback={
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mb-4"></div>
                     <p className="text-slate-600">読み込み中...</p>
                 </div>
             }>

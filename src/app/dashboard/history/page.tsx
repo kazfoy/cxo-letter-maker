@@ -190,7 +190,7 @@ export default function HistoryPage() {
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as LetterStatus | 'all')}
-                className="px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
               >
                 <option value="all">すべて</option>
                 <option value="draft">下書き</option>
@@ -221,7 +221,7 @@ export default function HistoryPage() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="会社名・宛名で検索..."
-                className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
               />
               <svg
                 className="w-5 h-5 text-slate-400 absolute left-3 top-2.5"
@@ -251,7 +251,7 @@ export default function HistoryPage() {
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
           <p className="text-slate-600">読み込み中...</p>
         </div>
       ) : (
@@ -261,7 +261,7 @@ export default function HistoryPage() {
           {activeJobs.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+                <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
                 実行中の生成タスク
               </h2>
               <div className="grid gap-4">
@@ -270,11 +270,11 @@ export default function HistoryPage() {
                   const isFailed = job.status === 'error'; // User schema uses 'error' for failure status
 
                   return (
-                    <div key={job.id} className={`rounded-xl shadow-sm border p-6 relative overflow-hidden ${isFailed ? 'bg-red-50 border-red-200' : 'bg-white border-indigo-100'
+                    <div key={job.id} className={`rounded-xl shadow-sm border p-6 relative overflow-hidden ${isFailed ? 'bg-red-50 border-red-200' : 'bg-white border-amber-100'
                       }`}>
                       {/* Background highlight */}
                       <div
-                        className={`absolute top-0 left-0 h-1 transition-all duration-500 ${isFailed ? 'bg-red-500' : 'bg-indigo-600'}`}
+                        className={`absolute top-0 left-0 h-1 transition-all duration-500 ${isFailed ? 'bg-red-500' : 'bg-amber-800'}`}
                         style={{ width: `${progress}%` }}
                       />
 
@@ -289,7 +289,7 @@ export default function HistoryPage() {
                             ) : (
                               <h3 className="font-bold text-slate-900">一括生成を実行中...</h3>
                             )}
-                            <span className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">ID: {job.id.slice(0, 8)}</span>
+                            <span className="text-xs font-mono bg-amber-50 text-amber-700 px-2 py-0.5 rounded">ID: {job.id.slice(0, 8)}</span>
                           </div>
                           <p className="text-sm text-slate-500">
                             {job.processedCount} / {job.totalCount} 件完了 ({job.failureCount}件失敗)
@@ -314,7 +314,7 @@ export default function HistoryPage() {
                       {/* Progress Bar */}
                       <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1">
                         <div
-                          className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isFailed ? 'bg-red-500' : 'bg-indigo-600'}`}
+                          className={`h-2.5 rounded-full transition-all duration-500 ease-out ${isFailed ? 'bg-red-500' : 'bg-amber-800'}`}
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -333,7 +333,7 @@ export default function HistoryPage() {
           {batches.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
                 一括生成履歴
@@ -348,10 +348,10 @@ export default function HistoryPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                          <h3 className="text-lg font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
                             一括生成タスク ({batch.count}件)
                           </h3>
-                          <span className="px-2 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
                             Batch
                           </span>
                         </div>
@@ -359,7 +359,7 @@ export default function HistoryPage() {
                           実施日時: {new Date(batch.createdAt).toLocaleString('ja-JP')}
                         </p>
                       </div>
-                      <div className="flex items-center text-indigo-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
+                      <div className="flex items-center text-amber-700 font-medium text-sm group-hover:translate-x-1 transition-transform">
                         詳細を見る
                         <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

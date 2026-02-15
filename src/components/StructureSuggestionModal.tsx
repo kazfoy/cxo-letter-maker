@@ -103,7 +103,7 @@ export function StructureSuggestionModal({
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
                 <p className="text-gray-600">AIが構成案を考えています...</p>
                 <p className="text-sm text-gray-500 mt-2">少々お待ちください</p>
               </div>
@@ -119,7 +119,7 @@ export function StructureSuggestionModal({
               <p className="text-gray-600 text-sm mb-4">{error}</p>
               <button
                 onClick={fetchSuggestions}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                className="bg-amber-800 text-white px-6 py-2 rounded-md hover:bg-amber-900 transition-colors"
               >
                 再試行
               </button>
@@ -129,15 +129,15 @@ export function StructureSuggestionModal({
               {approaches.map((approach, index) => (
                 <div
                   key={index}
-                  className="border-2 border-gray-200 rounded-lg p-5 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group"
+                  className="border-2 border-gray-200 rounded-lg p-5 hover:border-amber-500 hover:shadow-lg transition-all cursor-pointer group"
                   onClick={() => handleSelectApproach(approach.draftText)}
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-semibold text-gray-800 text-lg group-hover:text-blue-600 transition-colors">
+                    <h4 className="font-semibold text-gray-800 text-lg group-hover:text-amber-700 transition-colors">
                       {approach.title}
                     </h4>
                     <button
-                      className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium group-hover:bg-blue-600 group-hover:text-white"
+                      className="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-md hover:bg-amber-200 transition-colors text-sm font-medium group-hover:bg-amber-800 group-hover:text-white"
                       aria-label="この案を選択"
                     >
                       選択

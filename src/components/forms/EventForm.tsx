@@ -93,7 +93,7 @@ export const EventForm = React.memo(function EventForm({
             name="companyName"
             value={formData.companyName}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
             placeholder={EVENT_PLACEHOLDERS.companyName}
           />
         </div>
@@ -101,7 +101,7 @@ export const EventForm = React.memo(function EventForm({
         {/* 相手企業URL（推奨） */}
         <div>
           <label htmlFor="targetUrl" className="block text-sm font-medium text-slate-700 mb-2">
-            相手企業URL <span className="text-purple-600 text-xs font-medium">（推奨）</span>
+            相手企業URL <span className="text-amber-700 text-xs font-medium">（推奨）</span>
           </label>
           <input
             type="url"
@@ -109,18 +109,18 @@ export const EventForm = React.memo(function EventForm({
             name="targetUrl"
             value={formData.targetUrl || ''}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
             placeholder="https://example.com（招待先企業のURL）"
           />
           <p className="mt-1 text-xs text-slate-500">
-            <span className="text-purple-600 font-medium">URLを入れると、相手企業の情報を分析</span>して説得力のある招待状を作成できます
+            <span className="text-amber-700 font-medium">URLを入れると、相手企業の情報を分析</span>して説得力のある招待状を作成できます
           </p>
         </div>
 
         {/* イベントURL（推奨・自動解析） */}
         <div>
           <label htmlFor="eventUrl" className="block text-sm font-medium text-slate-700 mb-2">
-            イベントURL <span className="text-purple-600 text-xs font-medium">（推奨・自動解析）</span>
+            イベントURL <span className="text-amber-700 text-xs font-medium">（推奨・自動解析）</span>
           </label>
           <div className="relative">
             <input
@@ -130,12 +130,12 @@ export const EventForm = React.memo(function EventForm({
               value={formData.eventUrl || ''}
               onChange={handleChange}
               onBlur={handleEventUrlBlur}
-              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+              className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
               placeholder={EVENT_PLACEHOLDERS.eventUrl}
             />
             {isAnalyzingEventUrl && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-700"></div>
               </div>
             )}
           </div>
@@ -157,7 +157,7 @@ export const EventForm = React.memo(function EventForm({
             value={formData.invitationReason || ''}
             onChange={handleChange}
             rows={2}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
             placeholder="例: 弊社の新サービスと御社の課題がマッチすると考え、ご招待したい"
             maxLength={300}
           />
@@ -184,7 +184,7 @@ export const EventForm = React.memo(function EventForm({
             value={formData.myServiceDescription}
             onChange={handleChange}
             rows={3}
-            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
             placeholder={EVENT_PLACEHOLDERS.myServiceDescription}
             maxLength={300}
           />
@@ -209,7 +209,7 @@ export const EventForm = React.memo(function EventForm({
                     name="eventName"
                     value={formData.eventName || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.eventName}
                   />
                 </div>
@@ -224,7 +224,7 @@ export const EventForm = React.memo(function EventForm({
                     name="eventDateTime"
                     value={formData.eventDateTime || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.eventDateTime}
                   />
                 </div>
@@ -239,7 +239,7 @@ export const EventForm = React.memo(function EventForm({
                     value={formData.eventSpeakers || ''}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.eventSpeakers}
                     maxLength={300}
                   />
@@ -254,7 +254,7 @@ export const EventForm = React.memo(function EventForm({
                     name="eventPosition"
                     value={formData.eventPosition || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 bg-white"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 bg-white"
                   >
                     <option value="">選択してください（デフォルト: 協賛）</option>
                     <option value="sponsor">協賛企業</option>
@@ -292,7 +292,7 @@ export const EventForm = React.memo(function EventForm({
                     name="myCompanyName"
                     value={formData.myCompanyName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.myCompanyName}
                   />
                 </div>
@@ -306,7 +306,7 @@ export const EventForm = React.memo(function EventForm({
                     name="myDepartment"
                     value={formData.myDepartment || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.myDepartment}
                   />
                 </div>
@@ -320,7 +320,7 @@ export const EventForm = React.memo(function EventForm({
                     name="myName"
                     value={formData.myName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.myName}
                   />
                 </div>
@@ -334,7 +334,7 @@ export const EventForm = React.memo(function EventForm({
                 <button
                   type="button"
                   onClick={() => handleOpenMultiSourceModal('target')}
-                  className="bg-purple-50 text-purple-700 border border-purple-300 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors text-sm font-medium"
+                  className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-md hover:bg-amber-100 transition-colors text-sm font-medium"
                   aria-label={BUTTON_TEXTS.targetHp}
                 >
                   {ICONS.targetHp} {BUTTON_TEXTS.targetHp}
@@ -351,7 +351,7 @@ export const EventForm = React.memo(function EventForm({
                     name="department"
                     value={formData.department || ''}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                     placeholder={EVENT_PLACEHOLDERS.department}
                   />
                 </div>
@@ -366,7 +366,7 @@ export const EventForm = React.memo(function EventForm({
                       name="position"
                       value={formData.position}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={EVENT_PLACEHOLDERS.position}
                     />
                   </div>
@@ -380,7 +380,7 @@ export const EventForm = React.memo(function EventForm({
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                       placeholder={EVENT_PLACEHOLDERS.name}
                     />
                   </div>
@@ -398,7 +398,7 @@ export const EventForm = React.memo(function EventForm({
                   type="button"
                   onClick={() => handleAIAssist('invitationReason')}
                   disabled={isAnalyzingSource}
-                  className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 disabled:opacity-50"
+                  className="text-xs text-amber-700 hover:text-amber-800 flex items-center gap-1 disabled:opacity-50"
                   aria-label={BUTTON_TEXTS.aiAssist}
                 >
                   {ICONS.aiAssist} {BUTTON_TEXTS.aiAssist}
@@ -410,10 +410,51 @@ export const EventForm = React.memo(function EventForm({
                 value={formData.invitationReason || ''}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
                 placeholder={EVENT_PLACEHOLDERS.invitationReason}
                 maxLength={500}
               />
+            </div>
+
+            {/* CxO個人情報・共通接点セクション */}
+            <div className="border-t pt-4 space-y-4">
+              <h3 className="font-medium text-gray-700">パーソナライズ情報</h3>
+
+              {/* CxOの発信情報 */}
+              <div>
+                <label htmlFor="cxoInsight" className="block text-sm font-medium text-slate-700 mb-2">
+                  CxOの発信情報 <span className="text-xs text-amber-700 font-medium">（任意・説得力UP）</span>
+                </label>
+                <textarea
+                  id="cxoInsight"
+                  name="cxoInsight"
+                  value={formData.cxoInsight || ''}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder={"CxOの最近のSNS投稿、講演内容、インタビュー記事のURL等を入力してください\n\n例:\n・CEOがLinkedInで「DXは手段であり目的ではない」と投稿\n・CTOが日経クロステックのインタビューで内製化方針を語った"}
+                  maxLength={1000}
+                />
+                <p className="mt-1 text-xs text-slate-500">CxO個人の発信に触れることで「あなたのことを理解しています」と伝えられます</p>
+              </div>
+
+              {/* 共通の知人・過去の接点 */}
+              <div>
+                <label htmlFor="mutualConnection" className="block text-sm font-medium text-slate-700 mb-2">
+                  共通の知人・過去の接点 <span className="text-xs text-amber-700 font-medium">（任意・返信率UP）</span>
+                </label>
+                <textarea
+                  id="mutualConnection"
+                  name="mutualConnection"
+                  value={formData.mutualConnection || ''}
+                  onChange={handleChange}
+                  rows={2}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
+                  placeholder={"例:\n・先日の○○カンファレンスで御社の△△様とお話しした\n・弊社の□□が御社の××様をご紹介いただいた"}
+                  maxLength={500}
+                />
+                <p className="mt-1 text-xs text-slate-500">共通の接点は返信率に最も影響する強力なフックです</p>
+              </div>
             </div>
           </div>
         </Accordion>

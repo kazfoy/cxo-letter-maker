@@ -44,7 +44,7 @@ export function PlanSelectionModal({ isOpen, onClose }: PlanSelectionModalProps)
 
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Pro Plan */}
-                        <div className="border border-slate-200 rounded-2xl p-8 flex flex-col text-left hover:border-indigo-300 transition-colors shadow-sm bg-slate-50/30">
+                        <div className="border border-slate-200 rounded-2xl p-8 flex flex-col text-left hover:border-amber-300 transition-colors shadow-sm bg-slate-50/30">
                             <div className="mb-6">
                                 <h3 className="text-xl font-bold text-slate-900 mb-2">{proPlan.label}</h3>
                                 <div className="flex items-baseline gap-1 mb-4">
@@ -70,14 +70,15 @@ export function PlanSelectionModal({ isOpen, onClose }: PlanSelectionModalProps)
                                 disabled={loading}
                                 className="w-full py-4 px-6 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md active:scale-95 disabled:opacity-50"
                             >
-                                {loading ? '処理中...' : 'Proプランを選択'}
+                                {loading ? '処理中...' : '7日間無料で試す'}
                             </button>
+                            <p className="text-xs text-slate-400 text-center mt-2">トライアル後 ¥980/月</p>
                         </div>
 
                         {/* Premium Plan */}
-                        <div className="relative rounded-2xl p-8 flex flex-col text-left border-2 border-indigo-600 shadow-xl bg-white overflow-hidden group">
+                        <div className="relative rounded-2xl p-8 flex flex-col text-left border-2 border-amber-600 shadow-xl bg-white overflow-hidden group">
                             {/* Popular Badge */}
-                            <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-bl-xl uppercase tracking-wider">
+                            <div className="absolute top-0 right-0 bg-amber-800 text-white text-[10px] font-bold px-4 py-1.5 rounded-bl-xl uppercase tracking-wider">
                                 Recommended
                             </div>
 
@@ -98,8 +99,8 @@ export function PlanSelectionModal({ isOpen, onClose }: PlanSelectionModalProps)
                             <ul className="space-y-4 mb-8 flex-1 relative z-10">
                                 {premiumPlan.features.map((feature, i) => (
                                     <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                                        <Check className="w-5 h-5 text-indigo-500 shrink-0" />
-                                        <span className={i === 1 ? 'font-bold text-indigo-900' : ''}>{feature}</span>
+                                        <Check className="w-5 h-5 text-amber-600 shrink-0" />
+                                        <span className={i === 1 ? 'font-bold text-amber-900' : ''}>{feature}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -107,7 +108,7 @@ export function PlanSelectionModal({ isOpen, onClose }: PlanSelectionModalProps)
                             <button
                                 onClick={() => onSelectPlan('premium')}
                                 disabled={loading}
-                                className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-4 px-6 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl font-bold hover:from-amber-800 hover:to-amber-900 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 <Rocket className="w-5 h-5" />
                                 {loading ? '処理中...' : 'Premiumプランを選択'}

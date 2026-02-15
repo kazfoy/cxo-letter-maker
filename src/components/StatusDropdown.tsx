@@ -15,7 +15,7 @@ interface StatusDropdownProps {
 const STATUS_CONFIG: Record<LetterStatus, { label: string; bgColor: string; textColor: string; borderColor: string }> = {
   draft: { label: '下書き', bgColor: 'bg-gray-100', textColor: 'text-gray-700', borderColor: 'border-gray-200' },
   generated: { label: '作成済み', bgColor: 'bg-blue-100', textColor: 'text-blue-700', borderColor: 'border-blue-200' },
-  sent: { label: '送付済み', bgColor: 'bg-indigo-100', textColor: 'text-indigo-700', borderColor: 'border-indigo-200' },
+  sent: { label: '送付済み', bgColor: 'bg-amber-100', textColor: 'text-amber-700', borderColor: 'border-amber-200' },
   replied: { label: '返信あり', bgColor: 'bg-orange-100', textColor: 'text-orange-700', borderColor: 'border-orange-200' },
   meeting_set: { label: 'アポ獲得', bgColor: 'bg-green-100', textColor: 'text-green-700', borderColor: 'border-green-200' },
   failed: { label: '失敗', bgColor: 'bg-red-100', textColor: 'text-red-700', borderColor: 'border-red-200' },
@@ -116,7 +116,7 @@ export function StatusDropdown({ letterId, currentStatus, onStatusChange }: Stat
                   {optionConfig.label}
                 </span>
                 {isActive && (
-                  <svg className="w-4 h-4 text-indigo-600 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-amber-700 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}

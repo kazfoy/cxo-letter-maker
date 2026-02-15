@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { useCheckout } from '@/hooks/useCheckout';
 
 interface ProFeatureModalProps {
     isOpen: boolean;
@@ -7,6 +9,8 @@ interface ProFeatureModalProps {
 }
 
 export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModalProps) {
+    const { handleUpgrade, loading: checkoutLoading } = useCheckout();
+
     if (!isOpen) return null;
 
     return (
@@ -64,12 +68,14 @@ export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModa
                 </div>
 
                 <div className="space-y-3">
-                    <Link
-                        href="/#pricing"
-                        className="block w-full py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 text-center"
+                    <button
+                        onClick={() => handleUpgrade('pro')}
+                        disabled={checkoutLoading}
+                        className="block w-full py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white rounded-lg font-bold shadow-lg transition-all transform hover:scale-105 text-center disabled:opacity-50"
                     >
-                        プラン詳細を見る
-                    </Link>
+                        {checkoutLoading ? '処理中...' : '7日間無料で試す'}
+                    </button>
+                    <p className="text-xs text-stone-400 text-center">トライアル後 ¥980/月・いつでもキャンセル可</p>
                     <button
                         onClick={onClose}
                         className="block w-full py-3 px-4 text-stone-500 hover:text-stone-700 font-medium transition-colors"

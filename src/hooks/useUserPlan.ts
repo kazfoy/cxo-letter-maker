@@ -12,11 +12,13 @@ export function useUserPlan() {
     const { user } = useAuth();
     const [plan, setPlan] = useState<UserPlan>('free'); // Default to free
     const [loading, setLoading] = useState(true);
+    const [trialEnd, setTrialEnd] = useState<Date | null>(null);
 
     useEffect(() => {
         async function fetchPlan() {
             if (!user) {
                 setPlan('free');
+                setTrialEnd(null);
                 setLoading(false);
                 return;
             }
@@ -25,7 +27,7 @@ export function useUserPlan() {
                 const supabase = createClient();
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('plan')
+                    .select('plan, trial_end')
                     .eq('id', user.id)
                     .single();
 
@@ -34,6 +36,7 @@ export function useUserPlan() {
                     // Default to free on error
                 } else if (data) {
                     setPlan(data.plan as UserPlan);
+                    setTrialEnd(data.trial_end ? new Date(data.trial_end) : null);
                 }
             } catch (err) {
                 devLog.error('Error fetching plan:', err);
@@ -45,6 +48,11 @@ export function useUserPlan() {
         fetchPlan();
     }, [user]);
 
+    const isTrialing = trialEnd !== null && trialEnd > new Date();
+    const trialDaysRemaining = isTrialing
+        ? Math.ceil((trialEnd.getTime() - Date.now()) / 86400000)
+        : null;
+
     return {
         plan,
         loading,
@@ -52,5 +60,7 @@ export function useUserPlan() {
         isPremium: plan === 'premium',
         isFree: plan === 'free',
         dailyBatchLimit: getDailyBatchLimit(plan),
+        isTrialing,
+        trialDaysRemaining,
     };
 }

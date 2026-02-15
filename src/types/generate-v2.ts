@@ -36,6 +36,9 @@ export const UserOverridesSchema = z.object({
   event_datetime: z.string().optional(),
   event_speakers: z.string().optional(),
   event_position: EventPositionEnum.optional(),
+  // CxO個人情報・共通接点
+  cxo_insight: z.string().optional(),
+  mutual_connection: z.string().optional(),
 });
 
 /**

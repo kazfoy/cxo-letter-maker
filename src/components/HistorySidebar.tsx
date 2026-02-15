@@ -22,7 +22,7 @@ const getStatusBadge = (status?: LetterStatus) => {
   const badges = {
     draft: { label: '下書き', color: 'bg-gray-100 text-gray-700 border-gray-300' },
     generated: { label: '作成済', color: 'bg-blue-100 text-blue-700 border-blue-300' },
-    sent: { label: '送付済', color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+    sent: { label: '送付済', color: 'bg-amber-100 text-amber-700 border-amber-300' },
     replied: { label: '返信あり', color: 'bg-orange-100 text-orange-700 border-orange-300' },
     meeting_set: { label: 'アポ獲得', color: 'bg-green-100 text-green-700 border-green-300' },
     failed: { label: '失敗', color: 'bg-red-100 text-red-700 border-red-300' },
@@ -148,7 +148,7 @@ export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperie
           id="status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as LetterStatus | 'all')}
-          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
         >
           <option value="all">すべて表示</option>
           <option value="draft">下書き</option>
@@ -284,10 +284,10 @@ export function HistorySidebar({ onRestore, onSampleExperience: _onSampleExperie
 
       {/* Guest Login CTA */}
       {!user && (
-        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-center">
-          <p className="text-sm text-indigo-800 font-bold mb-2">履歴は3件まで保存されます</p>
-          <p className="text-xs text-indigo-600 mb-3">ログインすると10件まで自動保存！</p>
-          <Link href="/login" className="inline-block w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-center">
+          <p className="text-sm text-amber-800 font-bold mb-2">履歴は3件まで保存されます</p>
+          <p className="text-xs text-amber-700 mb-3">ログインすると10件まで自動保存！</p>
+          <Link href="/login" className="inline-block w-full py-2 px-3 bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold rounded transition-colors shadow-sm">
             ログインして保存する
           </Link>
         </div>

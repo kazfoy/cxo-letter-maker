@@ -51,6 +51,10 @@ export interface LetterFormData {
   // Phase 5: 追加フィールド
   productStrength?: string;     // 商材の強み
   targetChallenges?: string;    // ターゲットの課題
+
+  // CxO個人情報・共通接点
+  cxoInsight?: string;          // CxO個人の発信情報（SNS投稿、講演、著書等）
+  mutualConnection?: string;    // 共通の知人・過去の接点
 }
 
 // レターの履歴データ構造（クライアント用 - キャメルケース）

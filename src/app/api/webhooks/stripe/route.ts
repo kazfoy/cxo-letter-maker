@@ -46,13 +46,20 @@ export async function POST(req: Request) {
                     // サブスクリプション詳細を取得
                     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
+                    const updateData: Record<string, unknown> = {
+                        stripe_customer_id: customerId,
+                        plan: 'pro',
+                        subscription_status: subscription.status,
+                    };
+
+                    // トライアル期間がある場合、trial_endを保存
+                    if (subscription.trial_end) {
+                        updateData.trial_end = new Date(subscription.trial_end * 1000).toISOString();
+                    }
+
                     await supabase
                         .from('profiles')
-                        .update({
-                            stripe_customer_id: customerId,
-                            plan: 'pro',
-                            subscription_status: subscription.status,
-                        })
+                        .update(updateData)
                         .eq('id', userId);
                 }
                 break;
@@ -82,12 +89,21 @@ export async function POST(req: Request) {
                     // past_due, canceled, unpaid => free (or handle gracefully)
                     const plan = (status === 'active' || status === 'trialing') ? 'pro' : 'free';
 
+                    const updateData: Record<string, unknown> = {
+                        subscription_status: status,
+                        plan: plan,
+                    };
+
+                    // トライアル期間情報を更新
+                    if (subscription.trial_end) {
+                        updateData.trial_end = new Date(subscription.trial_end * 1000).toISOString();
+                    } else {
+                        updateData.trial_end = null;
+                    }
+
                     await supabase
                         .from('profiles')
-                        .update({
-                            subscription_status: status,
-                            plan: plan,
-                        })
+                        .update(updateData)
                         .eq('id', targetUserId);
                 }
                 break;

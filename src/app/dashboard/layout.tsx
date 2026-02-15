@@ -26,7 +26,7 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
           <p className="text-slate-600">読み込み中...</p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function DashboardLayout({
                     href={item.href}
                     className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
                       isActive
-                        ? 'bg-indigo-50 text-indigo-700 font-medium'
+                        ? 'bg-amber-50 text-amber-700 font-medium'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >

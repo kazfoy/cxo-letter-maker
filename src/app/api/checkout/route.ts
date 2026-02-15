@@ -81,6 +81,7 @@ export async function POST(request: Request) {
                     metadata: {
                         userId: user.id,
                     },
+                    trial_period_days: 7,
                 },
             };
 

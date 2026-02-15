@@ -172,9 +172,9 @@ export function MultiSourceModal({
           <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
             {/* スピナーアニメーション */}
             <div className="relative mb-6">
-              <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+              <div className="w-16 h-16 border-4 border-amber-200 rounded-full animate-spin border-t-amber-700"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-8 h-8 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
@@ -238,7 +238,7 @@ export function MultiSourceModal({
             {/* 進捗バー */}
             <div className="w-56 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                className="h-full bg-gradient-to-r from-amber-600 to-amber-800 rounded-full transition-all duration-500 ease-out"
                 style={{
                   width: `${analysisPhase ? phaseConfig[analysisPhase].progress : 0}%`,
                 }}
@@ -266,7 +266,7 @@ export function MultiSourceModal({
                         ? "例: https://company.co.jp/about (会社概要ページ)"
                         : `https://company.co.jp/ir (オプション ${index})`
                     }
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                     disabled={isAnalyzing}
                   />
                   {urls.length > 1 && (
@@ -287,7 +287,7 @@ export function MultiSourceModal({
               <button
                 type="button"
                 onClick={addUrl}
-                className="mt-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors disabled:opacity-50"
+                className="mt-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-md hover:bg-amber-200 transition-colors disabled:opacity-50"
                 disabled={isAnalyzing}
               >
                 + URLを追加
@@ -310,11 +310,11 @@ export function MultiSourceModal({
               type="file"
               accept=".pdf,application/pdf"
               onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 disabled:opacity-50"
               disabled={isAnalyzing || isExtractingPdf}
             />
             {isExtractingPdf && (
-              <p className="mt-2 text-sm text-blue-600">
+              <p className="mt-2 text-sm text-amber-700">
                 ⏳ PDFからテキストを抽出中...
               </p>
             )}
@@ -359,7 +359,7 @@ export function MultiSourceModal({
           <button
             type="button"
             onClick={handleAnalyze}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-amber-800 text-white py-2 px-4 rounded-md hover:bg-amber-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isAnalyzing || isExtractingPdf || (!hasValidUrl && !pdfText)}
             aria-label="解析して入力"
           >

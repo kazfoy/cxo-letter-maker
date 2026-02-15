@@ -236,7 +236,7 @@ function LoginContent() {
                   type="button"
                   onClick={() => setAuthMethod('magic_link')}
                   className={`flex-1 py-2 px-3 text-sm font-medium border-b-2 transition-colors ${authMethod === 'magic_link'
-                    ? 'border-indigo-600 text-indigo-600'
+                    ? 'border-amber-700 text-amber-700'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                 >
@@ -246,7 +246,7 @@ function LoginContent() {
                   type="button"
                   onClick={() => setAuthMethod('otp_code')}
                   className={`flex-1 py-2 px-3 text-sm font-medium border-b-2 transition-colors ${authMethod === 'otp_code'
-                    ? 'border-indigo-600 text-indigo-600'
+                    ? 'border-amber-700 text-amber-700'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                 >
@@ -256,9 +256,9 @@ function LoginContent() {
 
               {/* メールリンク方式 */}
               {authMethod === 'magic_link' && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-amber-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
                   <p className="text-base text-blue-900 mb-4 font-medium">
-                    📨 送信先: <strong className="text-indigo-700">{email}</strong>
+                    📨 送信先: <strong className="text-amber-700">{email}</strong>
                   </p>
                   <div className="bg-white/60 rounded-md p-4 mb-4">
                     <p className="text-sm text-blue-900 font-semibold mb-2">
@@ -309,7 +309,7 @@ function LoginContent() {
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                       required
-                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors text-center text-2xl tracking-widest font-mono text-slate-900"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-center text-2xl tracking-widest font-mono text-slate-900"
                       placeholder="000000"
                       disabled={loading}
                     />
@@ -329,7 +329,7 @@ function LoginContent() {
                   <button
                     type="submit"
                     disabled={loading || otpCode.length !== 6}
-                    className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? '確認中...' : 'コードを確認'}
                   </button>
@@ -380,7 +380,7 @@ function LoginContent() {
                 setPassword('');
               }}
               className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'login'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-amber-700 text-amber-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
             >
@@ -394,7 +394,7 @@ function LoginContent() {
                 setPassword('');
               }}
               className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'signup'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-amber-700 text-amber-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
             >
@@ -415,7 +415,7 @@ function LoginContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
                   placeholder="your@email.com"
                   disabled={loading}
                 />
@@ -432,7 +432,7 @@ function LoginContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
                   placeholder="••••••••"
                   disabled={loading}
                 />
@@ -452,7 +452,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '処理中...' : 'ログイン'}
               </button>
@@ -472,7 +472,7 @@ function LoginContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
                   placeholder="your@email.com"
                   disabled={loading}
                 />
@@ -501,7 +501,7 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '送信中...' : '登録用リンクを送信'}
               </button>
@@ -527,7 +527,7 @@ export default function LoginPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
           <p className="text-slate-600">読み込み中...</p>
         </div>
       </div>

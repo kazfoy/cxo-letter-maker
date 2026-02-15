@@ -18,6 +18,22 @@ function normalizeSources(
   return undefined;
 }
 
+/**
+ * 分析結果全体の確信度を算出
+ */
+function calculateConfidence(result: AnalysisResult): 'high' | 'medium' | 'low' {
+  const highSignals = result.signals.filter(s => s.confidence === 'high').length;
+  const highProofs = result.proof_points.filter(p => p.confidence === 'high').length;
+  const totalHigh = highSignals + highProofs;
+  const total = result.signals.length + result.proof_points.length;
+
+  if (total === 0) return 'low';
+  const ratio = totalHigh / total;
+  if (ratio >= 0.5) return 'high';
+  if (ratio >= 0.2) return 'medium';
+  return 'low';
+}
+
 function ModalGenerationProgress() {
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,13 +60,13 @@ function ModalGenerationProgress() {
           const isCompleted = i < currentStepIndex;
           const isCurrent = step.active;
           return (
-            <div key={i} className={`flex items-center gap-1.5 ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
+            <div key={i} className={`flex items-center gap-1.5 ${isCurrent ? 'text-amber-700' : isCompleted ? 'text-green-600' : 'text-slate-300'}`}>
               {isCompleted ? (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : isCurrent ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-200 border-t-indigo-600"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-amber-200 border-t-amber-700"></div>
               ) : (
                 <div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div>
               )}
@@ -61,7 +77,7 @@ function ModalGenerationProgress() {
       </div>
       <div className="w-full bg-slate-200 rounded-full h-1.5 mb-1">
         <div
-          className="bg-indigo-500 h-1.5 rounded-full transition-all duration-1000 ease-linear"
+          className="bg-amber-600 h-1.5 rounded-full transition-all duration-1000 ease-linear"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -101,40 +117,7 @@ export function AnalysisPreviewModal({
   const shouldDefaultToDraft = !hasUrl || (analysisResult?.missing_info.filter(m => m.priority === 'high').length ?? 0) > 2;
   const [mode, setMode] = useState<'draft' | 'complete'>(shouldDefaultToDraft ? 'draft' : 'complete');
   const [overrides, setOverrides] = useState<UserOverrides>({});
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-
-  // 初回ユーザーは「証拠ポイント」を自動展開
-  useEffect(() => {
-    if (isOpen && analysisResult) {
-      const hasSeenModal = localStorage.getItem('analysis_modal_seen');
-      if (!hasSeenModal) {
-        setExpandedSections(new Set(['proof_points']));
-        localStorage.setItem('analysis_modal_seen', '1');
-      }
-    }
-  }, [isOpen, analysisResult]);
-
-  const toggleSection = useCallback((key: string) => {
-    setExpandedSections(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
-  const expandAll = useCallback(() => {
-    setExpandedSections(new Set(['proof_points', 'extracted_facts', 'sources', 'risk_flags']));
-  }, []);
-
-  const collapseAll = useCallback(() => {
-    setExpandedSections(new Set());
-  }, []);
-
-  const allExpanded = expandedSections.size >= 4;
+  const [showDetails, setShowDetails] = useState(false);
 
   const handleOverrideChange = useCallback((field: string, value: string) => {
     setOverrides(prev => ({
@@ -144,7 +127,6 @@ export function AnalysisPreviewModal({
   }, []);
 
   const handleConfirm = useCallback(() => {
-    // event/consultingモードの場合はそのまま、それ以外はdraft/completeを渡す
     const apiMode = letterMode === 'event' ? 'event' : letterMode === 'consulting' ? 'consulting' : mode;
     onConfirm(overrides, apiMode);
   }, [onConfirm, overrides, mode, letterMode]);
@@ -152,6 +134,8 @@ export function AnalysisPreviewModal({
   if (!isOpen) return null;
 
   const highPriorityMissing = analysisResult?.missing_info.filter(m => m.priority === 'high') || [];
+  const confidence = analysisResult ? calculateConfidence(analysisResult) : 'low';
+  const evidenceCount = (analysisResult?.proof_points.length ?? 0) + (analysisResult?.signals.length ?? 0);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -171,265 +155,258 @@ export function AnalysisPreviewModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className={`p-6 ${showDetails ? 'overflow-y-auto max-h-[60vh]' : ''}`}>
           {analysisResult ? (
             <>
-              {/* 仮説モード警告バナー（URLブロック時） */}
-              {(() => {
-                const blockedFlag = analysisResult.risk_flags?.find(
-                  (f) => f.message.includes('ブロック') || f.message.includes('仮説モード')
-                );
-                return blockedFlag ? (
-                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                    <span className="mr-1">&#9888;&#65039;</span> {blockedFlag.message}
+              {/* ===== Stage 1: サマリー（スクロール不要） ===== */}
+              <div className="space-y-4">
+                {/* 企業名 + 業界 */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
                   </div>
-                ) : null;
-              })()}
-
-              {/* 抽出された情報 */}
-              <section className="mb-6">
-                <h4 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
-                  <span className="text-lg">📊</span>
-                  抽出された情報
-                </h4>
-                <div className="bg-slate-50 p-4 rounded-lg space-y-2 text-sm">
-                  {analysisResult.facts.company_name && (
-                    <p><span className="font-medium text-slate-700">企業名:</span> <span className="text-slate-900">{analysisResult.facts.company_name}</span></p>
-                  )}
-                  {analysisResult.facts.person_name && (
-                    <p><span className="font-medium text-slate-700">担当者:</span> <span className="text-slate-900">{analysisResult.facts.person_name}</span></p>
-                  )}
-                  {analysisResult.facts.person_position && (
-                    <p><span className="font-medium text-slate-700">役職:</span> <span className="text-slate-900">{analysisResult.facts.person_position}</span></p>
-                  )}
-                  {analysisResult.facts.industry && (
-                    <p><span className="font-medium text-slate-700">業界:</span> <span className="text-slate-900">{analysisResult.facts.industry}</span></p>
-                  )}
-                  {!analysisResult.facts.company_name && !analysisResult.facts.person_name && (
-                    <p className="text-slate-500 italic">基本情報が見つかりませんでした</p>
-                  )}
-                </div>
-              </section>
-
-              {/* 経営シグナル */}
-              {analysisResult.signals.length > 0 && (
-                <section className="mb-6">
-                  <h4 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
-                    <span className="text-lg">📈</span>
-                    経営シグナル（仮説）
-                  </h4>
-                  <div className="space-y-2">
-                    {analysisResult.signals.slice(0, 3).map((signal, i) => (
-                      <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mr-2 ${
-                          signal.confidence === 'high' ? 'bg-green-100 text-green-700' :
-                          signal.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {signal.confidence === 'high' ? '高確度' : signal.confidence === 'medium' ? '中確度' : '低確度'}
-                        </span>
-                        <span className="text-slate-900">{signal.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* 不足情報（高優先度のみ） - 常時展開 */}
-              {highPriorityMissing.length > 0 && (
-                <section className="mb-6">
-                  <h4 className="font-medium text-amber-700 mb-3 flex items-center gap-2">
-                    <span className="text-lg">&#9888;&#65039;</span>
-                    追加入力が推奨される情報
-                  </h4>
-                  <div className="space-y-4">
-                    {highPriorityMissing.map((info, i) => (
-                      <div key={i}>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          {info.field}
-                        </label>
-                        <p className="text-xs text-slate-500 mb-2">{info.suggestion}</p>
-                        <input
-                          type="text"
-                          onChange={(e) => handleOverrideChange(info.field, e.target.value)}
-                          className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder={`${info.field}を入力...`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* 折りたたみセクション群 */}
-              {(analysisResult.proof_points.length > 0 || analysisResult.extracted_facts || normalizeSources(analysisResult)) && (
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-slate-500">詳細情報</p>
-                    <button
-                      type="button"
-                      onClick={allExpanded ? collapseAll : expandAll}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
-                    >
-                      {allExpanded ? 'すべて閉じる' : 'すべて展開'}
-                    </button>
-                  </div>
-
-                  {/* 証拠ポイント - 折りたたみ */}
-                  {analysisResult.proof_points.length > 0 && (
-                    <div className="border border-slate-200 rounded-lg mb-2 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => toggleSection('proof_points')}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-900 hover:bg-slate-50 transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">&#128142;</span>
-                          活用できる証拠
-                          <span className="text-xs text-slate-400">({analysisResult.proof_points.length}件)</span>
-                        </span>
-                        <svg className={`w-4 h-4 text-slate-400 transition-transform ${expandedSections.has('proof_points') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {expandedSections.has('proof_points') && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisResult.proof_points.slice(0, 3).map((point, i) => (
-                            <div key={i} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 mr-2">
-                                {point.type === 'numeric' ? '数値' :
-                                 point.type === 'case_study' ? '事例' :
-                                 point.type === 'news' ? 'ニュース' : '推論'}
-                              </span>
-                              <span className="text-slate-900">{point.content}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 抽出ファクト - 折りたたみ */}
-                  {analysisResult.extracted_facts && (
-                    <div className="border border-slate-200 rounded-lg mb-2 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => toggleSection('extracted_facts')}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-900 hover:bg-slate-50 transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">&#128270;</span>
-                          Webサイトから抽出したファクト
-                        </span>
-                        <svg className={`w-4 h-4 text-slate-400 transition-transform ${expandedSections.has('extracted_facts') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {expandedSections.has('extracted_facts') && (
-                        <div className="px-4 pb-3">
-                          <FactsDisplay
-                            facts={analysisResult.extracted_facts}
-                            defaultExpanded={true}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 情報ソース - 折りたたみ */}
-                  <div className="border border-slate-200 rounded-lg mb-2 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => toggleSection('sources')}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-900 hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className="text-base">&#128279;</span>
-                        参照元（情報ソース）
-                      </span>
-                      <svg className={`w-4 h-4 text-slate-400 transition-transform ${expandedSections.has('sources') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {expandedSections.has('sources') && (
-                      <div className="px-4 pb-3">
-                        <SourcesDisplay
-                          sources={normalizeSources(analysisResult)}
-                          hasUrl={hasUrl}
-                          defaultExpanded={false}
-                        />
-                      </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-slate-900">
+                      {analysisResult.facts.company_name || '企業名不明'}
+                    </h4>
+                    {analysisResult.facts.industry && (
+                      <p className="text-sm text-slate-500">{analysisResult.facts.industry}</p>
                     )}
                   </div>
-
-                  {/* 警告フラグ - 折りたたみ */}
-                  {analysisResult.risk_flags.filter(f => f.severity === 'high').length > 0 && (
-                    <div className="border border-red-200 rounded-lg mb-2 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => toggleSection('risk_flags')}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">&#128680;</span>
-                          注意事項
-                          <span className="text-xs text-red-400">({analysisResult.risk_flags.filter(f => f.severity === 'high').length}件)</span>
-                        </span>
-                        <svg className={`w-4 h-4 text-red-400 transition-transform ${expandedSections.has('risk_flags') ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {expandedSections.has('risk_flags') && (
-                        <div className="px-4 pb-3">
-                          <div className="bg-red-50 rounded-lg p-3">
-                            <ul className="text-sm text-red-700 space-y-1">
-                              {analysisResult.risk_flags.filter(f => f.severity === 'high').map((flag, i) => (
-                                <li key={i}>&#8226; {flag.message}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
-              )}
 
-              {/* モード切り替え */}
-              <section className="mb-4">
-                <h4 className="font-medium text-slate-900 mb-3">生成モード</h4>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                {/* 証拠カウント + 確信度バー */}
+                <div className="bg-stone-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-stone-800">
+                      {evidenceCount}件の根拠を発見
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-stone-200 rounded-full h-2">
+                      <div className={`h-2 rounded-full transition-all duration-500 ${
+                        confidence === 'high' ? 'bg-emerald-500 w-full' :
+                        confidence === 'medium' ? 'bg-amber-500 w-2/3' :
+                        'bg-red-400 w-1/3'
+                      }`} />
+                    </div>
+                    <span className={`text-xs font-medium whitespace-nowrap ${
+                      confidence === 'high' ? 'text-emerald-700' :
+                      confidence === 'medium' ? 'text-amber-700' :
+                      'text-red-600'
+                    }`}>
+                      {confidence === 'high' ? '高い確信度' :
+                       confidence === 'medium' ? '中程度の確信度' :
+                       '低い確信度'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* モード選択（コンパクト） */}
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-slate-700">生成モード:</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="radio"
                       checked={mode === 'complete'}
                       onChange={() => setMode('complete')}
-                      className="w-4 h-4 text-indigo-600"
+                      className="w-3.5 h-3.5 text-amber-700"
                     />
                     <span className="text-sm text-slate-900">完成版</span>
-                    <span className="text-xs text-slate-500">（プレースホルダーなし）</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="radio"
                       checked={mode === 'draft'}
                       onChange={() => setMode('draft')}
-                      className="w-4 h-4 text-indigo-600"
+                      className="w-3.5 h-3.5 text-amber-700"
                     />
-                    <span className="text-sm text-slate-900">下書き版</span>
-                    <span className="text-xs text-slate-500">（要確認箇所あり）</span>
+                    <span className="text-sm text-slate-900">下書き</span>
                   </label>
                 </div>
                 {mode === 'draft' && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    下書きモードでは、情報が不足している箇所に【要確認: 〇〇】が表示されます
+                  <p className="text-xs text-amber-600 -mt-2">
+                    情報が不足している箇所に【要確認: ...】が表示されます
                   </p>
                 )}
-              </section>
+              </div>
+
+              {/* ===== Stage 2 トグル ===== */}
+              {(analysisResult.proof_points.length > 0 || analysisResult.signals.length > 0 || analysisResult.extracted_facts || normalizeSources(analysisResult)) && (
+                <button
+                  type="button"
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="w-full text-center py-2 mt-3 text-sm text-amber-700 hover:text-amber-800 font-medium transition-colors flex items-center justify-center gap-1"
+                >
+                  <svg className={`w-4 h-4 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {showDetails ? '詳細を閉じる' : '詳細を見る'}
+                </button>
+              )}
+
+              {/* ===== Stage 2: 詳細情報 ===== */}
+              {showDetails && (
+                <div className="space-y-5 border-t border-stone-200 pt-4 mt-2">
+                  {/* 仮説モード警告バナー */}
+                  {(() => {
+                    const blockedFlag = analysisResult.risk_flags?.find(
+                      (f) => f.message.includes('ブロック') || f.message.includes('仮説モード')
+                    );
+                    return blockedFlag ? (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                        <span className="mr-1">&#9888;&#65039;</span> {blockedFlag.message}
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* 不足情報入力フィールド */}
+                  {highPriorityMissing.length > 0 && (
+                    <section>
+                      <h4 className="font-medium text-amber-700 mb-3 flex items-center gap-2 text-sm">
+                        <span>&#9888;&#65039;</span>
+                        追加入力が推奨される情報
+                      </h4>
+                      <div className="space-y-3">
+                        {highPriorityMissing.map((info, i) => (
+                          <div key={i}>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              {info.field}
+                            </label>
+                            <p className="text-xs text-slate-500 mb-1">{info.suggestion}</p>
+                            <input
+                              type="text"
+                              onChange={(e) => handleOverrideChange(info.field, e.target.value)}
+                              className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              placeholder={`${info.field}を入力...`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 抽出された基本情報 */}
+                  <section>
+                    <h4 className="font-medium text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                      <span>📊</span> 抽出された情報
+                    </h4>
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-1.5 text-sm">
+                      {analysisResult.facts.company_name && (
+                        <p><span className="font-medium text-slate-600">企業名:</span> {analysisResult.facts.company_name}</p>
+                      )}
+                      {analysisResult.facts.person_name && (
+                        <p><span className="font-medium text-slate-600">担当者:</span> {analysisResult.facts.person_name}</p>
+                      )}
+                      {analysisResult.facts.person_position && (
+                        <p><span className="font-medium text-slate-600">役職:</span> {analysisResult.facts.person_position}</p>
+                      )}
+                      {analysisResult.facts.industry && (
+                        <p><span className="font-medium text-slate-600">業界:</span> {analysisResult.facts.industry}</p>
+                      )}
+                      {!analysisResult.facts.company_name && !analysisResult.facts.person_name && (
+                        <p className="text-slate-500 italic">基本情報が見つかりませんでした</p>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* 経営シグナル */}
+                  {analysisResult.signals.length > 0 && (
+                    <section>
+                      <h4 className="font-medium text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                        <span>📈</span> 経営シグナル（仮説）
+                      </h4>
+                      <div className="space-y-2">
+                        {analysisResult.signals.slice(0, 3).map((signal, i) => (
+                          <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mr-2 ${
+                              signal.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                              signal.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {signal.confidence === 'high' ? '高確度' : signal.confidence === 'medium' ? '中確度' : '低確度'}
+                            </span>
+                            <span className="text-slate-900">{signal.description}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 証拠ポイント */}
+                  {analysisResult.proof_points.length > 0 && (
+                    <section>
+                      <h4 className="font-medium text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                        <span>💎</span> 活用できる証拠
+                        <span className="text-xs text-slate-400">({analysisResult.proof_points.length}件)</span>
+                      </h4>
+                      <div className="space-y-2">
+                        {analysisResult.proof_points.slice(0, 3).map((point, i) => (
+                          <div key={i} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm">
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 mr-2">
+                              {point.type === 'numeric' ? '数値' :
+                               point.type === 'case_study' ? '事例' :
+                               point.type === 'news' ? 'ニュース' : '推論'}
+                            </span>
+                            <span className="text-slate-900">{point.content}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 抽出ファクト */}
+                  {analysisResult.extracted_facts && (
+                    <section>
+                      <h4 className="font-medium text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                        <span>🔍</span> Webサイトから抽出したファクト
+                      </h4>
+                      <FactsDisplay
+                        facts={analysisResult.extracted_facts}
+                        defaultExpanded={true}
+                      />
+                    </section>
+                  )}
+
+                  {/* 情報ソース */}
+                  <section>
+                    <h4 className="font-medium text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                      <span>🔗</span> 参照元（情報ソース）
+                    </h4>
+                    <SourcesDisplay
+                      sources={normalizeSources(analysisResult)}
+                      hasUrl={hasUrl}
+                      defaultExpanded={false}
+                    />
+                  </section>
+
+                  {/* 注意事項 */}
+                  {analysisResult.risk_flags.filter(f => f.severity === 'high').length > 0 && (
+                    <section>
+                      <h4 className="font-medium text-red-700 mb-2 flex items-center gap-2 text-sm">
+                        <span>🚨</span> 注意事項
+                        <span className="text-xs text-red-400">({analysisResult.risk_flags.filter(f => f.severity === 'high').length}件)</span>
+                      </h4>
+                      <div className="bg-red-50 rounded-lg p-3">
+                        <ul className="text-sm text-red-700 space-y-1">
+                          {analysisResult.risk_flags.filter(f => f.severity === 'high').map((flag, i) => (
+                            <li key={i}>&#8226; {flag.message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mx-auto mb-4"></div>
               <p className="text-slate-600">分析中...</p>
             </div>
           )}
@@ -484,7 +461,7 @@ export function AnalysisPreviewModal({
             <button
               onClick={handleConfirm}
               disabled={isLoading || !analysisResult}
-              className="flex-1 bg-indigo-600 text-white py-2.5 rounded-md hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-amber-800 text-white py-2.5 rounded-md hover:bg-amber-900 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

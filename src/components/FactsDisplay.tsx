@@ -28,7 +28,7 @@ const CATEGORY_CONFIG: Record<keyof ExtractedFacts, { label: string; icon: strin
   properNouns: {
     label: '固有名詞',
     icon: '🏷️',
-    color: 'bg-purple-50 border-purple-200 text-purple-700',
+    color: 'bg-teal-50 border-teal-200 text-teal-700',
   },
   recentMoves: {
     label: '最近の動き',
@@ -80,7 +80,7 @@ export function FactsDisplay({ facts, className = '', defaultExpanded = false }:
         <div className="flex items-center gap-2">
           <span className="text-lg">📊</span>
           <span className="font-semibold text-slate-800">抽出されたファクト</span>
-          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+          <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">
             {totalFactCount}件
           </span>
         </div>

@@ -255,6 +255,14 @@ ${sanitizeForPrompt(sender.service_description, 1000)}
 
 ${additionalContext ? `【追加コンテキスト】\n${sanitizeForPrompt(additionalContext, 1000)}` : ''}
 
+${overrides?.cxo_insight ? `【CxO個人の発信情報（最重要 — 必ずレターに反映すること）】
+以下はターゲットCxO個人の発信内容です。レターの冒頭で必ずこの情報に触れ、「あなた個人のことを理解しています」というメッセージを伝えてください:
+${sanitizeForPrompt(overrides.cxo_insight, 1000)}` : ''}
+
+${overrides?.mutual_connection ? `【共通の接点（レターの冒頭で必ず言及すること）】
+以下の共通の接点情報を、レターの最初の1-2文で自然に言及してください。この情報はレターの返信率に最も影響します:
+${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
+
 【出力形式】
 以下のJSON形式で出力してください：
 {
@@ -523,6 +531,14 @@ ${extractedFactsList}` : ''}
 サービス: ${sanitizeForPrompt(sender.service_description, 1000)}
 
 ${overrides?.additional_context ? `【追加コンテキスト】\n${sanitizeForPrompt(overrides.additional_context, 1000)}` : ''}
+
+${overrides?.cxo_insight ? `【CxO個人の発信情報（最重要 — 必ずレターに反映すること）】
+以下はターゲットCxO個人の発信内容です。レターの冒頭で必ずこの情報に触れ、「あなた個人のことを理解しています」というメッセージを伝えてください:
+${sanitizeForPrompt(overrides.cxo_insight, 1000)}` : ''}
+
+${overrides?.mutual_connection ? `【共通の接点（レターの冒頭で必ず言及すること）】
+以下の共通の接点情報を、レターの最初の1-2文で自然に言及してください。この情報はレターの返信率に最も影響します:
+${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
 
 【出力形式】
 以下のJSON形式で出力してください：

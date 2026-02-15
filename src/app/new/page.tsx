@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { InputForm } from '@/components/InputForm';
 import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
@@ -28,7 +28,11 @@ import { devLog } from '@/lib/logger';
 function NewLetterPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const restoreId = searchParams.get('restore');
+  const isDemo = searchParams.get('demo') === 'true';
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const isDemoModeRef = useRef(false);
 
 
   const { usage, increment, refetch: refetchGuestUsage } = useGuestLimit();
@@ -149,6 +153,87 @@ function NewLetterPageContent() {
     setShowWelcome(false);
   }, []);
 
+  // デモモード: 自動開始
+  useEffect(() => {
+    if (!isDemo) return;
+    // デモ時はWelcomeWizard非表示
+    setShowWelcome(false);
+    setIsDemoMode(true);
+    isDemoModeRef.current = true;
+
+    // 1秒後にサンプルデータで自動生成開始（モーダルなし）
+    const timer = setTimeout(() => {
+      const randomCompany = getRandomSampleCompany();
+      const sampleFormData: LetterFormData = {
+        myCompanyName: SAMPLE_DATA.myCompanyName,
+        myName: SAMPLE_DATA.myName,
+        myServiceDescription: SAMPLE_DATA.myServiceDescription,
+        companyName: randomCompany.companyName,
+        department: SAMPLE_DATA.department,
+        position: SAMPLE_DATA.position,
+        name: SAMPLE_DATA.name,
+        targetUrl: randomCompany.targetUrl,
+        background: '',
+        problem: '',
+        solution: '',
+        caseStudy: '',
+        offer: '',
+        freeformInput: '',
+        eventUrl: '',
+        eventName: '',
+        eventDateTime: '',
+        eventSpeakers: '',
+        invitationReason: '',
+        simpleRequirement: '',
+      };
+      setFormData(sampleFormData);
+      // モーダルなしで一括生成
+      ensureAnalysisThenGenerateV2(sampleFormData, 'letter');
+    }, 1000);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo]);
+
+  // デモモード終了
+  const handleExitDemo = useCallback(() => {
+    setIsDemoMode(false);
+    isDemoModeRef.current = false;
+    router.replace('/new');
+
+    // フォームリセット
+    setFormData({
+      myCompanyName: '',
+      myName: '',
+      myServiceDescription: '',
+      companyName: '',
+      position: '',
+      name: '',
+      targetUrl: '',
+      background: '',
+      problem: '',
+      solution: '',
+      caseStudy: '',
+      offer: '',
+      freeformInput: '',
+      eventUrl: '',
+      eventName: '',
+      eventDateTime: '',
+      eventSpeakers: '',
+      invitationReason: '',
+      simpleRequirement: '',
+    });
+    setGeneratedLetter('');
+    setCurrentLetterId(undefined);
+    setCurrentLetterStatus(undefined);
+    setVariations(undefined);
+    setEmailData(undefined);
+    setGeneratedSources(undefined);
+    setGeneratedCitations(undefined);
+    setSelfCheck(undefined);
+    setAnalysisResult(null);
+  }, [router]);
+
   // V2フロー: 分析を実行して結果を返す（内部用）
   const runAnalysis = useCallback(async (inputFormData: LetterFormData, targetUrl: string | undefined): Promise<AnalysisResult | null> => {
     try {
@@ -219,6 +304,8 @@ function NewLetterPageContent() {
                 ].filter(Boolean).join('\n')
               : inputFormData.freeformInput,
             target_url: targetUrl,
+            cxo_insight: inputFormData.cxoInsight || undefined,
+            mutual_connection: inputFormData.mutualConnection || undefined,
           },
           sender_info: {
             company_name: inputFormData.myCompanyName,
@@ -336,8 +423,8 @@ function NewLetterPageContent() {
           window.dispatchEvent(new Event('guest-history-updated'));
         }
 
-        // ゲスト利用回数を更新
-        if (!user) {
+        // ゲスト利用回数を更新（デモモード時はスキップ）
+        if (!user && !isDemoModeRef.current) {
           increment();
         }
 
@@ -593,6 +680,7 @@ function NewLetterPageContent() {
 
     // eventモードの場合、formDataからイベント情報をマージ
     // consultingモードの場合、追加コンテキストをマージ
+    // 全モード共通: CxO発信情報・共通接点をマージ
     let finalOverrides: UserOverrides;
     if (generateMode === 'event') {
       finalOverrides = {
@@ -615,6 +703,13 @@ function NewLetterPageContent() {
     } else {
       finalOverrides = overrides;
     }
+
+    // CxO発信情報・共通接点を全モードで追加
+    finalOverrides = {
+      ...finalOverrides,
+      cxo_insight: formData.cxoInsight || finalOverrides.cxo_insight || undefined,
+      mutual_connection: formData.mutualConnection || finalOverrides.mutual_connection || undefined,
+    };
 
     try {
       const response = await fetch('/api/generate-v2', {
@@ -692,8 +787,8 @@ function NewLetterPageContent() {
           window.dispatchEvent(new Event('guest-history-updated'));
         }
 
-        // ゲスト利用回数を更新
-        if (!user) {
+        // ゲスト利用回数を更新（デモモード時はスキップ）
+        if (!user && !isDemoModeRef.current) {
           increment();
         }
 
@@ -1025,10 +1120,30 @@ function NewLetterPageContent() {
         </div>
       )}
 
+      {/* デモモードバナー */}
+      {isDemoMode && (
+        <div className="bg-amber-100 border-b border-amber-300 py-2.5">
+          <div className="container mx-auto px-4 flex justify-center items-center gap-3 text-sm text-amber-900">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">デモモードで実行中</span>
+            <span className="text-amber-700">|</span>
+            <button
+              onClick={handleExitDemo}
+              className="font-bold text-amber-800 underline hover:text-amber-900 transition-colors"
+            >
+              自分の情報で試す
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-4 py-6">
-        {/* ウェルカムウィザード（初回のみ） */}
-        {showWelcome && (
+        {/* ウェルカムウィザード（初回のみ、デモモード時は非表示） */}
+        {showWelcome && !isDemoMode && (
           <WelcomeWizard
             onComplete={handleWelcomeComplete}
             onSampleExperience={handleSampleExperience}
@@ -1178,6 +1293,8 @@ function NewLetterPageContent() {
                 selfCheck={selfCheck}
                 letterMode={mode}
                 onSampleFill={handleSampleExperience}
+                isDemoMode={isDemoMode}
+                onExitDemo={handleExitDemo}
               />
             </div>
           </div>

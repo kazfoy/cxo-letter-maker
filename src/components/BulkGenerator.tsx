@@ -129,7 +129,7 @@ const BatchProgressModal = ({
                             </>
                         ) : (
                             <>
-                                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                                <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
                                 一括生成を実行中...
                             </>
                         )}
@@ -151,7 +151,7 @@ const BatchProgressModal = ({
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
                             <div
-                                className="h-full transition-all duration-300 ease-out bg-blue-600"
+                                className="h-full transition-all duration-300 ease-out bg-amber-600"
                                 style={{ width: `${percentage}%` }}
                             />
                         </div>
@@ -192,7 +192,7 @@ const BatchProgressModal = ({
                                 </button>
                                 <button
                                     onClick={() => onFinish('history')}
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-sm transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-2 bg-amber-800 text-white rounded-lg hover:bg-amber-900 font-bold shadow-sm transition-colors flex items-center justify-center gap-2"
                                 >
                                     履歴を確認する
                                     <ArrowRight className="w-4 h-4" />
@@ -206,7 +206,7 @@ const BatchProgressModal = ({
                                         window.open(`/dashboard/history/batch/${batchId}`, '_blank');
                                     }
                                 }}
-                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-2 bg-amber-800 text-white rounded-lg hover:bg-amber-900 font-medium flex items-center justify-center gap-2"
                             >
                                 履歴を見る（新しいタブ）
                                 <ArrowRight className="w-4 h-4" />
@@ -245,7 +245,7 @@ const _SuccessModal = ({
                     <div className="flex flex-col gap-3 w-full">
                         <Link
                             href={`/dashboard/history/batch/${batchId}?highlight=true`}
-                            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                            className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-semibold"
                         >
                             履歴で進捗を見る
                             <ArrowRight className="w-4 h-4" />
@@ -1093,7 +1093,7 @@ export function BulkGenerator() {
                                     <span className="font-medium">手紙</span>
                                 </label>
                                 <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${mediaType === 'mail'
-                                    ? 'border-blue-500 bg-blue-50 text-blue-800'
+                                    ? 'border-amber-500 bg-amber-50 text-amber-800'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
                                     }`}>
                                     <input
@@ -1130,7 +1130,7 @@ export function BulkGenerator() {
                                     <span className="font-medium">セールス</span>
                                 </label>
                                 <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all ${generationMode === 'event'
-                                    ? 'border-purple-500 bg-purple-50 text-purple-800'
+                                    ? 'border-amber-500 bg-amber-50 text-amber-800'
                                     : 'border-slate-200 hover:border-slate-300 text-slate-600'
                                     }`}>
                                     <input
@@ -1222,15 +1222,15 @@ export function BulkGenerator() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col md:flex-row md::items-start gap-3">
+                                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 flex flex-col md:flex-row md:items-start gap-3">
                                             <div className="md:w-32 flex-shrink-0">
-                                                <span className="font-bold text-purple-800 text-sm">🅱️ イベント招待</span>
+                                                <span className="font-bold text-amber-800 text-sm">🅱️ イベント招待</span>
                                             </div>
                                             <div className="flex-1">
-                                                <p className="text-xs text-purple-900 mb-1 font-semibold">推奨列名とその用途:</p>
+                                                <p className="text-xs text-amber-900 mb-1 font-semibold">推奨列名とその用途:</p>
                                                 <div className="flex flex-wrap gap-2">
-                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-purple-200 text-slate-700"><code>イベント名</code></span>
-                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-purple-200 text-slate-700"><code>備考</code> (日時・場所)</span>
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-amber-200 text-slate-700"><code>イベント名</code></span>
+                                                    <span className="text-xs bg-white px-2 py-1 rounded border border-amber-200 text-slate-700"><code>備考</code> (日時・場所)</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1292,7 +1292,7 @@ export function BulkGenerator() {
                                     <select
                                         value={mapping.companyName}
                                         onChange={(e) => handleMappingChange('companyName', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-amber-500 outline-none"
                                     >
                                         <option value="">選択してください</option>
                                         {headers.map(h => <option key={h} value={h}>{h}</option>)}
@@ -1314,7 +1314,7 @@ export function BulkGenerator() {
                                         <select
                                             value={mapping.name}
                                             onChange={(e) => handleMappingChange('name', e.target.value)}
-                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-amber-500 outline-none"
                                         >
                                             <option value="">選択してください</option>
                                             {headers.map(h => <option key={h} value={h}>{h}</option>)}
@@ -1413,8 +1413,8 @@ export function BulkGenerator() {
                                             <input type="radio" name="mediaTypeOption" value="letter" checked={mediaType === 'letter'} onChange={() => setMediaType('letter')} className="w-4 h-4 text-amber-600" />
                                             <span className="text-sm font-medium">✉️ 手紙 (Letter)</span>
                                         </label>
-                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${mediaType === 'mail' ? 'border-blue-500 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white'}`}>
-                                            <input type="radio" name="mediaTypeOption" value="mail" checked={mediaType === 'mail'} onChange={() => setMediaType('mail')} className="w-4 h-4 text-blue-600" />
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${mediaType === 'mail' ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="mediaTypeOption" value="mail" checked={mediaType === 'mail'} onChange={() => setMediaType('mail')} className="w-4 h-4 text-amber-600" />
                                             <span className="text-sm font-medium">📧 メール (Email)</span>
                                         </label>
                                     </div>
@@ -1427,8 +1427,8 @@ export function BulkGenerator() {
                                             <input type="radio" name="genModeOption" value="sales" checked={generationMode === 'sales'} onChange={() => setGenerationMode('sales')} className="w-4 h-4 text-emerald-600" />
                                             <span className="text-sm font-medium">💼 セールス (Sales)</span>
                                         </label>
-                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${generationMode === 'event' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-slate-200 bg-white'}`}>
-                                            <input type="radio" name="genModeOption" value="event" checked={generationMode === 'event'} onChange={() => setGenerationMode('event')} className="w-4 h-4 text-purple-600" />
+                                        <label className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all ${generationMode === 'event' ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white'}`}>
+                                            <input type="radio" name="genModeOption" value="event" checked={generationMode === 'event'} onChange={() => setGenerationMode('event')} className="w-4 h-4 text-amber-600" />
                                             <span className="text-sm font-medium">🎉 イベント招待 (Event)</span>
                                         </label>
                                     </div>
@@ -1447,15 +1447,15 @@ export function BulkGenerator() {
 
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
                         <div className="flex flex-wrap gap-4 mb-6">
-                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'default' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'default' ? 'bg-amber-800 text-white border-amber-700' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
                                 <input type="radio" name="senderRule" value="default" checked={senderRule === 'default'} onChange={() => setSenderRule('default')} className="sr-only" />
                                 <span className="font-bold">登録情報を使用 (Default)</span>
                             </label>
-                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'direct' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'direct' ? 'bg-amber-800 text-white border-amber-700' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
                                 <input type="radio" name="senderRule" value="direct" checked={senderRule === 'direct'} onChange={() => setSenderRule('direct')} className="sr-only" />
                                 <span className="font-bold">直接入力 (Custom)</span>
                             </label>
-                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'csv_priority' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                            <label className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all ${senderRule === 'csv_priority' ? 'bg-amber-800 text-white border-amber-700' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
                                 <input type="radio" name="senderRule" value="csv_priority" checked={senderRule === 'csv_priority'} onChange={() => setSenderRule('csv_priority')} className="sr-only" />
                                 <span className="font-bold">CSVから引用 (From CSV)</span>
                             </label>
@@ -1490,7 +1490,7 @@ export function BulkGenerator() {
                                     <button
                                         onClick={handleUrlAnalysis}
                                         disabled={isAnalyzing || !aiUrl}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-blue-700"
+                                        className="bg-amber-800 text-white px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-amber-900"
                                     >
                                         {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                                         AI自動入力
@@ -1546,7 +1546,7 @@ export function BulkGenerator() {
                     <button
                         onClick={startPreviewGeneration}
                         disabled={getValidationErrors().length > 0 || isGenerating || isPreviewGenerating}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
+                        className="bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all text-lg flex items-center gap-2 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                     >
                         {isPreviewGenerating ? (
                             <>
@@ -1588,7 +1588,7 @@ export function BulkGenerator() {
             <div className="p-8 max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full mb-4">
                         <Eye className="w-8 h-8 text-white" />
                     </div>
                     <h2 className="text-3xl font-bold text-slate-800 mb-2">プレビュー確認</h2>
@@ -1600,7 +1600,7 @@ export function BulkGenerator() {
                 {/* CTA選択セクション */}
                 <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <ArrowRight className="w-5 h-5 text-indigo-600" />
+                        <ArrowRight className="w-5 h-5 text-amber-700" />
                         CTAタイプを選択
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1609,7 +1609,7 @@ export function BulkGenerator() {
                                 key={type}
                                 className={`relative flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all ${
                                     ctaType === type
-                                        ? 'border-indigo-500 bg-indigo-50'
+                                        ? 'border-amber-500 bg-amber-50'
                                         : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                             >
@@ -1629,7 +1629,7 @@ export function BulkGenerator() {
                                 </span>
                                 {ctaType === type && (
                                     <div className="absolute top-2 right-2">
-                                        <Check className="w-5 h-5 text-indigo-600" />
+                                        <Check className="w-5 h-5 text-amber-700" />
                                     </div>
                                 )}
                             </label>
@@ -1644,7 +1644,7 @@ export function BulkGenerator() {
                             {/* ヘッダー */}
                             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <span className="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-700 rounded-full font-bold text-sm">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 bg-amber-100 text-amber-700 rounded-full font-bold text-sm">
                                         {index + 1}
                                     </span>
                                     <div>
@@ -1664,7 +1664,7 @@ export function BulkGenerator() {
                                         <span className="text-sm text-slate-400">待機中...</span>
                                     )}
                                     {item.status === 'generating' && (
-                                        <span className="flex items-center gap-2 text-sm text-blue-600">
+                                        <span className="flex items-center gap-2 text-sm text-amber-700">
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                             生成中...
                                         </span>
@@ -1837,7 +1837,7 @@ export function BulkGenerator() {
                                 {usageInfo && usageInfo.userPlan !== 'premium' && (
                                     <button
                                         onClick={() => { /* router.push('/dashboard/pricing') */ }}
-                                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                                        className="px-4 py-2 text-sm bg-amber-800 text-white rounded-md hover:bg-amber-900 font-medium"
                                     >
                                         プランをアップグレード
                                     </button>
@@ -1850,7 +1850,7 @@ export function BulkGenerator() {
 
             <div className="w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
                 <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    className="bg-amber-600 h-2 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
             </div>
@@ -1882,7 +1882,7 @@ export function BulkGenerator() {
                                         </td>
                                         <td className="px-4 py-3">
                                             {status === 'pending' && <span className="text-slate-400 text-xs">待機中</span>}
-                                            {status === 'generating' && <span className="text-blue-600 flex items-center gap-1 text-xs"><Loader2 size={12} className="animate-spin" /> 生成中</span>}
+                                            {status === 'generating' && <span className="text-amber-700 flex items-center gap-1 text-xs"><Loader2 size={12} className="animate-spin" /> 生成中</span>}
                                             {status === 'completed' && <span className="text-green-600 flex items-center gap-1 text-xs"><Check size={12} /> 完了</span>}
                                             {status === 'error' && <span className="text-red-500 flex items-center gap-1 text-xs"><AlertCircle size={12} /> エラー</span>}
                                         </td>

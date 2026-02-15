@@ -70,7 +70,7 @@ export default function DashboardPreviewPage() {
   const statusConfig = {
     meeting_set: { label: 'アポ獲得', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
     replied: { label: '返信あり', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-    sent: { label: '送付済', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+    sent: { label: '送付済', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
     draft: { label: '作成済', bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' },
   } as const;
 
@@ -92,7 +92,7 @@ export default function DashboardPreviewPage() {
           {/* Summary Metrics */}
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-indigo-500" />
+              <div className="w-2 h-2 rounded-full bg-amber-600" />
               <span className="text-slate-600">今月</span>
               <span className="font-mono font-semibold text-slate-900 tabular-nums">
                 {thisMonthCount}
@@ -121,16 +121,16 @@ export default function DashboardPreviewPage() {
           {/* New Letter Card */}
           <Link
             href="/new"
-            className="group relative bg-white border border-slate-200 rounded-lg p-6 hover:border-indigo-300 hover:shadow-sm transition-all duration-150"
+            className="group relative bg-white border border-slate-200 rounded-lg p-6 hover:border-amber-300 hover:shadow-sm transition-all duration-150"
           >
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                <FileText className="w-5 h-5 text-indigo-600" />
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                <FileText className="w-5 h-5 text-amber-700" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-slate-900 mb-1 flex items-center gap-2">
                   1通ずつ作成
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
                   送付先の情報を入力して、AIが最適な営業手紙を生成します
@@ -142,16 +142,16 @@ export default function DashboardPreviewPage() {
           {/* Bulk Generate Card */}
           <Link
             href="/bulk"
-            className="group relative bg-white border border-slate-200 rounded-lg p-6 hover:border-purple-300 hover:shadow-sm transition-all duration-150"
+            className="group relative bg-white border border-slate-200 rounded-lg p-6 hover:border-amber-300 hover:shadow-sm transition-all duration-150"
           >
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                <Upload className="w-5 h-5 text-purple-600" />
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                <Upload className="w-5 h-5 text-amber-700" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-slate-900 mb-1 flex items-center gap-2">
                   一括生成
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
                   CSVファイルから複数の手紙を一度に生成できます
@@ -218,7 +218,7 @@ export default function DashboardPreviewPage() {
       {!planLoading && !isPro && !isPremium && showUpgradeBanner && (
         <section className="relative bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg p-6 overflow-hidden">
           {/* Subtle decorative element */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-8 -mt-8" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-600/10 rounded-full blur-2xl -mr-8 -mt-8" />
 
           <button
             onClick={() => setShowUpgradeBanner(false)}
@@ -231,8 +231,8 @@ export default function DashboardPreviewPage() {
           <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
                   Pro プラン
                 </span>
               </div>
@@ -262,7 +262,7 @@ export default function DashboardPreviewPage() {
           </h2>
           <Link
             href="/dashboard/history"
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1"
+            className="text-xs font-medium text-amber-700 hover:text-amber-700 transition-colors flex items-center gap-1"
           >
             すべて見る
             <ChevronRight className="w-3 h-3" />
@@ -273,7 +273,7 @@ export default function DashboardPreviewPage() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-3 text-slate-500">
-                <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-slate-300 border-t-amber-700 rounded-full animate-spin" />
                 <span className="text-sm">読み込み中...</span>
               </div>
             </div>

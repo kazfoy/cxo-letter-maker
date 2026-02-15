@@ -96,12 +96,12 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* New Letter CTA */}
-        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-8">
+        <div className="bg-gradient-to-r from-amber-600 to-amber-800 rounded-xl shadow-lg p-8">
           <h2 className="text-2xl font-bold text-white mb-3">新しい手紙を作成</h2>
-          <p className="text-indigo-100 mb-6">AIが効果的な営業手紙を作成します</p>
+          <p className="text-amber-100 mb-6">AIが効果的な営業手紙を作成します</p>
           <Link
             href="/new"
-            className="inline-flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-md hover:bg-indigo-50 transition-colors font-semibold shadow-md"
+            className="inline-flex items-center gap-2 bg-white text-amber-700 px-6 py-3 rounded-md hover:bg-amber-50 transition-colors font-semibold shadow-md"
           >
             <span className="text-xl">✨</span>
             <span>手紙を作成する</span>
@@ -109,12 +109,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Bulk Generate CTA */}
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg p-8">
+        <div className="bg-gradient-to-r from-amber-700 to-amber-900 rounded-xl shadow-lg p-8">
           <h2 className="text-2xl font-bold text-white mb-3">CSV一括生成</h2>
-          <p className="text-purple-100 mb-6">CSVファイルから複数の手紙を一度に作成</p>
+          <p className="text-amber-100 mb-6">CSVファイルから複数の手紙を一度に作成</p>
           <Link
             href="/bulk"
-            className="inline-flex items-center gap-2 bg-white text-purple-600 px-6 py-3 rounded-md hover:bg-purple-50 transition-colors font-semibold shadow-md"
+            className="inline-flex items-center gap-2 bg-white text-amber-700 px-6 py-3 rounded-md hover:bg-amber-50 transition-colors font-semibold shadow-md"
           >
             <Upload className="w-5 h-5" />
             <span>一括生成する</span>
@@ -124,10 +124,10 @@ export default function DashboardPage() {
 
       {/* Upgrade CTA */}
       {!planLoading && (
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 rounded-2xl shadow-xl p-8 mb-8 border border-white/10 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 rounded-2xl shadow-xl p-8 mb-8 border border-white/10 relative overflow-hidden">
           {/* Decorative Background */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl -mr-32 -mt-32 rounded-full" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-3xl -ml-32 -mb-32 rounded-full" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-3xl -mr-32 -mt-32 rounded-full" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/10 blur-3xl -ml-32 -mb-32 rounded-full" />
 
           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
             <div className="flex-1 text-center lg:text-left">
@@ -136,20 +136,20 @@ export default function DashboardPage() {
                 UPGRADE YOUR PLAN
               </div>
               <h2 className="text-3xl font-bold text-white mb-2">プランをアップグレードして制限を解除</h2>
-              <p className="text-indigo-100/80 mb-6 text-lg">大量生成、優先サポート、高度な機能を今すぐ始めましょう</p>
+              <p className="text-amber-100/80 mb-6 text-lg">大量生成、優先サポート、高度な機能を今すぐ始めましょう</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto lg:mx-0">
-                <div className="flex items-start gap-2 text-indigo-100/70 text-sm">
+                <div className="flex items-start gap-2 text-amber-100/70 text-sm">
                   <div className="mt-1 bg-white/10 rounded-full p-0.5">
-                    <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                   <span>1回のリクエストで最大1,000件生成</span>
                 </div>
-                <div className="flex items-start gap-2 text-indigo-100/70 text-sm">
+                <div className="flex items-start gap-2 text-amber-100/70 text-sm">
                   <div className="mt-1 bg-white/10 rounded-full p-0.5">
-                    <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                   onClick={() => setIsUpgradeModalOpen(true)}
                   className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-xl hover:bg-slate-100 transition-all font-bold shadow-lg text-lg group"
                 >
-                  <Zap className="w-5 h-5 text-indigo-600" />
+                  <Zap className="w-5 h-5 text-amber-700" />
                   プランをアップグレード
                 </button>
               )}
@@ -183,7 +183,7 @@ export default function DashboardPage() {
           <h2 className="text-xl font-bold text-slate-900">最近の履歴</h2>
           <Link
             href="/dashboard/history"
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-sm text-amber-700 hover:text-amber-800 font-medium"
           >
             すべて見る →
           </Link>
@@ -191,7 +191,7 @@ export default function DashboardPage() {
 
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-700 mx-auto mb-2"></div>
             <p className="text-sm text-slate-500">読み込み中...</p>
           </div>
         ) : histories.length === 0 ? (
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${history.status === 'meeting_set' ? 'bg-green-100 text-green-700' :
                     history.status === 'replied' ? 'bg-orange-100 text-orange-700' :
-                      history.status === 'sent' ? 'bg-indigo-100 text-indigo-700' :
+                      history.status === 'sent' ? 'bg-amber-100 text-amber-700' :
                         'bg-blue-100 text-blue-700'
                     }`}>
                     {history.status === 'meeting_set' ? 'アポ獲得' :

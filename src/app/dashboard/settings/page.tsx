@@ -65,7 +65,7 @@ function SecuritySettings() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
               placeholder="••••••••"
             />
             <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-3.5" />
@@ -82,7 +82,7 @@ function SecuritySettings() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
               placeholder="••••••••"
             />
             <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-3.5" />
@@ -281,7 +281,7 @@ export default function SettingsPage() {
   if (loading || planLoading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
         <p className="text-slate-600">読み込み中...</p>
       </div>
     );
@@ -298,7 +298,7 @@ export default function SettingsPage() {
         {/* Plan Management Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-indigo-600" />
+            <CreditCard className="w-5 h-5 text-amber-700" />
             プラン管理
           </h2>
 
@@ -306,11 +306,11 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm text-slate-500 mb-1">現在のプラン</p>
               <div className="flex items-center gap-2">
-                <span className={`text-2xl font-bold ${isPro || isPremium ? 'text-indigo-600' : 'text-slate-700'}`}>
+                <span className={`text-2xl font-bold ${isPro || isPremium ? 'text-amber-700' : 'text-slate-700'}`}>
                   {isPremium ? 'Premium Plan' : isPro ? 'Pro Plan' : 'Free Plan'}
                 </span>
                 {(isPro || isPremium) && (
-                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
+                  <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-bold">
                     ACTIVE
                   </span>
                 )}
@@ -321,7 +321,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => setIsUpgradeModalOpen(true)}
                 disabled={upgrading}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-2.5 px-5 rounded-lg shadow transition-all transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-amber-900 hover:from-amber-800 hover:to-amber-950 text-white font-bold py-2.5 px-5 rounded-lg shadow transition-all transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Rocket className="w-4 h-4" />
                 {upgrading ? '準備中...' : 'プランを変更'}
@@ -361,7 +361,7 @@ export default function SettingsPage() {
                 type="text"
                 value={formData.company_name}
                 onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="株式会社〇〇"
               />
             </div>
@@ -375,7 +375,7 @@ export default function SettingsPage() {
                 type="text"
                 value={formData.user_name}
                 onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="山田 太郎"
               />
             </div>
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                 value={formData.service_description}
                 onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
                 rows={4}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
                 placeholder="弊社は〇〇を提供しています..."
               />
             </div>
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                 type="url"
                 value={formData.company_url}
                 onChange={(e) => setFormData({ ...formData, company_url: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="https://example.com"
               />
             </div>
@@ -489,7 +489,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={saving || uploading}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-amber-800 text-white py-3 px-4 rounded-md hover:bg-amber-900 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? '保存中...' : '保存して適用'}
             </button>
@@ -499,7 +499,7 @@ export default function SettingsPage() {
         {/* Support Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-indigo-600" />
+            <HelpCircle className="w-5 h-5 text-amber-700" />
             サポート
           </h2>
           <p className="text-sm text-slate-600 mb-4">

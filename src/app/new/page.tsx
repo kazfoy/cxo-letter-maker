@@ -973,7 +973,8 @@ function NewLetterPageContent() {
     // サンプル体験はゲスト制限チェックをスキップ（回数にもカウントしない）
     setIsSampleCooldown(true);
 
-    // サンプル体験中はデモモードフラグを立てる
+    // サンプル体験中はデモモードフラグを立てる（state + ref 両方）
+    setIsDemoMode(true);
     isDemoModeRef.current = true;
 
     if (mode === 'event') {

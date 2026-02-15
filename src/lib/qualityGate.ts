@@ -412,6 +412,12 @@ export function validateLetterOutput(
     reasons.push('電報調の文章（体言止め）が複数含まれています。「です・ます」で終える文体にしてください');
   }
 
+  // 8. 段落構造チェック（改行が全くないレターを検出）
+  const paragraphs = body.split(/\n\n+/).filter(p => p.trim());
+  if (paragraphs.length < 2) {
+    reasons.push('段落分けがありません。4-6段落に分けて改行で区切ってください');
+  }
+
   return {
     ok: reasons.length === 0,
     reasons,

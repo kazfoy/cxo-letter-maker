@@ -104,6 +104,7 @@ function buildEventModeInstructions(
 ■ ルールh: 文章は短め（5段落以内、300-450文字）
 - 全体を5段落以内に収める
 - 各段落は2-3文を目安
+- 段落と段落の間は必ず改行(\\n\\n)で区切ること（1つの段落にまとめて書くのは禁止）
 
 【イベント情報】
 イベント名: ${eventName}
@@ -230,8 +231,9 @@ ${factsList}`;
 - NG: 「ご検討のほどお願いいたします」（アクション不明確）
 - 必須: 時間枠（15分/30分）、形式（オンライン/お電話等）、期限（来週/今月中等）を含める
 
-■ 文字数・文体
+■ 文字数・文体・段落
 - 700-900文字（1文を短く、敬意は厚く、売り込み臭は薄く）
+- 必ず5-6段落に分け、段落と段落の間は改行(\\n\\n)で区切ること（1つの段落にまとめるのは禁止）
 - すべての文は「です」「ます」「でしょうか」「ください」で終える
 - 体言止め禁止
 
@@ -267,9 +269,10 @@ ${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
 
 【出力形式】
 以下のJSON形式で出力してください：
+★重要: bodyフィールドは必ず段落ごとに改行(\\n\\n)で区切ること。1つの段落にまとめて書くのは禁止。
 {
   "subject": "件名（25文字目安、相手の関心に寄せる）",
-  "body": "本文テキスト（700-900文字）",
+  "body": "宛名行\\n\\n1段落目（ファクト引用）\\n\\n2段落目（論点・質問形）\\n\\n3段落目（価値提案）\\n\\n4段落目（15分の理由）\\n\\n5段落目（2択CTA）\\n\\n署名",
   "selfCheck": [
     "チェック1: 冒頭2行で公開ファクトに触れているか",
     "チェック2: 論点が1つに絞られ質問形になっているか",
@@ -488,6 +491,7 @@ ${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstr
 4. 350-500文字。体言止め禁止（「です」「ます」で終える）
 5. 冒頭: 「${recipientFormat || '【企業名】【役職】【氏名】様'}」
 6. 構造: フック→課題仮説→解決策→実績→CTA
+7. 段落分け必須: 必ず4-6段落に分け、段落の間を改行(\\n\\n)で区切ること。1つの段落にまとめるのは絶対禁止
 
 【CTA（ネクストステップ）の書き方 — 厳守】
 良い例:
@@ -544,18 +548,19 @@ ${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
 
 【出力形式】
 以下のJSON形式で出力してください：
+★重要: bodyフィールドは必ず段落ごとに改行(\\n\\n)で区切ること。1つの段落にまとめて書くのは禁止。
 {
   "subjects": ["件名候補1（25文字目安、抽象語禁止）", "件名候補2", "件名候補3", "件名候補4", "件名候補5"],
-  "body": "本文テキスト（350-500文字）",
+  "body": "宛名行\\n\\n1段落目（フック・Why you/Why now）\\n\\n2段落目（課題仮説）\\n\\n3段落目（解決策・実績）\\n\\n4段落目（CTA）\\n\\n署名",
   "rationale": [
     { "type": "timing", "content": "今連絡する理由" },
     { "type": "evidence", "content": "使用した証拠" },
     { "type": "value", "content": "提供価値" }
   ],
   "variations": {
-    "standard": "王道パターン（業界トレンド仮説リード）",
-    "emotional": "熱意パターン（具体的成功事例リード）",
-    "consultative": "課題解決パターン（リスク・規制観点リード）"
+    "standard": "王道パターン（業界トレンド仮説リード）※段落は\\n\\nで区切る",
+    "emotional": "熱意パターン（具体的成功事例リード）※段落は\\n\\nで区切る",
+    "consultative": "課題解決パターン（リスク・規制観点リード）※段落は\\n\\nで区切る"
   }${factsForLetter.length > 0 ? `,
   "citations": [
     {
@@ -598,6 +603,50 @@ function postProcessLetterBody(body: string, mode: 'draft' | 'complete' | 'event
   processed = processed.replace(/【citation[:：][^】]*】/gi, '');
   processed = processed.replace(/\[出典[:：][^\]]*\]/gi, '');
   processed = processed.replace(/【出典[:：][^】]*】/gi, '');
+
+  // 4. 段落分割フォールバック（改行が全くない場合にセンテンス境界で段落を作る）
+  const paragraphs = processed.split(/\n\n+/).filter(p => p.trim());
+  if (paragraphs.length < 2 && processed.length > 150) {
+    // 改行がない巨大な段落 → 句点で分割してグルーピング
+    const sentences = processed.split(/(?<=。)/);
+    if (sentences.length >= 4) {
+      // 宛名行（〜様で終わる最初の文）を分離
+      const result: string[] = [];
+      let currentParagraph: string[] = [];
+      let sentenceCount = 0;
+
+      for (const sentence of sentences) {
+        const trimmed = sentence.trim();
+        if (!trimmed) continue;
+
+        // 最初の「〜様」行は独立させる
+        if (result.length === 0 && /様\s*$/.test(trimmed)) {
+          result.push(trimmed);
+          continue;
+        }
+
+        currentParagraph.push(trimmed);
+        sentenceCount++;
+
+        // 2-3文ごとに段落を区切る
+        if (sentenceCount >= 2 && currentParagraph.length >= 2) {
+          result.push(currentParagraph.join(''));
+          currentParagraph = [];
+          sentenceCount = 0;
+        }
+      }
+
+      // 残りを最後の段落に追加
+      if (currentParagraph.length > 0) {
+        result.push(currentParagraph.join(''));
+      }
+
+      if (result.length >= 3) {
+        processed = result.join('\n\n');
+        devLog.warn('PostProcess: Applied fallback paragraph splitting');
+      }
+    }
+  }
 
   return processed.trim();
 }

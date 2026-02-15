@@ -794,7 +794,7 @@ export async function POST(request: Request) {
                 const consultingResult = await generateJson({
                   prompt,
                   schema: ConsultingOutputSchema,
-                  maxRetries: 1,
+                  maxRetries: 2,
                   temperature: TEMPERATURE.generation,
                 }) as ConsultingOutput;
                 // GenerateV2Output互換に変換
@@ -810,7 +810,7 @@ export async function POST(request: Request) {
             : await generateJson({
                 prompt,
                 schema: GenerateV2OutputSchema,
-                maxRetries: 1,
+                maxRetries: 2,
                 temperature: TEMPERATURE.generation,
               });
 

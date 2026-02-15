@@ -91,6 +91,53 @@ export function extractJsonFromResponse(text: string): string {
  *   schema: z.object({ name: z.string(), age: z.number() }),
  * });
  */
+// ─── リトライ戦略定数 ───
+/** API エラー時のリトライ待機ベース（ms） */
+const RETRY_DELAY_MS = 2000;
+
+/** リトライ可能な API エラーかどうかを判定 */
+function isRetryableApiError(error: Error): boolean {
+  const msg = error.message || '';
+  return (
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('DEADLINE_EXCEEDED') ||
+    msg.includes('UNAVAILABLE') ||
+    msg.includes('500') ||
+    msg.includes('503') ||
+    msg.includes('429') ||
+    msg.includes('rate_limit') ||
+    msg.includes('timeout') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('fetch failed')
+  );
+}
+
+/** JSON パース / Zod バリデーションエラーかどうかを判定 */
+function isParseOrValidationError(error: unknown): boolean {
+  if (error instanceof z.ZodError) return true;
+  const msg = (error as Error)?.message || '';
+  return (
+    msg.includes('JSON') ||
+    msg.includes('No valid JSON object') ||
+    msg.includes('Unexpected token')
+  );
+}
+
+/**
+ * JSON出力 + Zodバリデーション付き生成（リトライ強化版）
+ *
+ * リトライ戦略:
+ * - パース/バリデーションエラー → 即座にリトライ（厳格プロンプト付加）
+ * - リトライ可能 API エラー → 指数バックオフ後にリトライ
+ * - 最終リトライ → フォールバックモデル（MODEL_FALLBACK）に切り替え
+ * - 非リトライ可能エラー → 即座に失敗
+ *
+ * @example
+ * const result = await generateJson({
+ *   prompt: 'Generate a user object',
+ *   schema: z.object({ name: z.string(), age: z.number() }),
+ * });
+ */
 export async function generateJson<T extends z.ZodType>(
   options: GenerateJsonOptions<T>
 ): Promise<z.infer<T>> {
@@ -103,12 +150,24 @@ export async function generateJson<T extends z.ZodType>(
   } = options;
 
   const google = getGoogleProvider();
-  const model = google(modelName);
 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      // 最終リトライで前回が API エラーなら フォールバックモデルに切り替え
+      const useFallback = attempt > 0
+        && attempt === maxRetries
+        && lastError !== null
+        && isRetryableApiError(lastError)
+        && modelName !== MODEL_FALLBACK;
+      const currentModelName = useFallback ? MODEL_FALLBACK : modelName;
+      const model = google(currentModelName);
+
+      if (useFallback) {
+        devLog.warn(`[generateJson] Final retry: switching to fallback model (${MODEL_FALLBACK})`);
+      }
+
       // On retry, add stricter instruction
       const finalPrompt = attempt > 0
         ? `${prompt}\n\n【重要】前回の出力に問題がありました。スキーマに厳密に従ったJSON形式で出力してください。余計なテキストは含めないでください。`
@@ -141,6 +200,23 @@ export async function generateJson<T extends z.ZodType>(
 
       if (attempt >= maxRetries) {
         break;
+      }
+
+      // エラー種別に応じたリトライ判定
+      const isParse = isParseOrValidationError(error);
+      const isApiRetryable = isRetryableApiError(lastError);
+
+      if (!isParse && !isApiRetryable) {
+        // 非リトライ可能エラー（認証エラー、不正入力等）→ 即座に失敗
+        devLog.warn('[generateJson] Non-retryable error, stopping retries.');
+        break;
+      }
+
+      // API エラーの場合は指数バックオフ
+      if (isApiRetryable) {
+        const delay = RETRY_DELAY_MS * (attempt + 1);
+        devLog.log(`[generateJson] Retryable API error, waiting ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   }

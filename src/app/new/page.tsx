@@ -13,7 +13,8 @@ import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';
-import { SAMPLE_DATA, SAMPLE_EVENT_DATA, getRandomSampleCompany } from '@/lib/sampleData';
+import { SAMPLE_DATA, SAMPLE_EVENT_DATA } from '@/lib/sampleData';
+import { getRandomPrecomputedSample, generateDraftLetter } from '@/lib/sampleLetters';
 import type { InformationSource } from '@/types/analysis';
 import type { LetterFormData, LetterMode, LetterStatus, LetterHistory } from '@/types/letter';
 import type { AnalysisResult } from '@/types/analysis';
@@ -153,7 +154,7 @@ function NewLetterPageContent() {
     setShowWelcome(false);
   }, []);
 
-  // デモモード: 自動開始
+  // デモモード: プリコンピューテッドデータで即座に表示
   useEffect(() => {
     if (!isDemo) return;
     // デモ時はWelcomeWizard非表示
@@ -161,18 +162,19 @@ function NewLetterPageContent() {
     setIsDemoMode(true);
     isDemoModeRef.current = true;
 
-    // 1秒後にサンプルデータで自動生成開始（モーダルなし）
-    const timer = setTimeout(() => {
-      const randomCompany = getRandomSampleCompany();
+    // プリコンピューテッドサンプルで即座に表示（APIコール不要）
+    const timer = setTimeout(async () => {
+      const { sample } = getRandomPrecomputedSample();
+
       const sampleFormData: LetterFormData = {
         myCompanyName: SAMPLE_DATA.myCompanyName,
         myName: SAMPLE_DATA.myName,
         myServiceDescription: SAMPLE_DATA.myServiceDescription,
-        companyName: randomCompany.companyName,
+        companyName: sample.companyName,
         department: SAMPLE_DATA.department,
         position: SAMPLE_DATA.position,
         name: SAMPLE_DATA.name,
-        targetUrl: randomCompany.targetUrl,
+        targetUrl: sample.targetUrl,
         background: '',
         problem: '',
         solution: '',
@@ -187,8 +189,27 @@ function NewLetterPageContent() {
         simpleRequirement: '',
       };
       setFormData(sampleFormData);
-      // モーダルなしで一括生成
-      ensureAnalysisThenGenerateV2(sampleFormData, 'letter');
+
+      // 分析中の演出（実際にはAPIは叩かない）
+      setIsGenerating(true);
+      setIsAnalyzing(true);
+      await new Promise(r => setTimeout(r, 1500));
+      setIsAnalyzing(false);
+      setAnalysisResult(sample.analysisResult);
+      setGeneratedSources(sample.sources);
+
+      // 生成中の演出
+      await new Promise(r => setTimeout(r, 1500));
+
+      // プリコンピューテッドレターを表示
+      setGeneratedLetter(normalizeLetterText(sample.letters.standard.body));
+      setVariations({
+        standard: normalizeLetterText(sample.letters.standard.body),
+        emotional: normalizeLetterText(sample.letters.emotional.body),
+        consultative: normalizeLetterText(sample.letters.consultative.body),
+      });
+      setActiveVariation('standard');
+      setIsGenerating(false);
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -950,19 +971,18 @@ function NewLetterPageContent() {
     if (isSampleCooldown) return;
 
     // サンプル体験はゲスト制限チェックをスキップ（回数にもカウントしない）
-
     setIsSampleCooldown(true);
 
-    // ランダム会社を取得（Sales/Event共通）
-    const randomCompany = getRandomSampleCompany();
-
-    // モードに応じてフォームデータを構築
-    let sampleFormData: LetterFormData;
+    // サンプル体験中はデモモードフラグを立てる
+    isDemoModeRef.current = true;
 
     if (mode === 'event') {
+      // === イベントモード: 従来通りAPI経由（プリコンピューテッド未対応） ===
+      const { getRandomSampleCompany } = await import('@/lib/sampleData');
+      const randomCompany = getRandomSampleCompany();
       const eventSample = SAMPLE_EVENT_DATA;
 
-      sampleFormData = {
+      const sampleFormData: LetterFormData = {
         myCompanyName: eventSample.myCompanyName,
         myName: eventSample.myName,
         myServiceDescription: eventSample.myServiceDescription,
@@ -984,46 +1004,133 @@ function NewLetterPageContent() {
         invitationReason: eventSample.invitationReason,
         simpleRequirement: '',
       };
-    } else {
-      // salesモード: ランダムな実在企業サンプル
-      // 自社情報のみSAMPLE_DATAから使用し、ターゲット固有フィールドはクリア
-      // （URLベースの分析で自動取得するため）
-      const salesSample = SAMPLE_DATA;
-      sampleFormData = {
-        myCompanyName: salesSample.myCompanyName,
-        myName: salesSample.myName,
-        myServiceDescription: salesSample.myServiceDescription,
-        companyName: randomCompany.companyName,
-        department: salesSample.department,
-        position: salesSample.position,
-        name: salesSample.name,
-        targetUrl: randomCompany.targetUrl,
-        background: '',
-        problem: '',
-        solution: '',
-        caseStudy: '',
-        offer: '',
-        freeformInput: '',
-        eventUrl: '',
-        eventName: '',
-        eventDateTime: '',
-        eventSpeakers: '',
-        invitationReason: '',
-        simpleRequirement: '',
-      };
+      setFormData(sampleFormData);
+
+      try {
+        await handleAnalyzeForV2WithFormData(sampleFormData);
+      } finally {
+        setTimeout(() => setIsSampleCooldown(false), 2000);
+      }
+      return;
     }
 
-    // フォームにデータをセット
+    // === セールスモード: 3段階フォールバック戦略 ===
+    const { sample } = getRandomPrecomputedSample();
+
+    const sampleFormData: LetterFormData = {
+      myCompanyName: SAMPLE_DATA.myCompanyName,
+      myName: SAMPLE_DATA.myName,
+      myServiceDescription: SAMPLE_DATA.myServiceDescription,
+      companyName: sample.companyName,
+      department: SAMPLE_DATA.department,
+      position: SAMPLE_DATA.position,
+      name: SAMPLE_DATA.name,
+      targetUrl: sample.targetUrl,
+      background: '',
+      problem: '',
+      solution: '',
+      caseStudy: '',
+      offer: '',
+      freeformInput: '',
+      eventUrl: '',
+      eventName: '',
+      eventDateTime: '',
+      eventSpeakers: '',
+      invitationReason: '',
+      simpleRequirement: '',
+    };
+
+    // フォームにサンプルデータを表示
     setFormData(sampleFormData);
+    setGenerationError(null);
+    setGenerationErrorKind(null);
 
-    // サンプル体験中はデモモードフラグを立てる（API呼び出しでis_sample=trueを送信）
-    isDemoModeRef.current = true;
+    // ── Level 1: プリコンピューテッド（最速・100%成功） ──
+    if (sample?.letters?.standard?.body) {
+      try {
+        setIsGenerating(true);
+        setIsAnalyzing(true);
+        await new Promise(r => setTimeout(r, 1500));
+        setIsAnalyzing(false);
 
+        setAnalysisResult(sample.analysisResult);
+        setGeneratedSources(sample.sources);
+
+        await new Promise(r => setTimeout(r, 1500));
+
+        setGeneratedLetter(normalizeLetterText(sample.letters.standard.body));
+        setVariations({
+          standard: normalizeLetterText(sample.letters.standard.body),
+          emotional: normalizeLetterText(sample.letters.emotional.body),
+          consultative: normalizeLetterText(sample.letters.consultative.body),
+        });
+        setActiveVariation('standard');
+        setEmailData(undefined);
+        setSelfCheck(undefined);
+
+        if (!user) {
+          const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+          const savedLetter = saveToGuestHistory(sampleFormData, sample.letters.standard.body, mode);
+          setCurrentLetterId(savedLetter.id);
+          setCurrentLetterStatus(savedLetter.status);
+          window.dispatchEvent(new Event('guest-history-updated'));
+        }
+      } finally {
+        setIsGenerating(false);
+        setTimeout(() => setIsSampleCooldown(false), 2000);
+      }
+      return;
+    }
+
+    // ── Level 2+3: API経由フォールバック（URLキャッシュ活用 → 通常フロー） ──
+    devLog.warn('[Sample] Precomputed data not available, falling back to API');
     try {
-      // サンプルは常にV2フロー（分析→モーダル→生成）を使用
-      await handleAnalyzeForV2WithFormData(sampleFormData);
+      setIsGenerating(true);
+      setIsAnalyzing(true);
+
+      const targetUrl = resolveTargetUrl(sampleFormData);
+      const analysis = await runAnalysis(sampleFormData, targetUrl);
+      setIsAnalyzing(false);
+
+      if (analysis) {
+        setAnalysisResult(analysis);
+        if (analysis.sources) setGeneratedSources(analysis.sources);
+
+        const success = await executeGenerateV2WithRetry(analysis, sampleFormData, 'letter', targetUrl);
+        if (success) return; // API 生成成功
+      }
+
+      // ── Level 4: 下書きモードフォールバック ──
+      devLog.warn('[Sample] API fallback failed, using draft mode');
+      setGenerationError(null);
+      setGenerationErrorKind(null);
+
+      const draftBody = generateDraftLetter(
+        sample.companyName,
+        SAMPLE_DATA.myCompanyName,
+        SAMPLE_DATA.myName,
+        SAMPLE_DATA.myServiceDescription,
+      );
+      setGeneratedLetter(normalizeLetterText(draftBody));
+      setVariations(undefined);
+      setActiveVariation('standard');
+      setEmailData(undefined);
+      setSelfCheck(undefined);
+
+      if (!user) {
+        const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
+        const savedLetter = saveToGuestHistory(sampleFormData, draftBody, mode);
+        setCurrentLetterId(savedLetter.id);
+        setCurrentLetterStatus(savedLetter.status);
+        window.dispatchEvent(new Event('guest-history-updated'));
+      }
+
+      toast({
+        title: '下書きモードで生成しました',
+        description: 'API接続に問題が発生したため、テンプレートで下書きを生成しました。',
+      });
     } finally {
-      // 2秒後にクールダウン解除
+      setIsGenerating(false);
       setTimeout(() => setIsSampleCooldown(false), 2000);
     }
   };

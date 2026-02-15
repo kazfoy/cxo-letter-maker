@@ -1,12 +1,11 @@
 import { cookies } from 'next/headers';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
-import { MODEL_DEFAULT, MODEL_FALLBACK } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT, MODEL_FALLBACK } from '@/lib/gemini';
 import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { createClient } from '@/utils/supabase/server';
@@ -70,25 +69,6 @@ async function _getReferenceContext(userId: string): Promise<string> {
 
 export const maxDuration = 60;
 
-type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
-let googleProvider: GoogleProvider | null = null;
-
-function getGoogleProvider(): GoogleProvider {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-
-  if (!apiKey) {
-    devLog.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
-    devLog.error('Available Env Vars:', Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET')));
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
-  return googleProvider;
-}
 
 // ... (GenerateSchema definition - unchanged)
 const GenerateSchema = z.object({

@@ -1,30 +1,12 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
-import { MODEL_DEFAULT, extractJsonFromResponse } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT, extractJsonFromResponse } from '@/lib/gemini';
 
 export const maxDuration = 60;
-
-type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
-let googleProvider: GoogleProvider | null = null;
-
-function getGoogleProvider(): GoogleProvider {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
-  return googleProvider;
-}
 
 // 入力スキーマ定義（文字数制限を追加）
 const AssistSchema = z.object({

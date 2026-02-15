@@ -1,4 +1,3 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
@@ -7,26 +6,10 @@ import { authGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
-import { MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
 import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
 
 export const maxDuration = 60;
-
-let googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null = null;
-
-function getGoogleProvider() {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
-  return googleProvider;
-}
 
 export async function POST(request: Request) {
   return await authGuard(

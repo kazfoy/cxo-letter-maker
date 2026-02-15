@@ -1,32 +1,16 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import * as cheerio from 'cheerio';
 import { cookies } from 'next/headers';
 import { safeFetch } from '@/lib/url-validator';
 import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
-import { MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleSearchConfig } from '@/lib/env';
 import { createClient } from '@/utils/supabase/server';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
 export const maxDuration = 60;
-
-let googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null = null;
-
-function getGoogleProvider() {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
-  return googleProvider;
-}
 
 // SSEイベント送信ヘルパー
 function sendEvent(
@@ -46,12 +30,12 @@ function needsSupplementalInfo(extractedTexts: string[]): boolean {
 
 // Google検索フォールバック関数
 async function searchCompanyForFallback(companyName: string): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
-  const cx = process.env.GOOGLE_SEARCH_ENGINE_ID;
-  if (!apiKey || !cx) {
+  const searchConfig = getGoogleSearchConfig();
+  if (!searchConfig) {
     devLog.warn('[WARN] Google Search API keys not configured');
     return null;
   }
+  const { apiKey, engineId: cx } = searchConfig;
 
   try {
     const query = `${companyName} 会社概要 事業内容`;

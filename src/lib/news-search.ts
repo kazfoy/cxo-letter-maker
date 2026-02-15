@@ -1,7 +1,7 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
-import { MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleSearchConfig } from '@/lib/env';
 
 type NewsSearchItem = {
   title?: string;
@@ -30,19 +30,6 @@ const NOISE_PATTERNS = [
   /サイトマップ/,
 ];
 
-let googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null = null;
-
-function getGoogleProvider() {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set!');
-  }
-
-  googleProvider = createGoogleGenerativeAI({ apiKey });
-  return googleProvider;
-}
 
 function isNoiseText(text: string): boolean {
   const normalized = text.replace(/\s+/g, '');
@@ -86,11 +73,11 @@ function normalizeFactLines(text: string): string {
 }
 
 export async function searchNewsFacts(companyName: string): Promise<string> {
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
-  const cx = process.env.GOOGLE_SEARCH_ENGINE_ID;
-  if (!apiKey || !cx) {
+  const searchConfig = getGoogleSearchConfig();
+  if (!searchConfig) {
     throw new Error('Search configuration is missing');
   }
+  const { apiKey, engineId: cx } = searchConfig;
 
   const query = buildQuery(companyName);
   const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(

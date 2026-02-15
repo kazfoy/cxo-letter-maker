@@ -1,4 +1,3 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
@@ -7,26 +6,9 @@ import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
 import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
-import { MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
 
 export const maxDuration = 60;
-
-type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
-let googleProvider: GoogleProvider | null = null;
-
-function getGoogleProvider(): GoogleProvider {
-  if (googleProvider) return googleProvider;
-
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set!");
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
-  return googleProvider;
-}
 
 // 入力スキーマ定義
 const AnalyzeUrlSchema = z.object({
@@ -41,16 +23,6 @@ export async function POST(request: Request) {
     async (data, _user) => {
       try {
         const { url } = data;
-
-        // API Key事前チェック
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-        if (!apiKey) {
-          devLog.error('API Key missing for analyze-url');
-          return NextResponse.json(
-            { error: 'AIサービスの設定が不足しています。管理者にお問い合わせください。' },
-            { status: 503 }
-          );
-        }
 
         // SSRF対策: safeFetchを使用（URL検証、タイムアウト、サイズ制限）
         let response: Response;

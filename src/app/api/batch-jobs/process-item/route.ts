@@ -1,11 +1,10 @@
 import { createClient } from '@/utils/supabase/server';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { normalizeLetterText } from '@/lib/textNormalize';
-import { MODEL_DEFAULT } from '@/lib/gemini';
+import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
 import { devLog } from '@/lib/logger';
 
 const ProcessItemSchema = z.object({
@@ -181,14 +180,7 @@ ${specificInstruction}
 
             // 4. Generate
             try {
-                const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-                if (!apiKey) throw new Error("API Key missing");
-
-                const google = createGoogleGenerativeAI({ apiKey });
-                // Determine model based on plan (simplified here, assuming standard for batch)
-                // NOTE: Ideal to check plan limit here too, but client loop makes it hard to fetch plan every time.
-                // We will rely on frontend pre-check or occasional failures?
-                // For robustness, let's just use flash.
+                const google = getGoogleProvider();
                 const modelId = MODEL_DEFAULT;
                 const model = google(modelId);
 

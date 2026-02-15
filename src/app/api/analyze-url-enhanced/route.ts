@@ -13,6 +13,7 @@ import * as cheerio from 'cheerio';
 import { z } from 'zod';
 import { apiGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
+import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
 import { MODEL_DEFAULT } from '@/lib/gemini';
 import { ExtractedFactsSchema, type ExtractedFacts, type InformationSource, type SourceCategory } from '@/types/analysis';
@@ -156,36 +157,11 @@ const AnalyzeUrlEnhancedSchema = z.object({
 });
 
 /**
- * HTMLからテキストを抽出
+ * HTMLからテキストを安全に抽出（隠しテキスト除去付き）
  */
 function extractTextFromHtml(html: string): string {
   const $ = cheerio.load(html);
-
-  // 不要な要素を削除
-  $('script').remove();
-  $('style').remove();
-  $('nav').remove();
-  $('footer').remove();
-  $('iframe').remove();
-  $('noscript').remove();
-
-  // メインコンテンツを抽出
-  let mainText = '';
-  const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', '.main', '#main', 'body'];
-
-  for (const selector of mainSelectors) {
-    const element = $(selector);
-    if (element.length > 0) {
-      mainText = element.text();
-      break;
-    }
-  }
-
-  // テキストをクリーンアップ
-  return mainText
-    .replace(/\s+/g, ' ')
-    .trim()
-    .substring(0, 8000); // サブルート探索のため上限を増やす
+  return extractSafeText($, 8000); // サブルート探索のため上限を増やす
 }
 
 interface FetchResult {

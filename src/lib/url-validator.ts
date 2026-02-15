@@ -206,9 +206,12 @@ export async function checkResponseSize(
   return { valid: true };
 }
 
+/** リダイレクトの最大追跡回数 */
+const MAX_REDIRECTS = 5;
+
 /**
  * 安全なfetchラッパー
- * URL検証、タイムアウト、サイズ制限を統合
+ * URL検証、リダイレクト先検証、タイムアウト、サイズ制限を統合
  *
  * @param url リクエストURL
  * @param options Fetchオプション
@@ -222,7 +225,7 @@ export async function safeFetch(
   timeoutMs: number = 10000,
   maxSizeBytes: number = 5 * 1024 * 1024
 ): Promise<Response> {
-  // 1. URL検証
+  // 1. 初期URL検証
   const validation = isValidUrl(url);
   if (!validation.valid) {
     throw new Error(`URL検証エラー: ${validation.error}`);
@@ -230,36 +233,67 @@ export async function safeFetch(
 
   // 2. タイムアウト設定
   const controller = createFetchTimeout(timeoutMs);
-  const fetchOptions: RequestInit = {
-    ...options,
-    signal: controller.signal,
-  };
 
-  // 3. Fetch実行
-  let response: Response;
-  try {
-    response = await fetch(url, fetchOptions);
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`リクエストがタイムアウトしました (${timeoutMs}ms)`);
+  // 3. リダイレクトを手動で追跡し、各リダイレクト先を検証
+  let currentUrl = url;
+  let redirectCount = 0;
+
+  while (redirectCount <= MAX_REDIRECTS) {
+    const fetchOptions: RequestInit = {
+      ...options,
+      signal: controller.signal,
+      cache: 'no-store',
+      redirect: 'manual', // リダイレクトを手動制御
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(currentUrl, fetchOptions);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`リクエストがタイムアウトしました (${timeoutMs}ms)`);
+      }
+      throw error;
     }
-    throw error;
+
+    // リダイレクトレスポンスの場合
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        throw new Error(`リダイレクトレスポンス (${response.status}) にLocationヘッダーがありません`);
+      }
+
+      // 相対URLを絶対URLに解決
+      const redirectUrl = new URL(location, currentUrl).toString();
+
+      // リダイレクト先のURL検証（SSRF対策の核心）
+      const redirectValidation = isValidUrl(redirectUrl);
+      if (!redirectValidation.valid) {
+        throw new Error(`リダイレクト先のURL検証エラー: ${redirectValidation.error} (リダイレクト先: ${redirectUrl})`);
+      }
+
+      currentUrl = redirectUrl;
+      redirectCount++;
+      continue;
+    }
+
+    // 4. HTTPステータスチェック（403/401はブロックとして扱う）
+    if (response.status === 403 || response.status === 401) {
+      throw new UrlAccessError(
+        `URLへのアクセスがブロックされました (${response.status})`,
+        response.status,
+        true
+      );
+    }
+
+    // 5. レスポンスサイズチェック
+    const sizeCheck = await checkResponseSize(response, maxSizeBytes);
+    if (!sizeCheck.valid) {
+      throw new Error(sizeCheck.error);
+    }
+
+    return response;
   }
 
-  // 4. HTTPステータスチェック（403/401はブロックとして扱う）
-  if (response.status === 403 || response.status === 401) {
-    throw new UrlAccessError(
-      `URLへのアクセスがブロックされました (${response.status})`,
-      response.status,
-      true
-    );
-  }
-
-  // 5. レスポンスサイズチェック
-  const sizeCheck = await checkResponseSize(response, maxSizeBytes);
-  if (!sizeCheck.valid) {
-    throw new Error(sizeCheck.error);
-  }
-
-  return response;
+  throw new Error(`リダイレクト回数が上限 (${MAX_REDIRECTS}) を超えました`);
 }

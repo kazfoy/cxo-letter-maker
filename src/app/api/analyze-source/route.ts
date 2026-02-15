@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 import { createErrorResponse, getHttpStatus, ErrorCodes } from '@/lib/apiErrors';
 import { authGuard } from '@/lib/api-guard';
 import { safeFetch } from '@/lib/url-validator';
+import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
 import { MODEL_DEFAULT } from '@/lib/gemini';
 import { getErrorDetails, getErrorMessage } from '@/lib/errorUtils';
@@ -102,30 +103,8 @@ export async function POST(request: Request) {
                 const html = await response.text();
                 const $ = cheerio.load(html);
 
-                // 不要な要素を削除
-                $('script').remove();
-                $('style').remove();
-                $('nav').remove();
-                $('footer').remove();
-                $('header').remove();
-
-                // メインコンテンツを抽出
-                let mainText = '';
-                const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
-
-                for (const selector of mainSelectors) {
-                  const element = $(selector);
-                  if (element.length > 0) {
-                    mainText = element.text();
-                    break;
-                  }
-                }
-
-                // テキストをクリーンアップ
-                const cleanedText = mainText
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                  .substring(0, 5000);
+                // 隠しテキスト除去 + メインコンテンツ抽出
+                const cleanedText = extractSafeText($, 5000);
 
                 devLog.log(`[DEBUG] URL ${index + 1} テキスト抽出完了:`, {
                   textLength: cleanedText.length,
@@ -320,7 +299,7 @@ ${combinedText}
 【重要な指示】
 - 情報が不足している場合でもエラーにせず、会社名や業界から推測される一般的な課題・提案を仮説として生成してください
 - letterStructure の各項目は必ず生成してください（空文字は不可）
-- 推測で生成した場合は「〜と推察いたします」「〜ではないでしょうか」のような表現を使用してください
+- 推測で生成した場合は「〜ではないでしょうか」「〜とお見受けいたします」のような表現を使用してください
 
 【出力形式】
 JSON形式で返してください（説明文は不要）：

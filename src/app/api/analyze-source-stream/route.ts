@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import * as cheerio from 'cheerio';
 import { cookies } from 'next/headers';
 import { safeFetch } from '@/lib/url-validator';
+import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
 import { MODEL_DEFAULT } from '@/lib/gemini';
 import { createClient } from '@/utils/supabase/server';
@@ -239,30 +240,8 @@ export async function POST(request: Request) {
                 const html = await response.text();
                 const $ = cheerio.load(html);
 
-                // 不要な要素を削除
-                $('script').remove();
-                $('style').remove();
-                $('nav').remove();
-                $('footer').remove();
-                $('header').remove();
-
-                // メインコンテンツを抽出
-                let mainText = '';
-                const mainSelectors = ['main', 'article', '[role="main"]', '.content', '#content', 'body'];
-
-                for (const selector of mainSelectors) {
-                  const element = $(selector);
-                  if (element.length > 0) {
-                    mainText = element.text();
-                    break;
-                  }
-                }
-
-                // テキストをクリーンアップ
-                const cleanedText = mainText
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                  .substring(0, 5000);
+                // 隠しテキスト除去 + メインコンテンツ抽出
+                const cleanedText = extractSafeText($, 5000);
 
                 if (cleanedText.length < 50) {
                   throw new Error('CONTENT_NOT_FOUND');

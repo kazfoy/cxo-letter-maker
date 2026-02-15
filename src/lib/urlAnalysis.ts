@@ -4,8 +4,10 @@
  * analyze-input と generate-v2 の両方から利用
  */
 
+import * as cheerio from 'cheerio';
 import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { safeFetch } from '@/lib/url-validator';
+import { extractSafeText } from '@/lib/html-sanitizer';
 import { devLog } from '@/lib/logger';
 import {
   type ExtractedFacts,
@@ -189,30 +191,14 @@ function extractTitleFromHtml(html: string): string | undefined {
 }
 
 /**
- * HTMLからテキストを抽出する（シンプル実装）
+ * HTMLからテキストを安全に抽出する（cheerio + 隠しテキスト除去）
+ *
+ * html-sanitizer の extractSafeText を使用し、display:none 等の
+ * 不可視要素やプロンプトインジェクション用テキストを除去する。
  */
 export function extractTextFromHtml(html: string): string {
-  // script, style タグを除去
-  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-  text = text.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
-  text = text.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-  text = text.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
-
-  // 全てのHTMLタグを除去
-  text = text.replace(/<[^>]+>/g, ' ');
-
-  // HTMLエンティティをデコード
-  text = text.replace(/&nbsp;/g, ' ');
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&quot;/g, '"');
-
-  // 連続する空白を単一スペースに
-  text = text.replace(/\s+/g, ' ');
-
-  return text.trim();
+  const $ = cheerio.load(html);
+  return extractSafeText($, 10000);
 }
 
 /**

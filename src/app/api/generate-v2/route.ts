@@ -11,6 +11,7 @@ import { apiGuard } from '@/lib/api-guard';
 import { generateJson, TEMPERATURE } from '@/lib/gemini';
 import { checkSubscriptionStatus } from '@/lib/subscription';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
+import { getClientIp } from '@/lib/get-client-ip';
 import { createClient } from '@/utils/supabase/server';
 import {
   validateLetterOutput,
@@ -652,17 +653,47 @@ export async function POST(request: Request) {
           }
         }
       } else if (!isSampleRequest) {
-        // ゲストユーザー: DBベースの日次制限チェック（3回/日）— サンプルはスキップ
+        // ゲストユーザー: IP + Cookieの二重チェック（3回/日）— サンプルはスキップ
+
+        // 1. IPベース制限（Cookie削除/curlバイパス対策）
+        const ip = await getClientIp();
+        if (ip === 'unknown') {
+          // IP取得不可 → fail-closed
+          devLog.warn('Guest IP unknown, rejecting (fail-closed)');
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'リクエストを処理できませんでした。',
+              code: 'RATE_LIMITED',
+            },
+            { status: 429 }
+          );
+        }
+
+        const { allowed: ipAllowed, usage: ipUsage } = await checkAndIncrementGuestUsage(`ip:${ip}`);
+        if (!ipAllowed) {
+          devLog.warn(`Guest IP rate limited: ${ip}`);
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'ゲスト利用の上限（1日3回）に達しました。',
+              code: 'GUEST_LIMIT_REACHED',
+              message: '無料枠の上限に達しました。ログインすると無制限で利用できます。',
+              usage: ipUsage,
+            },
+            { status: 429 }
+          );
+        }
+
+        // 2. Cookieベース制限（従来の制限も維持）
         const cookieStore = await cookies();
         let guestId = cookieStore.get('guest_id')?.value || '';
-
         if (!guestId) {
           guestId = crypto.randomUUID();
           devLog.log('Generated new guest_id in generate-v2 API:', guestId);
         }
 
         const { allowed, usage } = await checkAndIncrementGuestUsage(guestId);
-
         if (!allowed) {
           return NextResponse.json(
             {

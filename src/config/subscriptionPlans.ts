@@ -14,6 +14,8 @@ export interface PlanConfig {
   label: string;
   /** 1日あたりのCSV一括生成可能件数 */
   dailyBatchLimit: number;
+  /** 1回のバッチリクエストあたりの最大件数 */
+  maxBatchSizePerRequest: number;
   /** 月額料金（円） */
   price: number;
   /** Stripe Price ID（環境変数から取得） */
@@ -34,6 +36,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   free: {
     label: 'Free',
     dailyBatchLimit: 0,
+    maxBatchSizePerRequest: 0,
     price: 0,
     modelId: MODEL_DEFAULT,
     description: '個人利用向けの無料プラン',
@@ -46,6 +49,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   pro: {
     label: 'Pro',
     dailyBatchLimit: 100,
+    maxBatchSizePerRequest: 100,
     price: 980,
     stripePriceId: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
     modelId: MODEL_DEFAULT,
@@ -61,6 +65,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
   premium: {
     label: 'Premium',
     dailyBatchLimit: 1000,
+    maxBatchSizePerRequest: 500,
     price: 9800,
     stripePriceId: process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
     modelId: MODEL_DEFAULT, // TODO: Premium専用モデル（gemini-3系）が利用可能になり次第差し替え
@@ -128,6 +133,13 @@ export function isPlanHigherThan(planA: PlanType, planB: PlanType): boolean {
  */
 export function getDailyBatchLimit(planType: PlanType): number {
   return PLANS[planType].dailyBatchLimit;
+}
+
+/**
+ * ユーティリティ関数: 1回あたりのバッチ最大件数の取得
+ */
+export function getMaxBatchSizePerRequest(planType: PlanType): number {
+  return PLANS[planType].maxBatchSizePerRequest;
 }
 
 /**

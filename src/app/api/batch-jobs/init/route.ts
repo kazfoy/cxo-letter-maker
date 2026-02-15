@@ -4,9 +4,14 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { apiGuard } from '@/lib/api-guard';
 import { devLog } from '@/lib/logger';
+import { type PlanType, getMaxBatchSizePerRequest } from '@/config/subscriptionPlans';
+
+const ABSOLUTE_MAX_BATCH_SIZE = 500;
 
 const InitBatchSchema = z.object({
-    totalCount: z.number().int().positive(),
+    totalCount: z.number().int().positive().max(ABSOLUTE_MAX_BATCH_SIZE, {
+        message: `一度にアップロードできるのは最大${ABSOLUTE_MAX_BATCH_SIZE}件です`,
+    }),
 });
 
 export async function POST(request: Request) {
@@ -19,8 +24,40 @@ export async function POST(request: Request) {
             }
 
             const { totalCount } = data;
-            const batchId = uuidv4();
             const supabase = await createClient();
+
+            // ユーザーのプランを取得して件数上限をチェック
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('plan')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError || !profile) {
+                devLog.error('Failed to fetch user profile for batch limit check:', profileError);
+                return NextResponse.json({ error: 'プラン情報の取得に失敗しました' }, { status: 500 });
+            }
+
+            const userPlan = (profile.plan || 'free') as PlanType;
+            const maxPerRequest = getMaxBatchSizePerRequest(userPlan);
+
+            // Freeプランはバッチ生成不可
+            if (maxPerRequest === 0) {
+                return NextResponse.json(
+                    { error: 'CSV一括生成機能はProプラン以上で利用可能です。' },
+                    { status: 403 }
+                );
+            }
+
+            // プラン別上限チェック
+            if (totalCount > maxPerRequest) {
+                return NextResponse.json(
+                    { error: `一度にアップロードできるのは最大${maxPerRequest}件です（${userPlan === 'pro' ? 'Proプラン' : 'Premiumプラン'}）` },
+                    { status: 400 }
+                );
+            }
+
+            const batchId = uuidv4();
 
             const { error } = await supabase.from('batch_jobs').insert({
                 id: batchId,

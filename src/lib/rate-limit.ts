@@ -1,16 +1,22 @@
 /**
- * レート制限ユーティリティ（簡易インメモリ版）
- * 本番環境では Redis などの永続化ストレージの使用を推奨
+ * レート制限ユーティリティ（Supabase永続化 + インメモリフォールバック）
+ *
+ * サーバーレス環境でもレート制限が継続されるよう、
+ * Supabase rate_limit_logs テーブルをプライマリストアとして使用。
+ * DB障害時はインメモリフォールバックで動作。
  */
 
+import { getSupabaseAdmin } from './supabase-admin';
+import { devLog } from './logger';
+
+// インメモリフォールバック用
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
-
 const limitStore = new Map<string, RateLimitEntry>();
 
-// クリーンアップ: 期限切れエントリを定期的に削除
+// フォールバック用クリーンアップ
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of limitStore.entries()) {
@@ -18,16 +24,72 @@ setInterval(() => {
       limitStore.delete(key);
     }
   }
-}, 60000); // 1分ごとにクリーンアップ
+}, 60000);
 
 export interface RateLimitConfig {
-  windowMs?: number; // タイムウィンドウ（ミリ秒）
-  maxRequests?: number; // タイムウィンドウ内の最大リクエスト数
+  windowMs?: number;     // タイムウィンドウ（ミリ秒）
+  maxRequests?: number;  // タイムウィンドウ内の最大リクエスト数
+  endpoint?: string;     // エンドポイント識別子（ログ用）
 }
 
 /**
- * レート制限をチェックする
- * @param identifier ユーザー識別子（通常はユーザーID）
+ * レート制限をチェックする（Supabase永続化版）
+ * @param identifier ユーザー識別子（ユーザーID or IP）
+ * @param config レート制限の設定
+ * @returns レート制限に引っかかった場合は true
+ */
+export async function checkRateLimitAsync(
+  identifier: string,
+  config: RateLimitConfig = {}
+): Promise<boolean> {
+  const windowMs = config.windowMs || 60000;
+  const maxRequests = config.maxRequests || 10;
+  const endpoint = config.endpoint || 'unknown';
+
+  try {
+    const supabaseAdmin = getSupabaseAdmin();
+    const windowStart = new Date(Date.now() - windowMs).toISOString();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count, error } = await (supabaseAdmin.from('rate_limit_logs') as any)
+      .select('id', { count: 'exact', head: true })
+      .eq('identifier', identifier)
+      .eq('endpoint', endpoint)
+      .gte('created_at', windowStart);
+
+    if (error) {
+      devLog.error('Rate limit DB check failed, falling back to in-memory:', error);
+      return checkRateLimitInMemory(identifier, config);
+    }
+
+    const currentCount = count || 0;
+
+    if (currentCount >= maxRequests) {
+      return true; // 制限超過
+    }
+
+    // リクエストをログに記録
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (supabaseAdmin.from('rate_limit_logs') as any)
+      .insert({
+        identifier,
+        endpoint,
+      });
+
+    if (insertError) {
+      devLog.error('Rate limit log insert failed:', insertError);
+    }
+
+    return false;
+  } catch (error) {
+    devLog.error('Rate limit check error, falling back to in-memory:', error);
+    return checkRateLimitInMemory(identifier, config);
+  }
+}
+
+/**
+ * レート制限をチェックする（インメモリ版 - フォールバック＋同期API互換）
+ * @param identifier ユーザー識別子
  * @param config レート制限の設定
  * @returns レート制限に引っかかった場合は true
  */
@@ -35,14 +97,20 @@ export function checkRateLimit(
   identifier: string,
   config: RateLimitConfig = {}
 ): boolean {
-  const windowMs = config.windowMs || 60000; // デフォルト: 1分
-  const maxRequests = config.maxRequests || 10; // デフォルト: 10リクエスト
+  return checkRateLimitInMemory(identifier, config);
+}
+
+function checkRateLimitInMemory(
+  identifier: string,
+  config: RateLimitConfig = {}
+): boolean {
+  const windowMs = config.windowMs || 60000;
+  const maxRequests = config.maxRequests || 10;
 
   const now = Date.now();
   const entry = limitStore.get(identifier);
 
   if (!entry || now > entry.resetAt) {
-    // 新しいウィンドウを開始
     limitStore.set(identifier, {
       count: 1,
       resetAt: now + windowMs,
@@ -50,10 +118,8 @@ export function checkRateLimit(
     return false;
   }
 
-  // カウントをインクリメント
   entry.count++;
 
-  // 制限を超えた場合
   if (entry.count > maxRequests) {
     return true;
   }

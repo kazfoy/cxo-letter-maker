@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { z } from 'zod';
-import { checkRateLimit, type RateLimitConfig } from './rate-limit';
+import { checkRateLimitAsync, type RateLimitConfig } from './rate-limit';
 import type { User } from '@supabase/supabase-js';
 import { devLog } from './logger';
 
@@ -53,9 +53,9 @@ export async function apiGuard<T extends z.ZodType>(
 
       user = authUser;
 
-      // 2. レート制限チェック
+      // 2. レート制限チェック（Supabase永続化版）
       if (options.rateLimit) {
-        const isLimited = checkRateLimit(user.id, options.rateLimit);
+        const isLimited = await checkRateLimitAsync(user.id, options.rateLimit);
         if (isLimited) {
           devLog.warn('Rate limit exceeded');
           return NextResponse.json(
@@ -134,9 +134,9 @@ export async function authGuard(
 
       user = authUser;
 
-      // 2. レート制限チェック（認証ユーザーのみ）
+      // 2. レート制限チェック（Supabase永続化版、認証ユーザーのみ）
       if (options.rateLimit) {
-        const isLimited = checkRateLimit(user.id, options.rateLimit);
+        const isLimited = await checkRateLimitAsync(user.id, options.rateLimit);
         if (isLimited) {
           devLog.warn('Rate limit exceeded');
           return NextResponse.json(

@@ -1,9 +1,12 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import * as cheerio from 'cheerio';
+import { cookies } from 'next/headers';
 import { safeFetch } from '@/lib/url-validator';
 import { devLog } from '@/lib/logger';
 import { MODEL_DEFAULT } from '@/lib/gemini';
+import { createClient } from '@/utils/supabase/server';
+import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
 export const maxDuration = 60;
@@ -86,42 +89,42 @@ function detectIndustry(companyName: string, snippets?: string): Industry {
 const industryTemplates: Record<Industry, LetterStructure> = {
   it: {
     background: "DX推進や業務効率化の取り組みを拝見し、ご連絡いたしました。",
-    problem: "急速なデジタル化の中、システムの刷新や運用コスト削減は多くの企業様の課題かと存じます。",
+    problem: "急速なデジタル化の中、システムの刷新や運用コスト削減は多くの企業様にとって重要な論点ではないでしょうか。",
     solution: "弊社では、こうした課題に対してクラウド活用・自動化のアプローチで支援しております。",
     caseStudy: "具体的には、まず現状のシステム構成をヒアリングし、最適化プランをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
   },
   manufacturing: {
     background: "製造業界でのご活躍を拝見し、お力になれればと考えご連絡いたしました。",
-    problem: "生産性向上やサプライチェーンの最適化、品質管理の高度化は業界共通の課題かと存じます。",
+    problem: "生産性向上やサプライチェーンの最適化、品質管理の高度化は業界共通の論点ではないでしょうか。",
     solution: "弊社では、製造現場のデータ活用・見える化で多くの企業様を支援しております。",
     caseStudy: "まずは現場の課題をヒアリングし、具体的な改善プランをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
   },
   service: {
     background: "サービス品質向上への取り組みを拝見し、ご連絡いたしました。",
-    problem: "人材不足や顧客満足度の維持・向上は、サービス業界共通の課題かと存じます。",
+    problem: "人材不足や顧客満足度の維持・向上は、サービス業界共通の論点ではないでしょうか。",
     solution: "弊社では、業務効率化と顧客体験向上の両立を支援しております。",
     caseStudy: "まずは現状の業務フローをヒアリングし、改善ポイントをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
   },
   finance: {
     background: "金融業界でのイノベーションへの取り組みを拝見し、ご連絡いたしました。",
-    problem: "規制対応とデジタル化の両立、顧客接点の強化は業界共通の課題かと存じます。",
+    problem: "規制対応とデジタル化の両立、顧客接点の強化は業界共通の論点ではないでしょうか。",
     solution: "弊社では、コンプライアンスを維持しながらDXを推進する支援を行っております。",
     caseStudy: "まずは現状の課題をヒアリングし、段階的な改善プランをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
   },
   retail: {
     background: "小売業界での新たな取り組みを拝見し、ご連絡いたしました。",
-    problem: "オンライン・オフライン融合や在庫最適化、顧客データ活用は業界共通の課題かと存じます。",
+    problem: "オンライン・オフライン融合や在庫最適化、顧客データ活用は業界共通の論点ではないでしょうか。",
     solution: "弊社では、データドリブンな小売戦略の構築を支援しております。",
     caseStudy: "まずは現状の販売データを分析し、改善ポイントをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
   },
   generic: {
     background: "御社のご発展を拝見し、お力になれればと考えご連絡いたしました。",
-    problem: "業界全体で効率化や競争力強化が求められる中、様々な課題をお持ちかと存じます。",
+    problem: "業界全体で効率化や競争力強化が求められる中、様々な課題をお持ちではないでしょうか。",
     solution: "弊社では、こうした課題に対して最適なソリューションを提案しております。",
     caseStudy: "具体的には、まず現状をヒアリングし、御社に合ったプランをご提案いたします。",
     offer: "一度、詳細をご説明するお時間をいただけないでしょうか。"
@@ -129,6 +132,35 @@ const industryTemplates: Record<Industry, LetterStructure> = {
 };
 
 export async function POST(request: Request) {
+  // 認証チェック＋ゲストレート制限（ストリーム開始前に実行）
+  const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+  if (!currentUser) {
+    // ゲストユーザー: DBベースの日次制限チェック（3回/日）
+    const cookieStore = await cookies();
+    let guestId = cookieStore.get('guest_id')?.value || '';
+
+    if (!guestId) {
+      guestId = crypto.randomUUID();
+      devLog.log('Generated new guest_id in analyze-source-stream API:', guestId);
+    }
+
+    const { allowed, usage } = await checkAndIncrementGuestUsage(guestId);
+
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'ゲスト利用の上限（1日3回）に達しました。',
+          code: 'GUEST_LIMIT_REACHED',
+          message: '無料枠の上限に達しました。ログインすると無制限で利用できます。',
+          usage,
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -423,7 +455,7 @@ ${combinedText}
 【重要な指示】
 - 情報が不足している場合でもエラーにせず、会社名や業界から推測される一般的な課題・提案を仮説として生成してください
 - letterStructure の各項目は必ず生成してください（空文字は不可）
-- 推測で生成した場合は「〜と推察いたします」「〜ではないでしょうか」のような表現を使用してください
+- 推測で生成した場合は「〜ではないでしょうか」「〜とお見受けいたします」のような表現を使用してください
 
 【出力形式】
 JSON形式で返してください（説明文は不要）：

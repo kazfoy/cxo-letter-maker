@@ -158,7 +158,7 @@ function buildConsultingPrompt(
   isPublicSector: boolean = false
 ): string {
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
-  const personName = overrides?.person_name || analysis.facts.person_name || '';
+  const personName = sanitizePersonName(overrides?.person_name || analysis.facts.person_name);
   const personPosition = overrides?.person_position || analysis.facts.person_position || '';
 
   // リライト時の改善指示
@@ -288,6 +288,30 @@ ${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
 }
 
 /**
+ * person_nameのバリデーション
+ * 記事タイトル・見出し等が混入していないかチェックし、不正な場合は空文字を返す
+ */
+function sanitizePersonName(name: string | null | undefined): string {
+  if (!name) return '';
+  const trimmed = name.trim();
+  // 空文字チェック
+  if (!trimmed) return '';
+  // 明らかに人名でない場合は空文字を返す
+  // 1. 長すぎる（通常の日本語人名は2-6文字、敬称含めても10文字以内）
+  if (trimmed.length > 15) return '';
+  // 2. 記事タイトル的なキーワードを含む
+  const titleKeywords = ['が発表', 'を発表', 'に就任', 'が開始', 'を開始', 'が決定', 'を決定',
+    'が導入', 'を導入', 'が実現', 'を実施', '年度', '四半期', '新CEO', '新CTO', '新CIO',
+    '速報', '独占', '最新', '特集', '解説', '分析', 'について', 'における', 'に向けた'];
+  if (titleKeywords.some(kw => trimmed.includes(kw))) return '';
+  // 3. 「」や（）を含む（見出し的）
+  if (/[「」『』（）()]/.test(trimmed)) return '';
+  // 4. 句読点を含む
+  if (/[。、！？!?]/.test(trimmed)) return '';
+  return trimmed;
+}
+
+/**
  * 生成プロンプトを構築
  */
 function buildGenerationPrompt(
@@ -309,7 +333,7 @@ function buildGenerationPrompt(
   }
 
   const companyName = overrides?.company_name || analysis.facts.company_name || '';
-  const personName = overrides?.person_name || analysis.facts.person_name || '';
+  const personName = sanitizePersonName(overrides?.person_name || analysis.facts.person_name);
   const personPosition = overrides?.person_position || analysis.facts.person_position || '';
 
   let modeInstruction: string;

@@ -199,12 +199,21 @@ ${sanitizeForPrompt(extractedContent, 8000)}
 
 ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_info.company_name, 200)}\nサービス: ${sanitizeForPrompt(sender_info.service_description, 1000)}` : ''}
 
+【person_name抽出ルール（厳守）】
+- person_nameには「人名」のみを入れること（例: 田中太郎、佐藤花子、豊田章男）
+- 以下は絶対にperson_nameに入れないこと:
+  * 記事タイトル・見出し（例: 「新CEOが「CIO」に就任」はNG）
+  * 役職名のみ（例: 「代表取締役社長」はperson_positionに入れる）
+  * 企業名（例: 「トヨタ自動車」はcompany_nameに入れる）
+  * 説明文・フレーズ
+- 人名が特定できない場合は必ず空文字("")にすること
+
 【出力形式】
 以下のJSON形式で出力してください：
 {
   "facts": {
     "company_name": "企業名（見つかれば）",
-    "person_name": "担当者名（見つかれば）",
+    "person_name": "人名のみ（姓名、見つからなければ空文字）",
     "person_position": "役職（見つかれば）",
     "industry": "業界（見つかれば）",
     "company_size": "企業規模（見つかれば）",

@@ -595,6 +595,19 @@ function NewLetterPageContent() {
         setAnalysisResult(data.data);
         setShowAnalysisModal(true);
 
+        // 分析結果をフォームフィールドに反映（空のフィールドのみ上書き）
+        const facts = data.data.facts;
+        if (facts) {
+          setFormData(prev => ({
+            ...prev,
+            companyName: prev.companyName || facts.company_name || '',
+            name: prev.name || facts.person_name || '',
+            position: prev.position || facts.person_position || '',
+            background: prev.background || (data.data.hypotheses?.timing_reason ?? ''),
+            problem: prev.problem || (data.data.hypotheses?.challenge_hypothesis ?? ''),
+          }));
+        }
+
         // sourcesを分析結果から保存
         if (data.data.sources) {
           setGeneratedSources(data.data.sources);

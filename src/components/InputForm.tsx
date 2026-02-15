@@ -7,7 +7,7 @@ import { SalesForm } from '@/components/forms/SalesForm';
 import { EventForm } from '@/components/forms/EventForm';
 import { FORM_LABELS, BUTTON_TEXTS, MESSAGES, ICONS } from '@/lib/constants';
 
-import type { LetterFormData, LetterMode, GenerateResponse } from '@/types/letter';
+import type { LetterFormData, LetterMode } from '@/types/letter';
 
 // PDF.jsを使用するため、SSRを無効化して動的インポート
 const MultiSourceModal = dynamic(
@@ -19,7 +19,6 @@ import { StructureSuggestionModal } from './StructureSuggestionModal';
 
 interface InputFormProps {
   mode: LetterMode;
-  onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
@@ -27,8 +26,8 @@ interface InputFormProps {
   onReset?: () => void;
   disabled?: boolean;
   onGenerationAttempt?: () => void | Promise<void>;
-  /** V2統一生成関数（モーダルなしで一括生成） */
-  onGenerateV2?: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
+  /** V2統一生成関数 */
+  onGenerateV2: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
   /** クイック下書き生成 */
   onQuickDraft?: () => Promise<void>;
   /** 根拠付き生成（分析→モーダル→生成） */
@@ -51,7 +50,6 @@ interface InputFormProps {
 
 export function InputForm({
   mode,
-  onGenerate,
   setIsGenerating,
   formData,
   setFormData,
@@ -104,7 +102,6 @@ export function InputForm({
     mode,
     formData,
     setFormData,
-    onGenerate,
     setIsGenerating,
     onGenerationAttempt,
     onGenerateV2,
@@ -281,7 +278,7 @@ export function InputForm({
               {isLoadingAI ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
                     <p className="text-gray-600">{MESSAGES.info.aiThinking}</p>
                   </div>
                 </div>
@@ -296,7 +293,7 @@ export function InputForm({
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-medium text-gray-800">{MESSAGES.modal.candidatePrefix} {index + 1}</h4>
                         <button
-                          className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition-colors"
+                          className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded hover:bg-amber-200 transition-colors"
                           aria-label={BUTTON_TEXTS.selectSuggestion}
                         >
                           {BUTTON_TEXTS.selectSuggestion}

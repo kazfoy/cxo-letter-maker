@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getErrorDetails } from '@/lib/errorUtils';
 
 import { useToast } from '@/hooks/use-toast';
-import type { LetterFormData, LetterMode, InputComplexity, ApiErrorResponse, GenerateResponse, AnalysisPhase, SSEEvent } from '@/types/letter';
+import type { LetterFormData, LetterMode, ApiErrorResponse, AnalysisPhase, SSEEvent } from '@/types/letter';
 import { devLog } from '@/lib/logger';
 
 interface UseInputFormProps {
@@ -10,18 +10,16 @@ interface UseInputFormProps {
   formData: LetterFormData;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 
-  onGenerate: (response: GenerateResponse, formData: LetterFormData) => void | Promise<void>;
   setIsGenerating: (isGenerating: boolean) => void;
-  onGenerationAttempt?: () => void | Promise<void>; // Called after every generation attempt (success or failure)
-  /** V2統一生成関数。指定されている場合、V1 APIの代わりにこの関数が呼ばれる */
-  onGenerateV2?: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
+  onGenerationAttempt?: () => void | Promise<void>;
+  /** V2統一生成関数 */
+  onGenerateV2: (formData: LetterFormData, outputFormat: 'letter' | 'email') => Promise<void>;
 }
 
 export function useInputForm({
   mode,
   formData,
   setFormData,
-  onGenerate,
   setIsGenerating,
   onGenerationAttempt,
   onGenerateV2,
@@ -38,17 +36,14 @@ export function useInputForm({
   const [generationSuccess, setGenerationSuccess] = useState(false);
   const [inputMode, setInputMode] = useState<'step' | 'freeform'>(mode === 'sales' ? 'freeform' : 'step');
   const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
-  const [inputComplexity, setInputComplexity] = useState<InputComplexity>(mode === 'sales' ? 'simple' : 'detailed');
   const { toast } = useToast();
 
   // モード変更時にタブをリセット
   useEffect(() => {
     if (mode === 'sales') {
       setInputMode('freeform');
-      setInputComplexity('simple');
     } else {
       setInputMode('step');
-      setInputComplexity('detailed');
     }
   }, [mode]);
 
@@ -316,84 +311,22 @@ export function useInputForm({
     setFormData((prev) => ({ ...prev, freeformInput: draftText }));
   }, [setFormData]);
 
-  // 共通生成ロジック
+  // 生成ロジック（V2統一）
   const executeGeneration = useCallback(async (outputFormat: 'letter' | 'email') => {
-    // V2統一関数が指定されている場合はそちらを使用
-    if (onGenerateV2) {
-      setIsGeneratingLocal(true);
-      setGenerationSuccess(false);
-      try {
-        await onGenerateV2(formData, outputFormat);
-        setGenerationSuccess(true);
-        setTimeout(() => setGenerationSuccess(false), 2000);
-      } catch (error) {
-        const errorDetails = getErrorDetails(error);
-        devLog.error('[ERROR] V2生成エラー:', errorDetails);
-        showError('生成に失敗しました。', 'もう一度お試しください。');
-      } finally {
-        setIsGeneratingLocal(false);
-      }
-      return;
-    }
-
-    // V1 API（フォールバック: eventモードなど）
-    setIsGenerating(true);
     setIsGeneratingLocal(true);
     setGenerationSuccess(false);
-
     try {
-      devLog.log(`[DEBUG] ${outputFormat === 'email' ? 'メール' : '手紙'}生成リクエスト開始`);
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          model: 'flash',
-          mode,
-          inputComplexity,
-          output_format: outputFormat
-        }),
-      });
-
-      devLog.log('[DEBUG] レスポンス受信:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-
-      const data: GenerateResponse = await response.json();
-      devLog.log('[DEBUG] レスポンスデータ:', {
-        hasLetter: !!data.letter,
-        hasEmail: !!data.email,
-        hasError: !!data.error,
-        errorCode: (data as GenerateResponse & { code?: string }).code,
-      });
-
-      if (data.letter || data.email) {
-        onGenerate(data, formData); // 修正: データ全体を渡す
-        setGenerationSuccess(true);
-        setTimeout(() => setGenerationSuccess(false), 2000);
-      } else if (data.error) {
-        devLog.error('[ERROR] API エラーレスポンス:', data);
-        handleApiErrorData(data);
-      }
-    } catch (error: unknown) {
+      await onGenerateV2(formData, outputFormat);
+      setGenerationSuccess(true);
+      setTimeout(() => setGenerationSuccess(false), 2000);
+    } catch (error) {
       const errorDetails = getErrorDetails(error);
-      devLog.error('[ERROR] 生成エラー詳細:', {
-        ...errorDetails,
-        fullError: error,
-      });
+      devLog.error('[ERROR] V2生成エラー:', errorDetails);
       showError('生成に失敗しました。', 'もう一度お試しください。');
     } finally {
-      setIsGenerating(false);
       setIsGeneratingLocal(false);
-      // ゲスト利用回数を更新
-      if (onGenerationAttempt) {
-        await onGenerationAttempt();
-      }
     }
-  }, [formData, mode, inputComplexity, onGenerate, setIsGenerating, handleApiErrorData, showError, onGenerationAttempt, onGenerateV2]);
+  }, [formData, onGenerateV2, showError]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -458,14 +391,12 @@ export function useInputForm({
     generationSuccess,
     inputMode,
     structureSuggestionModalOpen,
-    inputComplexity,
     // State setters
     setAiModalOpen,
     setAiSuggestions,
     setMultiSourceModalOpen,
     setStructureSuggestionModalOpen,
     setInputMode,
-    setInputComplexity,
     // Handlers
     handleChange,
     handleAIAssist,

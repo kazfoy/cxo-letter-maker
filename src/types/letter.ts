@@ -8,9 +8,6 @@ import type { Citation } from './generate-v2';
 // レターのモード（セールスレター / イベント招待状 / 相談型レター）
 export type LetterMode = 'sales' | 'event' | 'consulting';
 
-// レターの入力複雑度（かんたん or 詳細）
-export type InputComplexity = 'simple' | 'detailed';
-
 // レターのステータス
 export type LetterStatus = 'draft' | 'generated' | 'sent' | 'replied' | 'meeting_set' | 'failed' | 'archived';
 
@@ -78,24 +75,6 @@ export interface LetterHistory {
 // AI提案データ構造
 export interface AISuggestion {
   suggestions: string[];
-}
-
-// API生成レスポンス
-export interface GenerateResponse {
-
-  letter?: string;
-  variations?: {
-    standard: string;
-    emotional: string;
-    consultative: string;
-  };
-  email?: {
-    subject: string;
-    body: string;
-  };
-  error?: string;
-  message?: string;
-  suggestion?: string;
 }
 
 // レター構成案の構造

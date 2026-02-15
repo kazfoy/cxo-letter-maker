@@ -8,6 +8,7 @@ import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
 import { AnalysisPreviewModal } from '@/components/AnalysisPreviewModal';
+import { WelcomeWizard } from '@/components/WelcomeWizard';
 import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +47,7 @@ function NewLetterPageContent() {
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -131,6 +133,21 @@ function NewLetterPageContent() {
       setShowLimitModal(true);
     }
   }, [usage, user]);
+
+  // 初回訪問時にウェルカムウィザードを表示
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const completed = localStorage.getItem('cxo_welcome_completed');
+      if (!completed) {
+        setShowWelcome(true);
+      }
+    }
+  }, []);
+
+  const handleWelcomeComplete = useCallback(() => {
+    localStorage.setItem('cxo_welcome_completed', '1');
+    setShowWelcome(false);
+  }, []);
 
   // V2フロー: 分析を実行して結果を返す（内部用）
   const runAnalysis = useCallback(async (inputFormData: LetterFormData, targetUrl: string | undefined): Promise<AnalysisResult | null> => {
@@ -751,69 +768,6 @@ function NewLetterPageContent() {
     restoreLetter();
   }, [restoreId]);
 
-  const handleGenerate = async (response: import('@/types/letter').GenerateResponse, data: LetterFormData) => {
-    // リセット
-    setVariations(undefined);
-    setEmailData(undefined);
-    setGeneratedLetter('');
-
-    let contentToSave = '';
-
-    if (response.email) {
-      const normalizedEmail = {
-        subject: response.email.subject,
-        body: normalizeLetterText(response.email.body),
-      };
-      setEmailData(normalizedEmail);
-      // メールモードの場合は本文を保存するのが一般的だが、履歴には件名も含めたいかもしれない。
-      // 一旦、本文をメインコンテンツとして保存し、詳細はJSONなどに保存すべきだが、
-      // 既存の履歴DB構造(content: text)に合わせるため、"件名: ...\n\n本文..." の形式で保存するか、
-      // あるいはメール本文のみ保存するか。
-      // ここではわかりやすく結合して保存する。
-      contentToSave = `件名: ${normalizedEmail.subject}\n\n${normalizedEmail.body}`;
-      setGeneratedLetter(contentToSave); // プレビュー用には使わないが、一応セット
-    } else {
-      const letterText = normalizeLetterText(response.letter);
-      setGeneratedLetter(letterText);
-      contentToSave = letterText;
-
-      // バリエーションがあれば保存
-      if (response.variations) {
-        setVariations({
-          standard: normalizeLetterText(response.variations.standard),
-          emotional: normalizeLetterText(response.variations.emotional),
-          consultative: normalizeLetterText(response.variations.consultative),
-        });
-        setActiveVariation('standard'); // 生成後は標準をセット
-      }
-    }
-
-    // 履歴に保存
-    if (user) {
-      const savedLetter = await saveToHistory(data, contentToSave, mode);
-      if (savedLetter) {
-        setCurrentLetterId(savedLetter.id);
-        setCurrentLetterStatus(savedLetter.status);
-      }
-    } else {
-      // Guest: Save to LocalStorage
-      const { saveToGuestHistory } = await import('@/lib/guestHistoryUtils');
-      const savedLetter = saveToGuestHistory(data, contentToSave, mode);
-      setCurrentLetterId(savedLetter.id);
-      setCurrentLetterStatus(savedLetter.status);
-
-      // Notify sidebar
-      window.dispatchEvent(new Event('guest-history-updated'));
-      window.dispatchEvent(new StorageEvent('storage', { key: 'cxo_guest_history' }));
-    }
-
-    // ゲスト利用回数を更新
-    if (!user) {
-      increment();
-    }
-  };
-
-
 
   const handleRestore = (history: LetterHistory) => {
     setFormData(history.inputs);
@@ -1005,7 +959,7 @@ function NewLetterPageContent() {
               <button
                 onClick={() => setMode('sales')}
                 className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'sales'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
@@ -1014,7 +968,7 @@ function NewLetterPageContent() {
               <button
                 onClick={() => setMode('event')}
                 className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'event'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
@@ -1023,7 +977,7 @@ function NewLetterPageContent() {
               <button
                 onClick={() => setMode('consulting')}
                 className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'consulting'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
@@ -1041,7 +995,7 @@ function NewLetterPageContent() {
                     onChange={(e) => setUseV2Flow(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-700"></div>
                   <span className="ml-2 text-sm font-medium text-slate-700 hidden sm:inline">高品質モード</span>
                 </label>
               </div>
@@ -1073,6 +1027,15 @@ function NewLetterPageContent() {
 
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-4 py-6">
+        {/* ウェルカムウィザード（初回のみ） */}
+        {showWelcome && (
+          <WelcomeWizard
+            onComplete={handleWelcomeComplete}
+            onSampleExperience={handleSampleExperience}
+            onModeChange={setMode}
+          />
+        )}
+
         <div className="relative">
           {/* モバイル用背景オーバーレイ */}
           {isSidebarOpen && (
@@ -1157,7 +1120,6 @@ function NewLetterPageContent() {
 
               <InputForm
                 mode={mode}
-                onGenerate={handleGenerate}
                 setIsGenerating={setIsGenerating}
                 formData={formData}
                 setFormData={setFormData}
@@ -1305,7 +1267,7 @@ export default function NewLetterPage() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
           <p className="text-slate-600">読み込み中...</p>
         </div>
       </div>

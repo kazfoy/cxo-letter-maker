@@ -152,6 +152,7 @@ export const SelectedFactSchema = z.object({
   sourceUrl: z.string().optional(),  // ページ単位の出典URL
   sourceTitle: z.string().optional(),  // 出典ページタイトル
   sourceCategory: SourceCategorySchema.optional(),  // 出典カテゴリ
+  celebration: z.enum(['listing', 'award', 'anniversary', 'appointment', 'record']).optional(),  // お祝い事種別
 });
 
 export type SelectedFact = z.infer<typeof SelectedFactSchema>;

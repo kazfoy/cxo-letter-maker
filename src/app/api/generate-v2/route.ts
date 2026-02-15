@@ -19,7 +19,7 @@ import {
   calculateConsultingQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
-import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany } from '@/lib/factSelector';
+import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany, detectCelebrationFromFacts } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 import type { AnalysisResult, SelectedFact } from '@/types/analysis';
@@ -287,7 +287,8 @@ function buildGenerationPrompt(
   improvementPoints?: string[],
   hasTargetUrl: boolean = false,
   isPublicSector: boolean = false,
-  isStartup: boolean = false
+  isStartup: boolean = false,
+  celebrationText: string = ''
 ): string {
   // consultingモードは専用プロンプトを使用
   if (mode === 'consulting') {
@@ -455,10 +456,20 @@ ${factsList}
 - 冗長な敬語の重ね（「〜していただけますと幸甚に存じます」）は避け、簡潔に
 ` : '';
 
+  // お祝い事冒頭反映指示
+  const celebrationInstruction = celebrationText ? `
+【お祝い事の冒頭反映（必須）】
+レターの冒頭（宛名の直後）で、以下の慶事について一言触れてから本題に入ること:
+「${celebrationText}」
+例: 「この度の${celebrationText}、誠におめでとうございます。」
+※ 1行以内に収め、本題への導入として自然につなげること。
+※ お祝いの後にすぐWhy you/Why nowのフックに接続すること。
+` : '';
+
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}${publicSectorInstruction}${startupToneInstruction}
+${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}${publicSectorInstruction}${startupToneInstruction}${celebrationInstruction}
 
 【絶対ルール】
 1. 架空禁止。提供データのみ使用可
@@ -719,6 +730,12 @@ export async function POST(request: Request) {
         devLog.log('Startup detected: applying casual tone adjustments');
       }
 
+      // お祝い事検出（冒頭反映に使用）
+      const { hasCelebration, celebrationText } = detectCelebrationFromFacts(factsForLetter);
+      if (hasCelebration) {
+        devLog.log(`Celebration detected: ${celebrationText}`);
+      }
+
       // ファクト0件でも仮説モードで生成を続行（ハードエラーにしない）
       if (hasTargetUrl && factsForLetter.length === 0) {
         devLog.warn('URL provided but no facts extracted. Proceeding in hypothesis mode.');
@@ -745,7 +762,8 @@ export async function POST(request: Request) {
             attempt > 1 ? improvementPoints : undefined,
             hasTargetUrl,
             isPublicSector,
-            isStartup
+            isStartup,
+            celebrationText
           );
 
           // 2. 生成（consultingモードは専用スキーマ）

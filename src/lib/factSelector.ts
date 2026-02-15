@@ -14,6 +14,7 @@ import type {
 } from '@/types/analysis';
 
 // NGキーワード（レターに不適切なファクト）
+// 注意: 「受賞」「アワード」はお祝い事として冒頭に反映するため、NGリストから除外
 const NG_KEYWORDS = [
   '多様性表彰',
   'ワールドプレミア',
@@ -24,8 +25,6 @@ const NG_KEYWORDS = [
   '決算説明会',
   '株主総会',
   '授賞式',
-  '受賞',
-  'アワード',
 ];
 
 // カテゴリごとの基本優先度（数値が低いほど優先）
@@ -205,6 +204,72 @@ export function isStartupCompany(options: {
  */
 function getCxoKeywords(isPublicSector: boolean): string[] {
   return isPublicSector ? CXO_KEYWORDS_PUBLIC : CXO_KEYWORDS_PRIVATE;
+}
+
+/**
+ * お祝い事（慶事）検出パターン
+ */
+const CELEBRATION_PATTERNS: { pattern: RegExp; type: SelectedFact['celebration'] }[] = [
+  { pattern: /上場|IPO|東証|マザーズ|グロース市場|プライム市場|スタンダード市場/, type: 'listing' },
+  { pattern: /受賞|アワード|表彰|グランプリ|最優秀/, type: 'award' },
+  { pattern: /(\d+)\s*周年/, type: 'anniversary' },
+  { pattern: /新社長|社長就任|CEO就任|代表取締役.*就任/, type: 'appointment' },
+  { pattern: /過去最高益|増収増益|最高売上|過去最高/, type: 'record' },
+];
+
+/**
+ * ファクト内容からお祝い事を検出
+ */
+function detectCelebration(content: string): SelectedFact['celebration'] | undefined {
+  for (const { pattern, type } of CELEBRATION_PATTERNS) {
+    if (pattern.test(content)) {
+      return type;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * お祝い事のテキスト表現を生成
+ */
+const CELEBRATION_TEXT: Record<NonNullable<SelectedFact['celebration']>, string> = {
+  listing: 'ご上場',
+  award: 'ご受賞',
+  anniversary: '周年',
+  appointment: 'ご就任',
+  record: '過去最高益のご達成',
+};
+
+/**
+ * 抽出ファクト群からお祝い事を検出し、冒頭に使うテキストを返す
+ */
+export function detectCelebrationFromFacts(
+  factsForLetter: SelectedFact[]
+): { hasCelebration: boolean; celebrationText: string; celebrationType?: SelectedFact['celebration'] } {
+  const celebrationFact = factsForLetter.find(f => f.celebration);
+  if (!celebrationFact || !celebrationFact.celebration) {
+    return { hasCelebration: false, celebrationText: '' };
+  }
+
+  const baseText = CELEBRATION_TEXT[celebrationFact.celebration];
+
+  // 周年の場合は具体的な数字を抽出
+  if (celebrationFact.celebration === 'anniversary') {
+    const match = celebrationFact.content.match(/(\d+)\s*周年/);
+    if (match) {
+      return {
+        hasCelebration: true,
+        celebrationText: `${match[1]}周年`,
+        celebrationType: 'anniversary',
+      };
+    }
+  }
+
+  return {
+    hasCelebration: true,
+    celebrationText: baseText,
+    celebrationType: celebrationFact.celebration,
+  };
 }
 
 // Phase 6: トピックタグのキーワードマッピング
@@ -1039,6 +1104,9 @@ export function selectFactsForLetter(
     // 日付文字列（あれば）
     const publishedAt = date ? `${date.getFullYear()}年${date.getMonth() + 1}月` : undefined;
 
+    // お祝い事検出
+    const celebration = detectCelebration(content);
+
     allFacts.push({
       content,
       category,
@@ -1053,6 +1121,7 @@ export function selectFactsForLetter(
       sourceUrl,
       sourceTitle,
       sourceCategory,
+      celebration,
     });
   }
 

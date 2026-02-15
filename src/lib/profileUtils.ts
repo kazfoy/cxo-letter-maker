@@ -54,12 +54,23 @@ export async function updateProfile(profile: Partial<Omit<Profile, 'id' | 'email
     throw new Error('ログインが必要です');
   }
 
+  // 保護カラムをフロントエンドから送信できないようガード
+  // plan, subscription_status, stripe_customer_id はStripe webhook経由のみ変更可能
+  const PROTECTED_KEYS = ['plan', 'subscription_status', 'stripe_customer_id'] as const;
+  const safeProfile = { ...profile };
+  for (const key of PROTECTED_KEYS) {
+    if (key in safeProfile) {
+      devLog.warn(`[Profile Update] Protected column "${key}" stripped from update payload`);
+      delete (safeProfile as Record<string, unknown>)[key];
+    }
+  }
+
   devLog.log('[Profile Update] Updating profile for user:', user.id);
-  devLog.log('[Profile Update] Data:', JSON.stringify(profile, null, 2));
+  devLog.log('[Profile Update] Data:', JSON.stringify(safeProfile, null, 2));
 
   const { data, error } = await supabase
     .from('profiles')
-    .update(profile)
+    .update(safeProfile)
     .eq('id', user.id)
     .select()
     .single();

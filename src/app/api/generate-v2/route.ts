@@ -19,7 +19,7 @@ import {
   calculateConsultingQualityScore,
   type ProofPoint,
 } from '@/lib/qualityGate';
-import { selectFactsForLetter, isPublicSectorOrg } from '@/lib/factSelector';
+import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 import type { AnalysisResult, SelectedFact } from '@/types/analysis';
@@ -286,7 +286,8 @@ function buildGenerationPrompt(
   factsForLetter: SelectedFact[] = [],
   improvementPoints?: string[],
   hasTargetUrl: boolean = false,
-  isPublicSector: boolean = false
+  isPublicSector: boolean = false,
+  isStartup: boolean = false
 ): string {
   // consultingモードは専用プロンプトを使用
   if (mode === 'consulting') {
@@ -443,10 +444,21 @@ ${factsList}
   // 公共機関向け指示
   const publicSectorInstruction = isPublicSector ? buildPublicSectorInstructions() : '';
 
+  // スタートアップ向けトーン調整指示
+  const startupToneInstruction = isStartup ? `
+【スタートアップ向けトーン調整（厳守）】
+- 「貴社」→「御社」に統一
+- 敬語レベルを1段下げる（「〜いただけませんでしょうか」→「〜いかがでしょうか」）
+- 形式張った挨拶（「謹啓」「拝啓」等）は省略
+- 「スピード感」「アジリティ」「スケール」等のスタートアップ的価値観に合わせる
+- CTAもカジュアルに（「カジュアルにお話しできれば」「15分ほどオンラインで情報交換いかがでしょうか」等）
+- 冗長な敬語の重ね（「〜していただけますと幸甚に存じます」）は避け、簡潔に
+` : '';
+
   return `あなたは大手企業のCxO（経営層）から数多くの面談を獲得してきたトップセールスです。
 以下の分析結果を基に、${format === 'email' ? 'メール' : '手紙'}を作成してください。
 
-${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}${publicSectorInstruction}
+${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstruction}${bridgeInstruction}${factsForLetterInstruction}${evidenceRule}${citationInstruction}${publicSectorInstruction}${startupToneInstruction}
 
 【絶対ルール】
 1. 架空禁止。提供データのみ使用可
@@ -696,6 +708,17 @@ export async function POST(request: Request) {
         devLog.log('Public sector detected: applying public sector tone/CTA rules');
       }
 
+      // スタートアップ判定（トーン調整に使用）
+      const isStartup = !isPublicSector && isStartupCompany({
+        targetUrl: user_overrides?.target_url || analysis_result.target_url || undefined,
+        companyName: user_overrides?.company_name || (analysis_result.facts.company_name ?? undefined),
+        industry: analysis_result.facts.industry ?? undefined,
+        extractedFacts: analysis_result.extracted_facts,
+      });
+      if (isStartup) {
+        devLog.log('Startup detected: applying casual tone adjustments');
+      }
+
       // ファクト0件でも仮説モードで生成を続行（ハードエラーにしない）
       if (hasTargetUrl && factsForLetter.length === 0) {
         devLog.warn('URL provided but no facts extracted. Proceeding in hypothesis mode.');
@@ -721,7 +744,8 @@ export async function POST(request: Request) {
             factsForLetter,
             attempt > 1 ? improvementPoints : undefined,
             hasTargetUrl,
-            isPublicSector
+            isPublicSector,
+            isStartup
           );
 
           // 2. 生成（consultingモードは専用スキーマ）

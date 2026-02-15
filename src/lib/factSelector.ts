@@ -137,6 +137,70 @@ export function isPublicSectorOrg(options: {
 }
 
 /**
+ * スタートアップ判定キーワード（URL用）
+ */
+const STARTUP_URL_KEYWORDS = [
+  'startup', 'ventures', 'labs', 'inc', 'io',
+];
+
+/**
+ * スタートアップ判定キーワード（企業分析結果用）
+ */
+const STARTUP_CONTENT_KEYWORDS = [
+  'シリーズA', 'シリーズB', 'シリーズC', 'シードラウンド',
+  '資金調達', 'IPO準備', '上場準備',
+  'ベンチャー', 'スタートアップ',
+  'プレシリーズ', 'エンジェル投資',
+];
+
+/**
+ * スタートアップかどうかを総合判定（URL + 企業名 + 業界 + ファクト）
+ *
+ * 従業員50人以下/設立5年以内/スタートアップ系企業を検出
+ */
+export function isStartupCompany(options: {
+  targetUrl?: string;
+  companyName?: string;
+  industry?: string;
+  extractedFacts?: ExtractedFacts;
+}): boolean {
+  // 1. URL判定
+  if (options.targetUrl) {
+    const urlLower = options.targetUrl.toLowerCase();
+    if (STARTUP_URL_KEYWORDS.some(kw => urlLower.includes(kw))) {
+      return true;
+    }
+  }
+
+  // 2. 企業名・業界判定
+  const combined = `${options.companyName || ''} ${options.industry || ''}`;
+  if (STARTUP_CONTENT_KEYWORDS.some(kw => combined.includes(kw))) {
+    return true;
+  }
+
+  // 3. 抽出ファクトにスタートアップ関連キーワードがある場合
+  if (options.extractedFacts) {
+    const allFactContents = [
+      ...(options.extractedFacts.recentMoves || []),
+      ...(options.extractedFacts.companyDirection || []),
+      ...(options.extractedFacts.numbers || []),
+    ].map(f => typeof f === 'string' ? f : f.content).join(' ');
+
+    if (STARTUP_CONTENT_KEYWORDS.some(kw => allFactContents.includes(kw))) {
+      return true;
+    }
+
+    // 従業員数が100人以下の場合
+    const employeeMatch = allFactContents.match(/従業員[数：:]\s*(\d+)/);
+    if (employeeMatch && parseInt(employeeMatch[1], 10) <= 100) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * セクターに応じたCxOキーワードを取得
  */
 function getCxoKeywords(isPublicSector: boolean): string[] {

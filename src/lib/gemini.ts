@@ -10,12 +10,23 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { z } from 'zod';
 import { devLog } from './logger';
+import { getGeminiApiKey } from './env';
 
 // ─── モデル定数（一元管理） ───
 /** デフォルトモデル（テキスト生成・JSON生成共通） */
 export const MODEL_DEFAULT = 'gemini-2.5-flash';
-/** フォールバックモデル（プライマリ失敗時に使用） */
-export const MODEL_FALLBACK = 'gemini-2.5-flash';
+/** フォールバックモデル（プライマリ失敗時に使用、コスト削減） */
+export const MODEL_FALLBACK = 'gemini-2.0-flash-lite';
+
+// ─── 用途別 temperature 設定 ───
+export const TEMPERATURE = {
+  /** URL分析・ファクト抽出（再現性重視） */
+  analysis: 0.1,
+  /** レター生成（多様性） */
+  generation: 0.7,
+  /** qualityGateスコアリング（完全再現） */
+  scoring: 0.0,
+} as const;
 
 // Provider type
 type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
@@ -29,16 +40,9 @@ let googleProvider: GoogleProvider | null = null;
 export function getGoogleProvider(): GoogleProvider {
   if (googleProvider) return googleProvider;
 
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
 
-  if (!apiKey) {
-    devLog.error('[CRITICAL ERROR] APIキーが設定されていません！.envファイルを確認してください。');
-    throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not set!');
-  }
-
-  googleProvider = createGoogleGenerativeAI({
-    apiKey: apiKey,
-  });
+  googleProvider = createGoogleGenerativeAI({ apiKey });
   return googleProvider;
 }
 
@@ -54,6 +58,8 @@ export interface GenerateJsonOptions<T extends z.ZodType> {
   schema: T;
   /** 最大リトライ回数（デフォルト: 1） */
   maxRetries?: number;
+  /** 生成温度（0.0-2.0、用途別に TEMPERATURE 定数から指定推奨） */
+  temperature?: number;
 }
 
 /**
@@ -92,7 +98,8 @@ export async function generateJson<T extends z.ZodType>(
     modelName = MODEL_DEFAULT,
     prompt,
     schema,
-    maxRetries = 1
+    maxRetries = 1,
+    temperature,
   } = options;
 
   const google = getGoogleProvider();
@@ -110,6 +117,7 @@ export async function generateJson<T extends z.ZodType>(
       const result = await generateText({
         model,
         prompt: finalPrompt,
+        ...(temperature !== undefined && { temperature }),
       });
 
       // Extract JSON from response
@@ -147,7 +155,8 @@ export async function generateJson<T extends z.ZodType>(
  */
 export async function generateWithFallback(
   prompt: string,
-  primaryModelName: string = MODEL_DEFAULT
+  primaryModelName: string = MODEL_DEFAULT,
+  temperature?: number
 ): Promise<string> {
   const google = getGoogleProvider();
   const primaryModel = google(primaryModelName);
@@ -157,6 +166,7 @@ export async function generateWithFallback(
     const result = await generateText({
       model: primaryModel,
       prompt: prompt,
+      ...(temperature !== undefined && { temperature }),
     });
     return result.text;
   } catch (error) {
@@ -166,6 +176,7 @@ export async function generateWithFallback(
       const result = await generateText({
         model: fallbackModel,
         prompt: prompt,
+        ...(temperature !== undefined && { temperature }),
       });
       return result.text;
     } catch (fallbackError) {
@@ -241,5 +252,6 @@ ${body}
     prompt,
     schema: QualityScoreSchema,
     maxRetries: 1,
+    temperature: TEMPERATURE.scoring,
   });
 }

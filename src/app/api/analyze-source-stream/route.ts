@@ -8,6 +8,7 @@ import { getGoogleProvider, MODEL_DEFAULT } from '@/lib/gemini';
 import { getGoogleSearchConfig } from '@/lib/env';
 import { createClient } from '@/utils/supabase/server';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
+import { getClientIp } from '@/lib/get-client-ip';
 import { SAMPLE_SENDER_COMPANIES } from '@/lib/sampleData';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
@@ -135,7 +136,36 @@ export async function POST(request: Request) {
   }
 
   if (!currentUser && !isSampleRequest) {
-    // ゲストユーザー: DBベースの日次制限チェック（3回/日）— サンプルはスキップ
+    // ゲストユーザー: IP + Cookieの二重チェック（3回/日）— サンプルはスキップ
+
+    // 1. IPベース制限（Cookie削除/curlバイパス対策）
+    const ip = await getClientIp();
+    if (ip === 'unknown') {
+      devLog.warn('Guest IP unknown, rejecting (fail-closed)');
+      return new Response(
+        JSON.stringify({
+          error: 'リクエストを処理できませんでした。',
+          code: 'RATE_LIMITED',
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { allowed: ipAllowed, usage: ipUsage } = await checkAndIncrementGuestUsage(`ip:${ip}`);
+    if (!ipAllowed) {
+      devLog.warn(`Guest IP rate limited: ${ip}`);
+      return new Response(
+        JSON.stringify({
+          error: 'ゲスト利用の上限（1日3回）に達しました。',
+          code: 'GUEST_LIMIT_REACHED',
+          message: '無料枠の上限に達しました。ログインすると無制限で利用できます。',
+          usage: ipUsage,
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 2. Cookieベース制限（従来の制限も維持）
     const cookieStore = await cookies();
     let guestId = cookieStore.get('guest_id')?.value || '';
 

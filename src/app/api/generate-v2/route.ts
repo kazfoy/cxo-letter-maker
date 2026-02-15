@@ -898,7 +898,8 @@ export async function POST(request: Request) {
               hasProperNouns,
               factsForLetter,
               hasTargetUrl,
-              userInput
+              userInput,
+              proofPoints
             );
             detailedScore = {
               total: standardScore.total,

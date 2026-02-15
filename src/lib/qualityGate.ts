@@ -574,7 +574,8 @@ export function calculateDetailedScore(
   hasProperNouns: boolean = false,
   factsForLetter?: SelectedFact[],
   hasTargetUrl: boolean = false,
-  userInput?: string
+  userInput?: string,
+  proofPoints?: ProofPoint[]
 ): DetailedQualityScore {
   const suggestions: string[] = [];
 
@@ -785,6 +786,22 @@ export function calculateDetailedScore(
   // 合計スコア
   let total = specificity + empathy + ctaClarity + fiveElementsComplete + noNgExpressions;
   const issues: string[] = [];
+
+  // 5b. 根拠なき断定検出（精緻版）— 架空数字・決めつけ表現・根拠なきニュース引用
+  if (factsForLetter && factsForLetter.length > 0) {
+    const baselessResult = detectBaselessAssertions(
+      body,
+      factsForLetter,
+      proofPoints || [],
+      hasTargetUrl
+    );
+    if (baselessResult.penalty > 0) {
+      total -= baselessResult.penalty;
+      for (const issue of baselessResult.issues) {
+        issues.push(issue);
+      }
+    }
+  }
 
   // 6. テンプレ語検出（ユーザー入力に明示されていない限り減点）
   const templateHits = TEMPLATE_PHRASES.filter(phrase => body.includes(phrase));

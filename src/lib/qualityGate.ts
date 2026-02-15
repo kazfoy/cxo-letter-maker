@@ -488,6 +488,61 @@ export function getForbiddenPatterns(): { pattern: RegExp; label: string }[] {
 }
 
 /**
+ * 冒頭自己紹介パターン（Why you now原則に違反）
+ */
+const OPENING_SELF_INTRO_PATTERNS = [
+  /^(弊社|当社|私ども|私たち)(は|では|の)/,
+  /^(はじめまして|初めまして)/,
+  /^(突然のご連絡|お忙しいところ)/,
+];
+
+/**
+ * 冒頭自己紹介を検出し、減点を返す
+ * レター本文の最初の文が自己紹介で始まっていないかチェック
+ */
+function detectOpeningSelfIntro(body: string): number {
+  // 宛名行をスキップして最初の実文を取得
+  const lines = body.split(/\n/).filter(l => l.trim());
+  // 最初の行が宛名（〜様）の場合、次の行を見る
+  let firstSentenceLine = lines[0] || '';
+  if (/様\s*$/.test(firstSentenceLine) && lines.length > 1) {
+    firstSentenceLine = lines[1] || '';
+  }
+  const firstSentence = firstSentenceLine.split(/[。\n]/)[0].trim();
+
+  for (const pattern of OPENING_SELF_INTRO_PATTERNS) {
+    if (pattern.test(firstSentence)) {
+      return -10;
+    }
+  }
+  return 0;
+}
+
+/**
+ * 多用されがちなフレーズの過剰使用を検出し、減点を返す
+ * 3回以上使われるとAI感が出る
+ */
+function detectOverusedPhrases(body: string): { penalty: number; phrases: string[] } {
+  const targets = [
+    'ではないでしょうか',
+    'と考えております',
+    'お見受けいたします',
+  ];
+  let penalty = 0;
+  const detected: string[] = [];
+
+  for (const phrase of targets) {
+    const count = (body.match(new RegExp(phrase, 'g')) || []).length;
+    if (count >= 3) {
+      const p = (count - 2) * 5;
+      penalty -= p;
+      detected.push(`「${phrase}」${count}回`);
+    }
+  }
+  return { penalty, phrases: detected };
+}
+
+/**
  * Phase 5: 詳細品質スコア
  */
 export interface DetailedQualityScore {
@@ -703,6 +758,24 @@ export function calculateDetailedScore(
       if (suggestions.length < 3) {
         suggestions.push('一般論ではなく、抽出したファクトを使用してください');
       }
+    }
+  }
+
+  // 冒頭自己紹介検出（-10点）
+  const selfIntroPenalty = detectOpeningSelfIntro(body);
+  if (selfIntroPenalty < 0) {
+    noNgExpressions += selfIntroPenalty;
+    if (suggestions.length < 3) {
+      suggestions.push('冒頭が自己紹介で始まっています。相手企業のファクトから始めてください');
+    }
+  }
+
+  // 多用フレーズ検出（3回以上で減点）
+  const overused = detectOverusedPhrases(body);
+  if (overused.penalty < 0) {
+    noNgExpressions += overused.penalty;
+    if (suggestions.length < 3) {
+      suggestions.push(`同一表現の多用: ${overused.phrases.join(', ')}。表現を変えてください`);
     }
   }
 
@@ -1155,6 +1228,8 @@ export interface ConsultingQualityScore {
     tooLong: number;
     missingPublicFact: number;
     missingTwoChoiceCta: number;
+    openingSelfIntro: number;
+    overusedPhrases: number;
   };
   issues: string[];
 }
@@ -1175,6 +1250,8 @@ export function calculateConsultingQualityScore(
     tooLong: 0,
     missingPublicFact: 0,
     missingTwoChoiceCta: 0,
+    openingSelfIntro: 0,
+    overusedPhrases: 0,
   };
 
   // 1. 禁止ワード検出 (-10点/件、上限-30点)
@@ -1223,6 +1300,20 @@ export function calculateConsultingQualityScore(
   if (!hasTwoChoiceCta) {
     penalties.missingTwoChoiceCta = 10;
     issues.push('2択CTAが検出されませんでした（例: 1. 15分相談 / 2. 資料希望）');
+  }
+
+  // 7. 冒頭自己紹介検出 (-10点)
+  const selfIntroPenalty = detectOpeningSelfIntro(body);
+  if (selfIntroPenalty < 0) {
+    penalties.openingSelfIntro = Math.abs(selfIntroPenalty);
+    issues.push('冒頭が自己紹介で始まっています。相手企業のファクトから始めてください');
+  }
+
+  // 8. 多用フレーズ検出（3回以上で減点）
+  const overused = detectOverusedPhrases(body);
+  if (overused.penalty < 0) {
+    penalties.overusedPhrases = Math.abs(overused.penalty);
+    issues.push(`同一表現の多用: ${overused.phrases.join(', ')}。表現を変えてください`);
   }
 
   const totalPenalty = Object.values(penalties).reduce((a, b) => a + b, 0);

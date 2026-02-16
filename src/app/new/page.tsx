@@ -8,7 +8,6 @@ import { PreviewArea } from '@/components/PreviewArea';
 import { Header } from '@/components/Header';
 import { HistorySidebar } from '@/components/HistorySidebar';
 import { AnalysisPreviewModal } from '@/components/AnalysisPreviewModal';
-import { WelcomeWizard } from '@/components/WelcomeWizard';
 import { saveToHistory } from '@/lib/supabaseHistoryUtils';
 import { getProfile } from '@/lib/profileUtils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +52,6 @@ function NewLetterPageContent() {
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [formData, setFormData] = useState<LetterFormData>({
     myCompanyName: '',
     myName: '',
@@ -81,7 +79,7 @@ function NewLetterPageContent() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingV2, setIsGeneratingV2] = useState(false);
-  const [useV2Flow, setUseV2Flow] = useState(true); // デフォルトでV2フローを使用
+  const [useV2Flow] = useState(true); // 常にV2フローを使用
   const [resolvedTargetUrl, setResolvedTargetUrl] = useState<string | undefined>(undefined);
   const [_urlWarning, _setUrlWarning] = useState<string | null>(null);
   const [generatedSources, setGeneratedSources] = useState<InformationSource[] | undefined>(undefined);
@@ -140,26 +138,11 @@ function NewLetterPageContent() {
     }
   }, [usage, user]);
 
-  // 初回訪問時にウェルカムウィザードを表示
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const completed = localStorage.getItem('cxo_welcome_completed');
-      if (!completed) {
-        setShowWelcome(true);
-      }
-    }
-  }, []);
 
-  const handleWelcomeComplete = useCallback(() => {
-    localStorage.setItem('cxo_welcome_completed', '1');
-    setShowWelcome(false);
-  }, []);
 
   // デモモード: プリコンピューテッドデータで即座に表示
   useEffect(() => {
     if (!isDemo) return;
-    // デモ時はWelcomeWizard非表示
-    setShowWelcome(false);
     setIsDemoMode(true);
     isDemoModeRef.current = true;
 
@@ -583,17 +566,8 @@ function NewLetterPageContent() {
         setAnalysisResult(data.data);
         setShowAnalysisModal(true);
 
-        // 分析結果をフォームフィールドに反映（事実情報のみ、空のフィールドのみ上書き）
-        // 仮説（timing_reason, challenge_hypothesis）は自動入力しない（営業品質リスク）
-        const facts = data.data.facts;
-        if (facts) {
-          setFormData(prev => ({
-            ...prev,
-            companyName: prev.companyName || facts.company_name || '',
-            name: prev.name || sanitizePersonName(facts.person_name) || '',
-            position: prev.position || facts.person_position || '',
-          }));
-        }
+        // 分析結果のフォーム反映はAnalysisPreviewModalのチェックボックスで
+        // ユーザーが確認・選択した項目のみ反映する（MUST-2対応）
 
         // sourcesを分析結果から保存
         if (data.data.sources) {
@@ -1165,21 +1139,6 @@ function NewLetterPageContent() {
               </button>
             </div>
 
-            {/* V2フロートグル（eventモード時のみ表示、salesは常にV2固定） */}
-            {mode === 'event' && (
-              <div className="flex items-center gap-2">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useV2Flow}
-                    onChange={(e) => setUseV2Flow(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-700"></div>
-                  <span className="ml-2 text-sm font-medium text-slate-700 hidden sm:inline">高品質モード</span>
-                </label>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1227,15 +1186,6 @@ function NewLetterPageContent() {
 
       {/* 3カラムレイアウト（自然なスクロール） */}
       <main className="container mx-auto px-3 sm:px-4 py-6">
-        {/* ウェルカムウィザード（初回のみ、デモモード時は非表示） */}
-        {showWelcome && !isDemoMode && (
-          <WelcomeWizard
-            onComplete={handleWelcomeComplete}
-            onSampleExperience={handleSampleExperience}
-            onModeChange={setMode}
-          />
-        )}
-
         <div className="relative">
           {/* モバイル用背景オーバーレイ */}
           {isSidebarOpen && (
@@ -1458,6 +1408,19 @@ function NewLetterPageContent() {
         onDraftFallback={() => {
           setModalError(null);
           handleGenerateV2({}, 'draft');
+        }}
+        currentFormData={{
+          companyName: formData.companyName,
+          name: formData.name,
+          position: formData.position,
+        }}
+        onApplyFacts={(facts) => {
+          setFormData(prev => ({
+            ...prev,
+            ...(facts.companyName ? { companyName: facts.companyName } : {}),
+            ...(facts.name ? { name: sanitizePersonName(facts.name) } : {}),
+            ...(facts.position ? { position: facts.position } : {}),
+          }));
         }}
       />
     </div>

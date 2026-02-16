@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SALES_PLACEHOLDERS } from '@/lib/placeholders';
-import { FIELD_LABELS, BUTTON_TEXTS, MESSAGES, TAB_LABELS, ICONS, REQUIRED_MARK } from '@/lib/constants';
+import { FIELD_LABELS, BUTTON_TEXTS, ICONS, REQUIRED_MARK } from '@/lib/constants';
 import { Accordion } from '@/components/ui/Accordion';
 import { toast } from '@/hooks/use-toast';
 import type { LetterFormData } from '@/types/letter';
@@ -8,12 +8,9 @@ import { devLog } from '@/lib/logger';
 
 interface SalesFormProps {
   formData: LetterFormData;
-  inputMode: 'step' | 'freeform';
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   handleOpenMultiSourceModal: (type: 'own' | 'target') => void;
   handleAIAssist: (field: string) => void;
-  handleOpenStructureSuggestion: () => void;
-  setInputMode: (mode: 'step' | 'freeform') => void;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
   formErrors?: Record<string, string>;
   onClearError?: (field: string) => void;
@@ -21,12 +18,9 @@ interface SalesFormProps {
 
 export const SalesForm = React.memo(function SalesForm({
   formData,
-  inputMode,
   handleChange,
   handleOpenMultiSourceModal,
   handleAIAssist,
-  handleOpenStructureSuggestion,
-  setInputMode,
   setFormData,
   formErrors = {},
   onClearError,
@@ -386,33 +380,8 @@ export const SalesForm = React.memo(function SalesForm({
             <div className="space-y-4">
               <h3 className="font-medium text-gray-700 mb-3">CxOレター構成（5要素）</h3>
 
-              {/* タブUI */}
-              <div className="flex gap-2 border-b border-gray-200 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setInputMode('step')}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'step'
-                    ? 'text-amber-700 border-b-2 border-amber-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  {TAB_LABELS.stepInput}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInputMode('freeform')}
-                  className={`px-4 py-2 font-medium text-sm transition-colors ${inputMode === 'freeform'
-                    ? 'text-amber-700 border-b-2 border-amber-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  {TAB_LABELS.freeformInput}
-                </button>
-              </div>
-
-              {/* ステップ入力モード */}
-              {inputMode === 'step' && (
-                <>
+              {/* ステップ入力 */}
+              <>
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label htmlFor="background" className="block text-sm font-medium text-gray-700">
@@ -543,36 +512,6 @@ export const SalesForm = React.memo(function SalesForm({
                     />
                   </div>
                 </>
-              )}
-
-              {/* まとめて入力モード */}
-              {inputMode === 'freeform' && (
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label htmlFor="freeformInput" className="block text-sm font-medium text-gray-700">
-                      {FIELD_LABELS.freeformInput}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleOpenStructureSuggestion}
-                      className="text-sm bg-amber-50 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-md hover:bg-amber-100 transition-colors font-medium flex items-center gap-1"
-                      aria-label={BUTTON_TEXTS.structureSuggestion}
-                    >
-                      {BUTTON_TEXTS.structureSuggestion}
-                    </button>
-                  </div>
-                  <textarea
-                    id="freeformInput"
-                    name="freeformInput"
-                    value={formData.freeformInput || ''}
-                    onChange={handleChange}
-                    rows={15}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors text-slate-900 placeholder:text-slate-500"
-                    placeholder={SALES_PLACEHOLDERS.freeformInput}
-                  />
-                  <p className="mt-2 text-xs text-gray-500">{MESSAGES.info.freeformHelp}</p>
-                </div>
-              )}
             </div>
           </div>
         </Accordion>

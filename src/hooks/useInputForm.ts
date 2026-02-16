@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { getErrorDetails } from '@/lib/errorUtils';
 
 import { useToast } from '@/hooks/use-toast';
@@ -34,18 +34,7 @@ export function useInputForm({
   const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase | null>(null);
   const [isGeneratingLocal, setIsGeneratingLocal] = useState(false);
   const [generationSuccess, setGenerationSuccess] = useState(false);
-  const [inputMode, setInputMode] = useState<'step' | 'freeform'>(mode === 'sales' ? 'freeform' : 'step');
-  const [structureSuggestionModalOpen, setStructureSuggestionModalOpen] = useState(false);
   const { toast } = useToast();
-
-  // モード変更時にタブをリセット
-  useEffect(() => {
-    if (mode === 'sales') {
-      setInputMode('freeform');
-    } else {
-      setInputMode('step');
-    }
-  }, [mode]);
 
   // エラーを表示するヘルパー関数
   const showError = useCallback((message: string, suggestion?: string) => {
@@ -303,18 +292,6 @@ export function useInputForm({
   }, [sourceInputType, mode, formData.companyName, setFormData, showError, toast, parseSSEEvents]);
 
 
-  const handleOpenStructureSuggestion = useCallback(() => {
-    if (!formData.companyName || !formData.myServiceDescription) {
-      showError('構成案を提案するには、企業名と自社サービスの概要を入力してください。');
-      return;
-    }
-    setStructureSuggestionModalOpen(true);
-  }, [formData.companyName, formData.myServiceDescription, showError]);
-
-  const handleSelectApproach = useCallback((draftText: string) => {
-    setFormData((prev) => ({ ...prev, freeformInput: draftText }));
-  }, [setFormData]);
-
   // 生成ロジック（V2統一）
   const executeGeneration = useCallback(async (outputFormat: 'letter' | 'email') => {
     setIsGeneratingLocal(true);
@@ -393,25 +370,18 @@ export function useInputForm({
     analysisPhase,
     isGeneratingLocal,
     generationSuccess,
-    inputMode,
-    structureSuggestionModalOpen,
     // State setters
     setAiModalOpen,
     setAiSuggestions,
     setMultiSourceModalOpen,
-    setStructureSuggestionModalOpen,
-    setInputMode,
     // Handlers
     handleChange,
     handleAIAssist,
     handleSelectSuggestion,
     handleOpenMultiSourceModal,
-
     handleAnalyzeMultiSource,
-    handleOpenStructureSuggestion,
-    handleSelectApproach,
     handleSubmit,
-    handleGenerateEmail, // Exported
+    handleGenerateEmail,
     handleAnalyzeEventUrl,
   };
 }

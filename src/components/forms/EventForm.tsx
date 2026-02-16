@@ -7,13 +7,11 @@ import { devLog } from '@/lib/logger';
 
 interface EventFormProps {
   formData: LetterFormData;
-  inputMode: 'step' | 'freeform';
   isAnalyzingSource: boolean;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   handleOpenMultiSourceModal: (type: 'own' | 'target') => void;
   handleAIAssist: (field: string) => void;
   handleAnalyzeEventUrl: () => void;
-  setInputMode: (mode: 'step' | 'freeform') => void;
   setFormData: React.Dispatch<React.SetStateAction<LetterFormData>>;
 }
 

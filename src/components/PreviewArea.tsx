@@ -691,38 +691,6 @@ export function PreviewArea({
 
 
 
-        {/* タブUI（バリエーション選択） - 生成されている場合のみ表示 */}
-        {variations && (
-          <div className="flex border-b border-gray-200 mb-0">
-            <button
-              onClick={() => onVariationSelect && onVariationSelect('standard')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'standard'
-                ? 'border-amber-700 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              王道 (Standard)
-            </button>
-            <button
-              onClick={() => onVariationSelect && onVariationSelect('emotional')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'emotional'
-                ? 'border-amber-700 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              熱意 (Emotional)
-            </button>
-            <button
-              onClick={() => onVariationSelect && onVariationSelect('consultative')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeVariation === 'consultative'
-                ? 'border-amber-700 text-amber-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              課題解決 (Consultative)
-            </button>
-          </div>
-        )}
 
         {isGenerating || isEditing ? (
           isEditing ? (

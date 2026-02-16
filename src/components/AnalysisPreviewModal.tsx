@@ -88,6 +88,13 @@ function ModalGenerationProgress() {
   );
 }
 
+/** フォームに反映可能なファクトの型 */
+interface ApplicableFacts {
+  companyName?: string;
+  name?: string;
+  position?: string;
+}
+
 interface AnalysisPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -99,6 +106,10 @@ interface AnalysisPreviewModalProps {
   error?: string | null;
   onClearError?: () => void;
   onDraftFallback?: () => void;
+  /** 現在のフォームデータ（空フィールド判定用） */
+  currentFormData?: { companyName: string; name: string; position: string };
+  /** チェックされたファクトをフォームに反映するコールバック */
+  onApplyFacts?: (facts: ApplicableFacts) => void;
 }
 
 export function AnalysisPreviewModal({
@@ -112,12 +123,21 @@ export function AnalysisPreviewModal({
   error = null,
   onClearError,
   onDraftFallback,
+  currentFormData,
+  onApplyFacts,
 }: AnalysisPreviewModalProps) {
   // Draftモード自動判定: URLなし または 情報が少ない場合
   const shouldDefaultToDraft = !hasUrl || (analysisResult?.missing_info.filter(m => m.priority === 'high').length ?? 0) > 2;
   const [mode, setMode] = useState<'draft' | 'complete'>(shouldDefaultToDraft ? 'draft' : 'complete');
   const [overrides, setOverrides] = useState<UserOverrides>({});
   const [showDetails, setShowDetails] = useState(false);
+
+  // MUST-2: フォームに反映するファクトのチェック状態（デフォルトON）
+  const [applyFields, setApplyFields] = useState({
+    companyName: true,
+    name: true,
+    position: true,
+  });
 
   const handleOverrideChange = useCallback((field: string, value: string) => {
     setOverrides(prev => ({
@@ -127,9 +147,24 @@ export function AnalysisPreviewModal({
   }, []);
 
   const handleConfirm = useCallback(() => {
+    // MUST-2: チェックされたファクトのみフォームに反映
+    if (onApplyFacts && analysisResult?.facts) {
+      const facts: ApplicableFacts = {};
+      if (applyFields.companyName && analysisResult.facts.company_name) {
+        facts.companyName = analysisResult.facts.company_name;
+      }
+      if (applyFields.name && analysisResult.facts.person_name) {
+        facts.name = analysisResult.facts.person_name;
+      }
+      if (applyFields.position && analysisResult.facts.person_position) {
+        facts.position = analysisResult.facts.person_position;
+      }
+      onApplyFacts(facts);
+    }
+
     const apiMode = letterMode === 'event' ? 'event' : mode;
     onConfirm(overrides, apiMode);
-  }, [onConfirm, overrides, mode, letterMode]);
+  }, [onConfirm, overrides, mode, letterMode, onApplyFacts, applyFields, analysisResult]);
 
   if (!isOpen) return null;
 
@@ -176,6 +211,39 @@ export function AnalysisPreviewModal({
                     )}
                   </div>
                 </div>
+
+                {/* MUST-2: フォームに反映する情報の確認チェックボックス */}
+                {(() => {
+                  const facts = analysisResult.facts;
+                  // 空フィールドのみ対象（既に入力済みなら表示しない）
+                  const applicableItems = [
+                    { key: 'companyName' as const, label: '企業名', value: facts.company_name, isEmpty: !currentFormData?.companyName },
+                    { key: 'name' as const, label: '担当者名', value: facts.person_name, isEmpty: !currentFormData?.name },
+                    { key: 'position' as const, label: '役職', value: facts.person_position, isEmpty: !currentFormData?.position },
+                  ].filter(item => item.value && item.isEmpty);
+
+                  if (applicableItems.length === 0) return null;
+
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <p className="text-xs font-medium text-amber-700 mb-2">フォームに反映する情報</p>
+                      <div className="space-y-1.5">
+                        {applicableItems.map(item => (
+                          <label key={item.key} className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={applyFields[item.key]}
+                              onChange={(e) => setApplyFields(prev => ({ ...prev, [item.key]: e.target.checked }))}
+                              className="w-4 h-4 text-amber-700 rounded border-amber-300 focus:ring-amber-500"
+                            />
+                            <span className="text-sm text-stone-600">{item.label}:</span>
+                            <span className="text-sm font-medium text-stone-900">{item.value}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 証拠カウント + 確信度バー */}
                 <div className="bg-stone-50 rounded-lg p-4">

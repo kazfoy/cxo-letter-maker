@@ -526,38 +526,82 @@ function postProcessLetterBody(body: string, mode: 'draft' | 'complete' | 'event
   processed = processed.replace(/\[出典[:：][^\]]*\]/gi, '');
   processed = processed.replace(/【出典[:：][^】]*】/gi, '');
 
-  // 4. 段落分割フォールバック（改行が全くない場合にセマンティック境界で段落を作る）
+  // 4. 段落分割フォールバック（改行が不足している場合にセマンティック境界で段落を作る）
   const paragraphs = processed.split(/\n\n+/).filter(p => p.trim());
-  if (paragraphs.length < 2 && processed.length > 150) {
-    // 改行がない巨大な段落 → 転換語の直前で段落分割
+  if (paragraphs.length < 3 && processed.length > 150) {
+    // 改行が不足 → 複数の転換語パターンで段落分割を試行
     const transitionPatterns = [
+      /(?=株式会社ネクサスソリューションズは)/,  // 自社紹介
       /(?=弊社は)/,        // 自社紹介の開始
+      /(?=弊社の)/,        // 自社紹介バリエーション
       /(?=つきましては)/,  // 結びへの転換
       /(?=ぜひ)/,          // CTAの開始
+      /(?=来週)/,          // CTA時間表現
+      /(?=今月)/,          // CTA時間表現
       /(?=まず)/,          // 提案の開始
       /(?=具体的には)/,    // 具体化の開始
+      /(?=特に、)/,        // 強調の開始
     ];
 
-    let result = processed;
-    for (const pattern of transitionPatterns) {
-      const parts = result.split(pattern);
-      if (parts.length >= 2 && parts[0].length > 50) {
-        result = parts.join('\n\n');
+    // ステップ1: 宛名行を分離
+    let bodyText = processed;
+    let salutation = '';
+    const salutationMatch = bodyText.match(/^(.+?様)\s*/);
+    if (salutationMatch && salutationMatch[0].length < 80) {
+      salutation = salutationMatch[1];
+      bodyText = bodyText.slice(salutationMatch[0].length);
+    }
+
+    // ステップ2: 署名行を分離（末尾の「会社名\n担当者名」パターン）
+    let signature = '';
+    const sigPatterns = [
+      /((?:株式会社|一般社団法人|合同会社)[^\n。、]*\n[^\n。、]+)$/,
+      /((?:株式会社|一般社団法人|合同会社)[^\n。、]+)$/,
+    ];
+    for (const sigPattern of sigPatterns) {
+      const sigMatch = bodyText.match(sigPattern);
+      if (sigMatch && sigMatch[0].length < 100) {
+        signature = sigMatch[1];
+        bodyText = bodyText.slice(0, bodyText.length - sigMatch[0].length).trim();
         break;
       }
     }
 
-    // 転換語で分割できなかった場合、宛名行の分離のみ行う
-    if (!result.includes('\n\n')) {
-      const salutationMatch = result.match(/^(.+?様)\s*/);
-      if (salutationMatch) {
-        result = salutationMatch[1] + '\n\n' + result.slice(salutationMatch[0].length);
+    // ステップ3: 本文を転換語パターンで複数箇所分割
+    const splitPositions: number[] = [];
+    for (const pattern of transitionPatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match.index && match.index > 50) {
+        const tooClose = splitPositions.some(pos => Math.abs(pos - match.index!) < 50);
+        if (!tooClose) {
+          splitPositions.push(match.index);
+        }
       }
     }
 
-    if (result !== processed) {
-      processed = result;
-      devLog.warn('PostProcess: Applied fallback paragraph splitting');
+    if (splitPositions.length > 0) {
+      splitPositions.sort((a, b) => a - b);
+      const parts: string[] = [];
+      let lastPos = 0;
+      for (const pos of splitPositions) {
+        const segment = bodyText.slice(lastPos, pos).trim();
+        if (segment) parts.push(segment);
+        lastPos = pos;
+      }
+      const lastSegment = bodyText.slice(lastPos).trim();
+      if (lastSegment) parts.push(lastSegment);
+      bodyText = parts.filter(p => p.length > 0).join('\n\n');
+    }
+
+    // ステップ4: 再構築
+    const rebuilt = [salutation, bodyText, signature]
+      .filter(p => p.length > 0)
+      .join('\n\n');
+
+    if (rebuilt !== processed) {
+      processed = rebuilt;
+      const newParagraphs = rebuilt.split(/\n\n+/).filter(p => p.trim()).length;
+      devLog.warn(`PostProcess: Applied fallback paragraph splitting (${newParagraphs} paragraphs)`);
     }
   }
 

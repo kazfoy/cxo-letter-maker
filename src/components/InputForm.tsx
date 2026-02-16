@@ -15,7 +15,6 @@ const MultiSourceModal = dynamic(
   { ssr: false }
 );
 
-import { StructureSuggestionModal } from './StructureSuggestionModal';
 
 interface InputFormProps {
   mode: LetterMode;
@@ -79,22 +78,15 @@ export function InputForm({
     analysisPhase,
     isGeneratingLocal,
     generationSuccess,
-    inputMode,
-    structureSuggestionModalOpen,
     // State setters
     setAiModalOpen,
     setMultiSourceModalOpen,
-    setStructureSuggestionModalOpen,
-    setInputMode,
     // Handlers
     handleChange,
     handleAIAssist,
     handleSelectSuggestion,
     handleOpenMultiSourceModal,
     handleAnalyzeMultiSource,
-    handleOpenStructureSuggestion,
-    handleSelectApproach,
-
     handleSubmit,
     handleAnalyzeEventUrl,
     handleGenerateEmail: _handleGenerateEmail,
@@ -156,24 +148,19 @@ export function InputForm({
         {mode === 'event' ? (
           <EventForm
             formData={formData}
-            inputMode={inputMode}
             isAnalyzingSource={isAnalyzingSource}
             handleChange={handleChange}
             handleOpenMultiSourceModal={handleOpenMultiSourceModal}
             handleAIAssist={handleAIAssist}
             handleAnalyzeEventUrl={handleAnalyzeEventUrl}
-            setInputMode={setInputMode}
             setFormData={setFormData}
           />
         ) : (
           <SalesForm
             formData={formData}
-            inputMode={inputMode}
             handleChange={handleChange}
             handleOpenMultiSourceModal={handleOpenMultiSourceModal}
             handleAIAssist={handleAIAssist}
-            handleOpenStructureSuggestion={handleOpenStructureSuggestion}
-            setInputMode={setInputMode}
             setFormData={setFormData}
             formErrors={formErrors}
             onClearError={onClearError}
@@ -319,15 +306,6 @@ export function InputForm({
         analysisPhase={analysisPhase}
       />
 
-      {/* 構成案提案モーダル */}
-      <StructureSuggestionModal
-        isOpen={structureSuggestionModalOpen}
-        onClose={() => setStructureSuggestionModalOpen(false)}
-        onSelectApproach={handleSelectApproach}
-        companyName={formData.companyName}
-        myServiceDescription={formData.myServiceDescription}
-        background={formData.background}
-      />
     </div>
   );
 }

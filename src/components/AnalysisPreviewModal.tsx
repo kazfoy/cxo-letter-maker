@@ -92,10 +92,10 @@ interface AnalysisPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   analysisResult: AnalysisResult | null;
-  onConfirm: (overrides: UserOverrides, mode: 'draft' | 'complete' | 'event' | 'consulting') => void;
+  onConfirm: (overrides: UserOverrides, mode: 'draft' | 'complete' | 'event') => void;
   isLoading: boolean;
   hasUrl: boolean;
-  letterMode?: 'sales' | 'event' | 'consulting';  // ページレベルのモード
+  letterMode?: 'sales' | 'event';  // ページレベルのモード
   error?: string | null;
   onClearError?: () => void;
   onDraftFallback?: () => void;
@@ -127,7 +127,7 @@ export function AnalysisPreviewModal({
   }, []);
 
   const handleConfirm = useCallback(() => {
-    const apiMode = letterMode === 'event' ? 'event' : letterMode === 'consulting' ? 'consulting' : mode;
+    const apiMode = letterMode === 'event' ? 'event' : mode;
     onConfirm(overrides, apiMode);
   }, [onConfirm, overrides, mode, letterMode]);
 

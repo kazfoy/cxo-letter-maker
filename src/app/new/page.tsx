@@ -316,15 +316,7 @@ function NewLetterPageContent() {
             company_name: inputFormData.companyName,
             person_name: inputFormData.name,
             person_position: inputFormData.position,
-            additional_context: mode === 'consulting'
-              ? [
-                  inputFormData.productStrength && `強み: ${inputFormData.productStrength}`,
-                  inputFormData.solution && `できること: ${inputFormData.solution}`,
-                  inputFormData.caseStudy && `実績: ${inputFormData.caseStudy}`,
-                  inputFormData.targetChallenges && `課題仮説: ${inputFormData.targetChallenges}`,
-                  inputFormData.freeformInput,
-                ].filter(Boolean).join('\n')
-              : inputFormData.freeformInput,
+            additional_context: inputFormData.freeformInput,
             target_url: targetUrl,
             cxo_insight: inputFormData.cxoInsight || undefined,
             mutual_connection: inputFormData.mutualConnection || undefined,
@@ -335,7 +327,7 @@ function NewLetterPageContent() {
             name: inputFormData.myName,
             service_description: inputFormData.myServiceDescription,
           },
-          mode: mode === 'consulting' ? 'consulting' : 'complete',
+          mode: 'complete',
           output_format: outputFormat,
           ...(isDemoModeRef.current ? { is_sample: true } : {}),
         }),
@@ -404,12 +396,7 @@ function NewLetterPageContent() {
           setGeneratedLetter(normalizeLetterText(data.data.body));
         }
 
-        // consultingモードのselfCheck保存
-        if (data.data.selfCheck) {
-          setSelfCheck(data.data.selfCheck);
-        }
-
-        // バリエーションがあればセット（consultingモードではなし）
+        // バリエーションがあればセット
         if (data.data.variations) {
           setVariations({
             standard: normalizeLetterText(data.data.variations.standard),
@@ -706,7 +693,7 @@ function NewLetterPageContent() {
   }, [formData, usage, user, handleAnalyzeForV2WithFormData]);
 
   // V2フロー: 分析結果を使ってレター生成
-  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete' | 'event' | 'consulting') => {
+  const handleGenerateV2 = useCallback(async (overrides: UserOverrides, generateMode: 'draft' | 'complete' | 'event') => {
     if (!analysisResult) return;
 
     setIsGeneratingV2(true);
@@ -714,7 +701,6 @@ function NewLetterPageContent() {
     setModalError(null);
 
     // eventモードの場合、formDataからイベント情報をマージ
-    // consultingモードの場合、追加コンテキストをマージ
     // 全モード共通: CxO発信情報・共通接点をマージ
     let finalOverrides: UserOverrides;
     if (generateMode === 'event') {
@@ -723,17 +709,6 @@ function NewLetterPageContent() {
         event_name: formData.eventName || overrides.event_name,
         event_datetime: formData.eventDateTime || overrides.event_datetime,
         event_speakers: formData.eventSpeakers || overrides.event_speakers,
-      };
-    } else if (generateMode === 'consulting') {
-      finalOverrides = {
-        ...overrides,
-        additional_context: [
-          formData.productStrength && `強み: ${formData.productStrength}`,
-          formData.solution && `できること: ${formData.solution}`,
-          formData.caseStudy && `実績: ${formData.caseStudy}`,
-          formData.targetChallenges && `課題仮説: ${formData.targetChallenges}`,
-          overrides.additional_context,
-        ].filter(Boolean).join('\n'),
       };
     } else {
       finalOverrides = overrides;
@@ -789,12 +764,7 @@ function NewLetterPageContent() {
         // 本文をセット
         setGeneratedLetter(normalizeLetterText(data.data.body));
 
-        // consultingモードのselfCheck保存
-        if (data.data.selfCheck) {
-          setSelfCheck(data.data.selfCheck);
-        }
-
-        // バリエーションがあればセット（consultingモードではなし）
+        // バリエーションがあればセット
         if (data.data.variations) {
           setVariations({
             standard: normalizeLetterText(data.data.variations.standard),
@@ -1193,16 +1163,6 @@ function NewLetterPageContent() {
                 <span className="hidden sm:inline">🎫 イベント招待</span>
                 <span className="sm:hidden">🎫 イベント</span>
               </button>
-              <button
-                onClick={() => setMode('consulting')}
-                className={`flex-1 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-all rounded-t-md ${mode === 'consulting'
-                  ? 'bg-amber-800 text-white shadow-sm'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-              >
-                <span className="hidden sm:inline">💬 相談型レター</span>
-                <span className="sm:hidden">💬 相談型</span>
-              </button>
             </div>
 
             {/* V2フロートグル（eventモード時のみ表示、salesは常にV2固定） */}
@@ -1398,7 +1358,7 @@ function NewLetterPageContent() {
                 currentLetterId={currentLetterId}
                 currentStatus={currentLetterStatus}
                 onStatusChange={() => setRefreshHistoryTrigger(prev => prev + 1)}
-                variations={mode !== 'consulting' ? variations : undefined}
+                variations={variations}
                 activeVariation={activeVariation}
                 onVariationSelect={(variation) => {
                   setActiveVariation(variation);

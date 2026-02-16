@@ -834,21 +834,6 @@ export function PreviewArea({
         )}
       </div>
 
-      {/* 相談型レター: 自己チェック表示（コピー対象外） */}
-      {selfCheck && selfCheck.length > 0 && letterMode === 'consulting' && (
-        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <h3 className="text-sm font-semibold text-amber-800 mb-2">レターの狙い（自己チェック）</h3>
-          <ul className="space-y-1">
-            {selfCheck.map((check, i) => (
-              <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
-                <span className="text-amber-500 mt-0.5">✓</span>
-                <span>{check}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* 情報ソース表示（生成後のみ） */}
       {content && (
         <div className="mt-6">

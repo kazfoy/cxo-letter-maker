@@ -29,7 +29,7 @@ export interface QualityResult {
  * 検証オプション
  */
 export interface ValidateOptions {
-  mode: 'draft' | 'complete' | 'event' | 'consulting';
+  mode: 'draft' | 'complete' | 'event';
   minChars?: number;
   maxChars?: number;
   hasProofPoints?: boolean;
@@ -114,45 +114,6 @@ const COMPLETE_MODE_FORBIDDEN_WORDS = [
   '〇週間',
   '〇名',
   '〇社',
-];
-
-/**
- * Consultingモード専用禁止ワード
- */
-const CONSULTING_MODE_FORBIDDEN_WORDS = [
-  '推察します',
-  '確信しております',
-  '言われています',
-  '一般に言われて',
-  'と言われて',
-];
-
-/**
- * Consultingモード専用: citation/注釈混入パターン
- */
-const CONSULTING_CITATION_PATTERNS = [
-  /\[citation[:：]?[^\]]*\]/gi,
-  /【citation[:：]?[^】]*】/gi,
-  /citation/i,
-  /\[出典[:：]?[^\]]*\]/gi,
-  /【出典[:：]?[^】]*】/gi,
-  /\[\d+\]/,
-];
-
-/**
- * Consultingモード専用: CTA二重取りパターン
- */
-const CONSULTING_DUAL_CTA_COMBINATIONS = [
-  { a: /資料をお送り|資料だけ/, b: /15分|お時間.*いただ|面談/ },
-];
-
-/**
- * Consultingモード専用: 課題断定パターン
- */
-const CONSULTING_ASSERTIVE_DIAGNOSIS_PATTERNS = [
-  /(?:貴社|御社)では.{1,30}が課題/,
-  /(?:貴社|御社)では.{1,30}が問題/,
-  /(?:貴社|御社).{1,20}(?:に違いない|に間違いない)/,
 ];
 
 /**
@@ -352,8 +313,8 @@ export function validateLetterOutput(
   }
 
   // 3. プレースホルダーチェック
-  if (mode === 'complete' || mode === 'consulting') {
-    // Complete/Consultingモードではプレースホルダー禁止
+  if (mode === 'complete') {
+    // Completeモードではプレースホルダー禁止
     for (const pattern of PLACEHOLDER_PATTERNS) {
       const matches = body.match(pattern);
       if (matches && matches.length > 0) {
@@ -362,19 +323,9 @@ export function validateLetterOutput(
       }
     }
     // Completeモード専用禁止ワードチェック
-    if (mode === 'complete') {
-      for (const word of COMPLETE_MODE_FORBIDDEN_WORDS) {
-        if (body.includes(word)) {
-          reasons.push(`Completeモードで禁止表現「${word}」が含まれています`);
-        }
-      }
-    }
-    // Consultingモード専用禁止ワードチェック
-    if (mode === 'consulting') {
-      for (const word of CONSULTING_MODE_FORBIDDEN_WORDS) {
-        if (body.includes(word)) {
-          reasons.push(`Consultingモードで禁止表現「${word}」が含まれています`);
-        }
+    for (const word of COMPLETE_MODE_FORBIDDEN_WORDS) {
+      if (body.includes(word)) {
+        reasons.push(`Completeモードで禁止表現「${word}」が含まれています`);
       }
     }
   }
@@ -1244,112 +1195,3 @@ export function calculateEventQualityScore(
   };
 }
 
-/**
- * Consulting（相談型レター）専用: 品質スコア
- */
-export interface ConsultingQualityScore {
-  total: number;
-  penalties: {
-    forbiddenWords: number;
-    citationInBody: number;
-    dualCta: number;
-    assertiveDiagnosis: number;
-    tooShort: number;
-    tooLong: number;
-    missingPublicFact: number;
-    missingTwoChoiceCta: number;
-    openingSelfIntro: number;
-    overusedPhrases: number;
-  };
-  issues: string[];
-}
-
-/**
- * Consulting（相談型レター）専用: 品質スコア計算
- */
-export function calculateConsultingQualityScore(
-  body: string,
-): ConsultingQualityScore {
-  const issues: string[] = [];
-  const penalties = {
-    forbiddenWords: 0,
-    citationInBody: 0,
-    dualCta: 0,
-    assertiveDiagnosis: 0,
-    tooShort: 0,
-    tooLong: 0,
-    missingPublicFact: 0,
-    missingTwoChoiceCta: 0,
-    openingSelfIntro: 0,
-    overusedPhrases: 0,
-  };
-
-  // 1. 禁止ワード検出 (-10点/件、上限-30点)
-  const forbiddenHits = CONSULTING_MODE_FORBIDDEN_WORDS.filter(w => body.includes(w));
-  if (forbiddenHits.length > 0) {
-    penalties.forbiddenWords = Math.min(forbiddenHits.length * 10, 30);
-    issues.push(`禁止表現が${forbiddenHits.length}件: ${forbiddenHits.join(', ')}`);
-  }
-
-  // 2. citation/注釈混入検出 (-25点、スコア強制75未満)
-  const hasCitation = CONSULTING_CITATION_PATTERNS.some(p => p.test(body));
-  if (hasCitation) {
-    penalties.citationInBody = 25;
-    issues.push('本文にcitation/注釈マーカーが混入しています（除去が必要）');
-  }
-
-  // 3. CTA二重取り検出 (-15点)
-  for (const { a, b } of CONSULTING_DUAL_CTA_COMBINATIONS) {
-    if (a.test(body) && b.test(body)) {
-      penalties.dualCta = 15;
-      issues.push('CTAが二重です（「15分相談」か「資料だけ」の2択にしてください）');
-      break;
-    }
-  }
-
-  // 4. 課題断定検出 (-15点/件、上限-30点)
-  const assertiveHits = CONSULTING_ASSERTIVE_DIAGNOSIS_PATTERNS.filter(p => p.test(body));
-  if (assertiveHits.length > 0) {
-    penalties.assertiveDiagnosis = Math.min(assertiveHits.length * 15, 30);
-    issues.push(`課題断定表現が${assertiveHits.length}件検出。質問形に書き換えてください`);
-  }
-
-  // 5. 文字数チェック
-  const charCount = body.length;
-  if (charCount < 700) {
-    penalties.tooShort = 15;
-    issues.push(`文字数が少なすぎます（${charCount}文字/700文字以上必要）`);
-  }
-  if (charCount > 900) {
-    penalties.tooLong = 10;
-    issues.push(`文字数が多すぎます（${charCount}文字/900文字以内）`);
-  }
-
-  // 6. 2択CTA検出（「1.」と「2.」のパターン）
-  const hasTwoChoiceCta = /[1１][\.\．\)）]/.test(body) && /[2２][\.\．\)）]/.test(body);
-  if (!hasTwoChoiceCta) {
-    penalties.missingTwoChoiceCta = 10;
-    issues.push('2択CTAが検出されませんでした（例: 1. 15分相談 / 2. 資料希望）');
-  }
-
-  // 7. 冒頭自己紹介検出 (-10点)
-  const selfIntroPenalty = detectOpeningSelfIntro(body);
-  if (selfIntroPenalty < 0) {
-    penalties.openingSelfIntro = Math.abs(selfIntroPenalty);
-    issues.push('冒頭が自己紹介で始まっています。相手企業のファクトから始めてください');
-  }
-
-  // 8. 多用フレーズ検出（2回以上で減点）
-  const overused = detectOverusedPhrases(body);
-  if (overused.penalty < 0) {
-    penalties.overusedPhrases = Math.abs(overused.penalty);
-    issues.push(`同一表現の多用: ${overused.phrases.join(', ')}。表現を変えてください`);
-  }
-
-  const totalPenalty = Object.values(penalties).reduce((a, b) => a + b, 0);
-  return {
-    total: Math.max(0, 100 - totalPenalty),
-    penalties,
-    issues,
-  };
-}

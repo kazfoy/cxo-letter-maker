@@ -528,21 +528,26 @@ function detectOpeningSelfIntro(body: string): number {
 
 /**
  * 多用されがちなフレーズの過剰使用を検出し、減点を返す
- * 3回以上使われるとAI感が出る
+ * 2回以上使われるとAI感が出る
+ *
+ * ペナルティ計算: 2回で-5点、3回で-10点、4回で-15点
  */
 function detectOverusedPhrases(body: string): { penalty: number; phrases: string[] } {
   const targets = [
     'ではないでしょうか',
     'と考えております',
     'お見受けいたします',
+    'ではないかと存じます',
+    'かと拝察いたします',
   ];
   let penalty = 0;
   const detected: string[] = [];
 
   for (const phrase of targets) {
     const count = (body.match(new RegExp(phrase, 'g')) || []).length;
-    if (count >= 3) {
-      const p = (count - 2) * 5;
+    if (count >= 2) {
+      // ペナルティを軽減: 2回で-5、3回で-10、4回で-15
+      const p = (count - 1) * 5;
       penalty -= p;
       detected.push(`「${phrase}」${count}回`);
     }
@@ -1334,7 +1339,7 @@ export function calculateConsultingQualityScore(
     issues.push('冒頭が自己紹介で始まっています。相手企業のファクトから始めてください');
   }
 
-  // 8. 多用フレーズ検出（3回以上で減点）
+  // 8. 多用フレーズ検出（2回以上で減点）
   const overused = detectOverusedPhrases(body);
   if (overused.penalty < 0) {
     penalties.overusedPhrases = Math.abs(overused.penalty);

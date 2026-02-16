@@ -229,10 +229,10 @@ ${sender_info ? `【送り手情報】\n会社名: ${sanitizeForPrompt(sender_in
     { "type": "numeric|case_study|news|inference", "content": "証拠の内容", "source": "出典", "confidence": "high|medium|low" }
   ],
   "hypotheses": {
-    "timing_reason": "なぜ今連絡するのか（仮説）",
-    "challenge_hypothesis": "経営課題の仮説",
-    "value_proposition": "提供価値の仮説",
-    "cta_suggestion": "軽量CTA提案"
+    "timing_reason": "なぜ今連絡するのか（箇条書きキーワードのみ、完成文禁止、例: 統合報告書公開/新体制発足）",
+    "challenge_hypothesis": "経営課題の仮説（箇条書きキーワードのみ、完成文禁止、例: グループ統制/データ分散/内部統制強化）",
+    "value_proposition": "提供価値の仮説（箇条書きキーワードのみ、完成文禁止、例: 可視化/工数削減/リスク低減）",
+    "cta_suggestion": "軽量CTA提案（手法キーワードのみ、完成文禁止、例: オンライン15分/事例共有/チェックリスト提供）"
   },
   "missing_info": [
     { "field": "フィールド名", "priority": "high|medium|low", "suggestion": "入力の提案" }

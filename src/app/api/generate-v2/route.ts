@@ -342,8 +342,18 @@ ${improvementPoints.map(p => `- ${p}`).join('\n')}`;
 
 ■ テーマ接続: フックと提案テーマを1文で橋渡し（ワープ禁止）
 ■ ベネフィット: メイン1本+補助線1本（並列禁止）
-■ 宛名: 個人名あり→「社名 氏名様」、なし→「社名 ご担当者様」
+■ 宛名: 個人名あり→「社名 氏名様」、なし→「社名 役職名様」
 ■ プレースホルダー禁止(完成モード): 「〇〇」「●●」「【要確認】」不可。数値不明なら文ごと削る
+
+■ 文末バリエーション【必須】
+「ではないでしょうか」は全文で最大1回。2回目以降は以下の別表現を使用:
+- 「〜とお見受けいたします」「〜が論点になりやすいです」
+- 「〜を検討される企業が増えております」「〜かと存じます」
+
+■ 自社サービス射程範囲【厳守】
+- 【差出人情報】のサービス概要に明記されている機能・領域のみ言及可
+- 概要に書かれていない分野を「弊社の強み」として語ることは禁止
+- 自社サービスへの言及は全体の20%以下に抑えること
 
 【レター品質基準（必ず参照）】
 
@@ -435,13 +445,41 @@ ${factsList}
 一般論禁止: CASE/MaaS/100年に一度/急務/喫緊/多くの企業では/一般的に/近年では — 使用不可`;
   }
 
-  // エビデンスルール（仮説モード統合）
-  let evidenceRule = `\n\n【エビデンスルール】
-架空の数字・社名・実績は禁止。提供データのみ使用可。断定→仮説形式に。`;
+  // エビデンスルール（3段階仮説モード + proof_points引用ルール）
+  const factCount = factsForLetter.length;
+  const hasConcreteProofPoints = analysis.proof_points.some(
+    p => p.type === 'case_study' && p.confidence !== 'low'
+  );
+  let evidenceRule: string;
 
-  if (!hasTargetUrl || factsForLetter.length === 0) {
-    evidenceRule += `
-【仮説モード適用】具体数字・固有名詞は不可。すべて「〜ではないでしょうか」「〜とお見受けいたします」形式。業界傾向は「〜業界では〜という傾向があると聞きます」の形式。`;
+  if (!hasTargetUrl || factCount === 0) {
+    // 完全仮説モード
+    evidenceRule = `\n\n【エビデンスルール — 完全仮説モード】
+架空の数字・社名・実績は禁止。
+- 具体数字・固有名詞は使用不可
+- すべて仮説形式で記述（「〜が論点になりやすいです」「〜とお見受けいたします」）
+- 業界傾向は「〜業界では〜という傾向があると聞きます」の形式
+- 事例セクションは省略し、具体的な「アプローチの提示」に置き換え（例: 「まず現状の〇〇を30分で棚卸しし、優先度の高い論点を整理いたします」）`;
+  } else if (factCount <= 2) {
+    // 部分仮説モード
+    evidenceRule = `\n\n【エビデンスルール — 部分仮説モード（ファクト${factCount}件）】
+架空の数字・社名・実績は禁止。提供データのみ使用可。
+- 抽出ファクトは正確に引用可。それ以外の具体情報は仮説形式で
+- ファクトでカバーされない領域は「〜が論点になりやすいです」等の仮説形式
+- 不足情報を推測で補わないこと`;
+  } else {
+    // 通常モード
+    evidenceRule = `\n\n【エビデンスルール — 通常モード】
+架空の数字・社名・実績は禁止。提供データのみ使用可。断定→仮説形式に。`;
+  }
+
+  // proof_points引用ルール（3段階）
+  if (hasConcreteProofPoints) {
+    evidenceRule += `\n■ 実績引用: proof_pointsに具体事例あり → そのまま引用可`;
+  } else if (analysis.proof_points.length > 0) {
+    evidenceRule += `\n■ 実績引用: 「同業界のお客様では」＋proof_pointsの数字のみ使用可。社名の捏造禁止`;
+  } else {
+    evidenceRule += `\n■ 実績引用: proof_pointsに事例なし → 事例は書かず「アプローチの提示」に。迷ったら事例を書かない`;
   }
 
   // 冒頭の宛名フォーマット（人名不明時は役職名を使用。「ご担当者様」はCxOレターとして不適切）
@@ -493,6 +531,9 @@ ${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstr
 5. 冒頭: 「${recipientFormat || '【企業名】【役職】【氏名】様'}」
 6. 構造: フック→課題仮説→解決策→実績→CTA
 7. 段落分け必須: 必ず3-4段落に分け、段落の間を改行(\\n\\n)で区切ること。1つの段落にまとめるのは絶対禁止
+8. 【企業分析AIが抽出したキーワード】の表現を3語以上連続で使用禁止。論点は参考にしてよいが、文章は必ず一から構築すること
+  NG例: キーワード「経費精算プロセスの可視化」→生成文「経費精算プロセスの可視化が課題です」（そのまま使用）
+  OK例: キーワード「経費精算プロセスの可視化」→生成文「出張費や交際費の承認フローが部署ごとに異なり、全社での支出状況が見えにくいのではないでしょうか」（独自の文章）
 
 【CTA（ネクストステップ）の書き方 — 厳守】
 良い例:
@@ -525,11 +566,16 @@ ${newsList}
 ${hasExtractedFacts ? `【抽出ファクト（Webサイトから取得）】
 ${extractedFactsList}` : ''}
 
-【提案された構成】
+【企業分析AIが抽出したキーワード（参考情報 — そのまま文章化は禁止）】
+以下は企業分析AIが抽出したキーワードです。このまま文章に書き写すと機械的な印象になります。
+必ずあなた自身の文章で一から構築してください。
 - タイミングの理由: ${analysis.hypotheses.timing_reason}
 - 課題仮説: ${analysis.hypotheses.challenge_hypothesis}
 - 提供価値: ${analysis.hypotheses.value_proposition}
 - CTA提案: ${analysis.hypotheses.cta_suggestion}
+✓ 上記のキーワードを「着想」として活用してOK
+✗ 上記の表現を3語以上連続で使用することは禁止
+✓ 同じ論点を扱う場合でも、必ず独自の文章構成・言い回しで記述すること
 
 【差出人情報】
 企業名: ${sanitizeForPrompt(sender.company_name, 200)}
@@ -581,13 +627,37 @@ function postProcessLetterBody(body: string, mode: 'draft' | 'complete' | 'event
   let processed = body;
 
   // 1. 推察系の自動置換（complete/consulting/eventモード）
+  // 同一フレーズへの一律置換を避け、バリエーションを持たせる
   if (mode !== 'draft') {
-    processed = processed.replace(/推察いたします/g, 'ではないでしょうか');
-    processed = processed.replace(/推察します/g, 'ではないでしょうか');
-    processed = processed.replace(/と推察しております/g, 'ではないかと存じます');
+    // パターン1用の代替表現（独立した文で使用）
+    const softAlternativesStandalone = [
+      'ではないでしょうか',
+      'ではないかと存じます',
+      'かと拝察いたします',
+    ];
+    // パターン2用の代替表現（「と」の後に続く形式）
+    const softAlternativesWithPrefix = [
+      'ではないでしょうか',
+      '存じます',
+      '拝察いたします',
+    ];
+
+    let altIndex1 = 0;
+    let altIndex2 = 0;
+
+    // ステップ1: 推察系の直接的な表現を置換
+    processed = processed.replace(/推察いたします|推察します|想定されます/g, () => {
+      return softAlternativesStandalone[altIndex1++ % softAlternativesStandalone.length];
+    });
+
+    // ステップ2: 「と推察〜」の形式を置換（接頭辞「と」を考慮）
+    processed = processed.replace(/と推察しております|と想定しております/g, () => {
+      const alt = softAlternativesWithPrefix[altIndex2++ % softAlternativesWithPrefix.length];
+      return alt.startsWith('では') ? alt : `と${alt}`;
+    });
+
+    // ステップ3: 残存する「と推察」を簡易置換
     processed = processed.replace(/と推察/g, 'ではないかと');
-    processed = processed.replace(/想定されます/g, 'ではないでしょうか');
-    processed = processed.replace(/と想定しております/g, 'ではないかと存じます');
   }
 
   // 2. プレースホルダーの除去（complete/event/consultingモード）

@@ -15,7 +15,7 @@ export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModa
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 sm:p-8 relative overflow-hidden">
                 {/* Pro Badge / Decoration */}
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-600 to-amber-800"></div>
 

@@ -197,7 +197,7 @@ export function SourcesDisplay({
       {/* ヘッダー（折りたたみトリガー） */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+        className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ export function SourcesDisplay({
 
       {/* ソース一覧（展開時） */}
       {isExpanded && (
-        <div className="p-4 pt-0 space-y-4">
+        <div className="p-3 sm:p-4 pt-0 space-y-3 sm:space-y-4">
           {/* 参照したページ（citationと紐づけて表示） */}
           <div>
             <div className="flex items-center gap-2 mb-3">

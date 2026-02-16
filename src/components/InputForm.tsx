@@ -114,9 +114,9 @@ export function InputForm({
 
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900 leading-relaxed">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 md:p-8">
+      <div className="flex justify-between items-center mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-relaxed">
           {labels.title}
         </h2>
         <div className="flex gap-2">

@@ -41,11 +41,11 @@ export function Header() {
   if (!user && isLandingPage) {
     return (
       <header className="bg-white/80 backdrop-blur-md border-b border-stone-200 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             {/* ロゴ */}
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <h1 className="text-2xl md:text-3xl font-serif font-black tracking-tight text-stone-900">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-serif font-black tracking-tight text-stone-900">
                 CxO Letter Maker
               </h1>
             </Link>
@@ -93,11 +93,11 @@ export function Header() {
   // アプリ用Header（ログイン時）
   return (
     <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* ロゴ */}
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <h1 className="text-2xl font-serif font-bold text-stone-900">CxO Letter Maker</h1>
+            <h1 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">CxO Letter Maker</h1>
           </Link>
 
           <div className="flex items-center gap-4">

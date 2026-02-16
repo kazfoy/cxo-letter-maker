@@ -1155,12 +1155,12 @@ function NewLetterPageContent() {
 
       {/* モード切り替えUI */}
       <div className="bg-white border-b sticky top-0 z-30 shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* 履歴ボタン（常に表示） */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-md transition-all font-medium ${isSidebarOpen
+              className={`flex items-center gap-2 px-3 sm:px-4 py-3 rounded-md transition-all font-medium ${isSidebarOpen
                 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
                 }`}
@@ -1175,30 +1175,33 @@ function NewLetterPageContent() {
             <div className="flex gap-1 flex-1">
               <button
                 onClick={() => setMode('sales')}
-                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'sales'
+                className={`flex-1 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-all rounded-t-md ${mode === 'sales'
                   ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
-                📧 セールスレター
+                <span className="hidden sm:inline">📧 セールスレター</span>
+                <span className="sm:hidden">📧 セールス</span>
               </button>
               <button
                 onClick={() => setMode('event')}
-                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'event'
+                className={`flex-1 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-all rounded-t-md ${mode === 'event'
                   ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
-                🎫 イベント招待
+                <span className="hidden sm:inline">🎫 イベント招待</span>
+                <span className="sm:hidden">🎫 イベント</span>
               </button>
               <button
                 onClick={() => setMode('consulting')}
-                className={`px-6 py-3 font-medium transition-all rounded-t-md ${mode === 'consulting'
+                className={`flex-1 px-3 sm:px-6 py-3 font-medium text-sm sm:text-base transition-all rounded-t-md ${mode === 'consulting'
                   ? 'bg-amber-800 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
               >
-                💬 相談型レター
+                <span className="hidden sm:inline">💬 相談型レター</span>
+                <span className="sm:hidden">💬 相談型</span>
               </button>
             </div>
 
@@ -1263,7 +1266,7 @@ function NewLetterPageContent() {
       )}
 
       {/* 3カラムレイアウト（自然なスクロール） */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-3 sm:px-4 py-6">
         {/* ウェルカムウィザード（初回のみ、デモモード時は非表示） */}
         {showWelcome && !isDemoMode && (
           <WelcomeWizard
@@ -1293,7 +1296,7 @@ function NewLetterPageContent() {
                 transition-transform duration-300 ease-in-out
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                 ${!isSidebarOpen ? 'md:hidden' : ''}
-                w-80 md:w-auto
+                w-[85vw] max-w-xs md:w-auto
               `}
             >
               <HistorySidebar
@@ -1426,7 +1429,7 @@ function NewLetterPageContent() {
       {/* 制限到達モーダル（損失回避フレーミング） */}
       {showLimitModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-5 sm:p-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-amber-700"></div>
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-8 h-8 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">

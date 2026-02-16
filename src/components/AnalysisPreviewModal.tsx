@@ -155,7 +155,7 @@ export function AnalysisPreviewModal({
         </div>
 
         {/* Content */}
-        <div className={`p-6 ${showDetails ? 'overflow-y-auto max-h-[60vh]' : ''}`}>
+        <div className={`p-4 sm:p-6 ${showDetails ? 'overflow-y-auto max-h-[60vh]' : ''}`}>
           {analysisResult ? (
             <>
               {/* ===== Stage 1: サマリー（スクロール不要） ===== */}

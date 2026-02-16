@@ -23,7 +23,7 @@ const CATEGORY_LABELS: Record<SourceCategory, string> = {
 };
 
 /** 表示するソースの最大件数 */
-const MAX_DISPLAY_SOURCES = 3;
+const MAX_DISPLAY_SOURCES = 6;
 
 const CATEGORY_COLORS: Record<SourceCategory, string> = {
   corporate: 'bg-blue-50 text-blue-700 border-blue-200',

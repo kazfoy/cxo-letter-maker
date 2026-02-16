@@ -648,7 +648,7 @@ export interface FactSelectionResult {
 }
 
 // ファクト不足の閾値（これ未満の場合フォールバックを使用）
-const FACT_SHORTAGE_THRESHOLD = 3;
+const FACT_SHORTAGE_THRESHOLD = 5;
 
 /**
  * 業界情報に基づく補助ファクトを生成
@@ -1132,14 +1132,14 @@ export function selectFactsForLetter(
   // 信頼度閾値によるフィルタリング
   const confidentFacts = allFacts.filter(f => f.confidence >= confidenceThreshold);
 
-  // 上位3件を選定（信頼度閾値を満たすもの優先、異なるカテゴリから選ぶことを優先）
+  // 上位5件を選定（信頼度閾値を満たすもの優先、異なるカテゴリから選ぶことを優先）
   const factsForLetter: SelectedFact[] = [];
   const rejectedFacts: SelectedFact[] = [];
   const usedCategories = new Set<SelectedFact['category']>();
 
   // 1. 信頼度閾値を満たすファクトから、各カテゴリで最高スコアを1つずつ選ぶ
   for (const fact of confidentFacts) {
-    if (factsForLetter.length >= 3) break;
+    if (factsForLetter.length >= 5) break;
 
     if (!usedCategories.has(fact.category)) {
       factsForLetter.push(fact);
@@ -1147,19 +1147,19 @@ export function selectFactsForLetter(
     }
   }
 
-  // 2. まだ3件未満なら、信頼度閾値を満たすファクトからスコア順に追加
+  // 2. まだ5件未満なら、信頼度閾値を満たすファクトからスコア順に追加
   for (const fact of confidentFacts) {
-    if (factsForLetter.length >= 3) break;
+    if (factsForLetter.length >= 5) break;
 
     if (!factsForLetter.includes(fact)) {
       factsForLetter.push(fact);
     }
   }
 
-  // 3. それでも3件未満なら、全ファクトからスコア順に追加（信頼度は低いが使う）
-  if (factsForLetter.length < 3) {
+  // 3. それでも5件未満なら、全ファクトからスコア順に追加（信頼度は低いが使う）
+  if (factsForLetter.length < 5) {
     for (const fact of allFacts) {
-      if (factsForLetter.length >= 3) break;
+      if (factsForLetter.length >= 5) break;
 
       if (!factsForLetter.includes(fact)) {
         factsForLetter.push(fact);

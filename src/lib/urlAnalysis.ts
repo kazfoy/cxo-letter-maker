@@ -38,8 +38,8 @@ const SUB_ROUTE_CANDIDATES_BASE = [
 ];
 // 末尾スラッシュありなし両方を生成
 const SUB_ROUTE_CANDIDATES = SUB_ROUTE_CANDIDATES_BASE.flatMap(p => [`/${p}/`, `/${p}`]);
-const MAX_PAGES = 8;  // Phase 6: IR/ニュース系を優先しつつコスト保護
-const MAX_ARTICLES_PER_LISTING = 2;  // 一覧ページから取得する記事数
+const MAX_PAGES = 12;  // 大企業対応: news/ir/corporate等を網羅しつつコスト保護
+const MAX_ARTICLES_PER_LISTING = 3;  // 一覧ページから取得する記事数
 
 /**
  * 一覧ページ判定用パターン
@@ -415,9 +415,9 @@ function prioritizeSources(sources: InformationSource[]): InformationSource[] {
     if (aHasTitle !== bHasTitle) return aHasTitle - bHasTitle;
     return a.url.length - b.url.length;
   });
-  return sorted.slice(0, 8).map((source, index) => ({
+  return sorted.slice(0, 12).map((source, index) => ({
     ...source,
-    isPrimary: index < 3,
+    isPrimary: index < 5,
   }));
 }
 

@@ -507,6 +507,193 @@ function detectOverusedPhrases(body: string): { penalty: number; phrases: string
 }
 
 /**
+ * HPコピペ検出（ファクトの文面がそのまま本文に転記されていないか）
+ *
+ * ペナルティ: -7点/件、最大-21点
+ */
+function detectFactEcho(body: string, factsForLetter?: SelectedFact[]): { penalty: number; issues: string[] } {
+  if (!factsForLetter || factsForLetter.length === 0) return { penalty: 0, issues: [] };
+
+  let penalty = 0;
+  const issues: string[] = [];
+
+  for (const fact of factsForLetter) {
+    // quoteKeyが5文字以上で本文にそのまま含まれている場合
+    if (fact.quoteKey && fact.quoteKey.length >= 5 && body.includes(fact.quoteKey)) {
+      // quoteKeyの前後に独自解釈があるかチェック
+      const idx = body.indexOf(fact.quoteKey);
+      const surrounding = body.substring(Math.max(0, idx - 30), Math.min(body.length, idx + fact.quoteKey.length + 30));
+      // 「拝見し」「を踏まえ」等の接続があれば引用として許容
+      const hasInterpretation = /拝見|を踏まえ|に注目|に着目|を受け/.test(surrounding);
+      if (!hasInterpretation) {
+        penalty += 7;
+        issues.push(`HPコピペ: 「${fact.quoteKey.substring(0, 20)}...」がそのまま転記されています`);
+      }
+    }
+
+    // contentの連続10文字以上がそのまま含まれている場合
+    if (fact.content && fact.content.length >= 10) {
+      const contentChunks = fact.content.match(/.{10,}/g) || [];
+      for (const chunk of contentChunks.slice(0, 3)) {
+        // 最初の10文字で部分一致チェック
+        const snippet = chunk.substring(0, 15);
+        if (body.includes(snippet)) {
+          penalty += 7;
+          issues.push(`HPコピペ: ファクト内容「${snippet}...」がそのまま使用されています`);
+          break; // 1ファクトにつき1回まで
+        }
+      }
+    }
+  }
+
+  return { penalty: Math.min(penalty, 21), issues };
+}
+
+/**
+ * 自社言及過多検出
+ *
+ * ペナルティ: 5回以上で-10点、連続する自社紹介文で-7点
+ */
+function detectExcessiveSelfIntro(body: string): { penalty: number; issues: string[] } {
+  let penalty = 0;
+  const issues: string[] = [];
+
+  // 弊社/当社/私どもの出現回数
+  const selfMentions = (body.match(/弊社|当社|私ども/g) || []).length;
+  if (selfMentions >= 5) {
+    penalty += 10;
+    issues.push(`自社言及が${selfMentions}回で過多です（15%以下に抑えてください）`);
+  }
+
+  // 段落ごとのチェック: 段落丸ごと自社PRの検出
+  const paragraphs = body.split(/\n\n+/).filter(p => p.trim());
+  for (let i = 1; i < paragraphs.length - 1; i++) { // 宛名と署名を除く
+    const para = paragraphs[i];
+    const selfCount = (para.match(/弊社|当社|私ども/g) || []).length;
+    const sentences = para.split(/[。！？]/).filter(s => s.trim());
+    // 段落の50%以上が自社言及なら減点
+    if (sentences.length > 0 && selfCount >= sentences.length * 0.5) {
+      penalty += 7;
+      issues.push('段落丸ごと自社PRが含まれています。事例・数値と一体にしてください');
+      break; // 1回のみ
+    }
+  }
+
+  return { penalty, issues };
+}
+
+/**
+ * CTA受取人ベネフィット不在検出
+ *
+ * CTAに「相手が得られるもの」が明記されていないことを検出
+ * ペナルティ: -10点
+ */
+function detectCTAWithoutBenefit(body: string): { penalty: number; issues: string[] } {
+  // CTA部分を検出（最後の段落、または「いただけませんでしょうか」「いただければ幸いです」周辺）
+  const paragraphs = body.split(/\n\n+/).filter(p => p.trim());
+  const lastParagraph = paragraphs[paragraphs.length - 1] || '';
+  // 署名行を除外
+  const ctaArea = /株式会社|橋本|担当者/.test(lastParagraph)
+    ? paragraphs[paragraphs.length - 2] || lastParagraph
+    : lastParagraph;
+
+  // CTAが存在するか
+  const hasCTA = /いただけ|お時間|情報交換|ご相談|ご返信/.test(ctaArea);
+  if (!hasCTA) return { penalty: 0, issues: [] };
+
+  // 受取人ベネフィットパターン
+  const benefitPatterns = [
+    /資料|レポート|チェックリスト|ベンチマーク|比較データ|事例集/,
+    /お送り|ご送付|お持ちし|ご共有|ご提供/,
+    /お役に立つ|参考になる|ヒントになる/,
+  ];
+  const hasBenefit = benefitPatterns.some(p => p.test(ctaArea));
+
+  if (!hasBenefit) {
+    return {
+      penalty: 10,
+      issues: ['CTAに受取人ベネフィット（資料、レポート等）が不足しています'],
+    };
+  }
+
+  return { penalty: 0, issues: [] };
+}
+
+/**
+ * 過度な営業トーン検出
+ *
+ * ペナルティ: 3件以上で-10点、5件以上でスコアキャップ80
+ */
+function detectExcessiveSalesTone(body: string): { penalty: number; scoreCap: number | null; issues: string[] } {
+  const salesTonePatterns = [
+    /必ずお役に立て/,
+    /貢献できると確信/,
+    /実現できます/,
+    /達成できます/,
+    /お任せください/,
+    /ぜひ導入を/,
+    /今すぐ/,
+    /見逃せない/,
+    /飛躍的に/,
+    /圧倒的/,
+    /他社には真似できない/,
+    /業界No\.?1/,
+  ];
+
+  const hits = salesTonePatterns.filter(p => p.test(body));
+  const issues: string[] = [];
+  let penalty = 0;
+  let scoreCap: number | null = null;
+
+  if (hits.length >= 5) {
+    penalty = 10;
+    scoreCap = 80;
+    issues.push(`営業トーン表現が${hits.length}件で過度です。コンサルタント視座で書き直してください`);
+  } else if (hits.length >= 3) {
+    penalty = 10;
+    issues.push(`営業トーン表現が${hits.length}件検出されました`);
+  }
+
+  return { penalty, scoreCap, issues };
+}
+
+/**
+ * 第2段落自社PR検出
+ *
+ * 第2段落が「弊社は〜」で始まり、事例・数値を含まない場合に検出
+ * ペナルティ: -15点
+ */
+function detectSecondParagraphSelfPR(body: string): { penalty: number; issues: string[] } {
+  const paragraphs = body.split(/\n\n+/).filter(p => p.trim());
+
+  // 宛名行を除いた2番目の段落をチェック
+  let targetParagraph = '';
+  let startIdx = 0;
+  if (paragraphs.length >= 2 && /様\s*$/.test(paragraphs[0])) {
+    startIdx = 1;
+  }
+
+  if (paragraphs.length > startIdx + 1) {
+    targetParagraph = paragraphs[startIdx + 1]; // 宛名の次の次（実質第2段落）
+  } else {
+    return { penalty: 0, issues: [] };
+  }
+
+  // 第2段落が「弊社は」「当社は」「当社では」で始まるかチェック
+  const startsWithSelfIntro = /^(弊社|当社|私ども)(は|では|の|が)/.test(targetParagraph.trim());
+  if (!startsWithSelfIntro) return { penalty: 0, issues: [] };
+
+  // 事例・数値が含まれているかチェック（含まれていれば許容）
+  const hasExample = /\d+[%％万億件時間日]|同業|A社|B社|同規模/.test(targetParagraph);
+  if (hasExample) return { penalty: 0, issues: [] };
+
+  return {
+    penalty: 15,
+    issues: ['第2段落が自社PRのみで構成されています。事例+数値と一体にしてください'],
+  };
+}
+
+/**
  * Phase 5: 詳細品質スコア
  */
 export interface DetailedQualityScore {
@@ -764,6 +951,54 @@ export function calculateDetailedScore(
       for (const issue of baselessResult.issues) {
         issues.push(issue);
       }
+    }
+  }
+
+  // 5c. HPコピペ検出（-7点/件、最大-21点）
+  const factEchoResult = detectFactEcho(body, factsForLetter);
+  if (factEchoResult.penalty > 0) {
+    total -= factEchoResult.penalty;
+    for (const issue of factEchoResult.issues) {
+      issues.push(issue);
+    }
+  }
+
+  // 5d. 自社言及過多検出（5回以上で-10点、段落丸ごとPRで-7点）
+  const selfIntroResult = detectExcessiveSelfIntro(body);
+  if (selfIntroResult.penalty > 0) {
+    total -= selfIntroResult.penalty;
+    for (const issue of selfIntroResult.issues) {
+      issues.push(issue);
+    }
+  }
+
+  // 5e. CTA受取人ベネフィット不在検出（-10点）
+  const ctaBenefitResult = detectCTAWithoutBenefit(body);
+  if (ctaBenefitResult.penalty > 0) {
+    total -= ctaBenefitResult.penalty;
+    for (const issue of ctaBenefitResult.issues) {
+      issues.push(issue);
+    }
+  }
+
+  // 5f. 過度な営業トーン検出（3件以上で-10点、5件以上でキャップ80）
+  const salesToneResult = detectExcessiveSalesTone(body);
+  if (salesToneResult.penalty > 0) {
+    total -= salesToneResult.penalty;
+    for (const issue of salesToneResult.issues) {
+      issues.push(issue);
+    }
+  }
+  if (salesToneResult.scoreCap !== null) {
+    total = Math.min(total, salesToneResult.scoreCap);
+  }
+
+  // 5g. 第2段落自社PR検出（-15点）
+  const secondParaSelfPR = detectSecondParagraphSelfPR(body);
+  if (secondParaSelfPR.penalty > 0) {
+    total -= secondParaSelfPR.penalty;
+    for (const issue of secondParaSelfPR.issues) {
+      issues.push(issue);
     }
   }
 

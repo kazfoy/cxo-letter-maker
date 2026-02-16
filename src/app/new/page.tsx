@@ -23,6 +23,7 @@ import { createClient } from '@/utils/supabase/client';
 import { getErrorDetails, getUserFriendlyError, type ErrorKind } from '@/lib/errorUtils';
 import { normalizeLetterText } from '@/lib/textNormalize';
 import { resolveTargetUrl } from '@/lib/urlUtils';
+import { sanitizePersonName } from '@/lib/personNameUtils';
 import { toast } from '@/hooks/use-toast';
 import { devLog } from '@/lib/logger';
 
@@ -595,16 +596,15 @@ function NewLetterPageContent() {
         setAnalysisResult(data.data);
         setShowAnalysisModal(true);
 
-        // 分析結果をフォームフィールドに反映（空のフィールドのみ上書き）
+        // 分析結果をフォームフィールドに反映（事実情報のみ、空のフィールドのみ上書き）
+        // 仮説（timing_reason, challenge_hypothesis）は自動入力しない（営業品質リスク）
         const facts = data.data.facts;
         if (facts) {
           setFormData(prev => ({
             ...prev,
             companyName: prev.companyName || facts.company_name || '',
-            name: prev.name || facts.person_name || '',
+            name: prev.name || sanitizePersonName(facts.person_name) || '',
             position: prev.position || facts.person_position || '',
-            background: prev.background || (data.data.hypotheses?.timing_reason ?? ''),
-            problem: prev.problem || (data.data.hypotheses?.challenge_hypothesis ?? ''),
           }));
         }
 

@@ -22,6 +22,7 @@ import {
 } from '@/lib/qualityGate';
 import { selectFactsForLetter, isPublicSectorOrg, isStartupCompany, detectCelebrationFromFacts, enrichSourcesWithFacts } from '@/lib/factSelector';
 import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
+import { sanitizePersonName } from '@/lib/personNameUtils';
 import { SAMPLE_SENDER_COMPANIES } from '@/lib/sampleData';
 import { devLog } from '@/lib/logger';
 import type { AnalysisResult, SelectedFact } from '@/types/analysis';
@@ -186,11 +187,11 @@ ${factsList}`;
   // 追加コンテキスト
   const additionalContext = overrides?.additional_context || '';
 
-  // 宛名
+  // 宛名（人名不明時は役職名を使用）
   const recipientFormat = personName
     ? `${companyName} ${personPosition} ${personName}様`
     : companyName
-    ? `${companyName} ${personPosition || 'ご担当者'}様`
+    ? `${companyName} ${personPosition || '経営企画ご責任者'}様`
     : '';
 
   // citations出力指示
@@ -285,30 +286,6 @@ ${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
     }
   ]` : ''}
 }`;
-}
-
-/**
- * person_nameのバリデーション
- * 記事タイトル・見出し等が混入していないかチェックし、不正な場合は空文字を返す
- */
-function sanitizePersonName(name: string | null | undefined): string {
-  if (!name) return '';
-  const trimmed = name.trim();
-  // 空文字チェック
-  if (!trimmed) return '';
-  // 明らかに人名でない場合は空文字を返す
-  // 1. 長すぎる（通常の日本語人名は2-6文字、敬称含めても10文字以内）
-  if (trimmed.length > 15) return '';
-  // 2. 記事タイトル的なキーワードを含む
-  const titleKeywords = ['が発表', 'を発表', 'に就任', 'が開始', 'を開始', 'が決定', 'を決定',
-    'が導入', 'を導入', 'が実現', 'を実施', '年度', '四半期', '新CEO', '新CTO', '新CIO',
-    '速報', '独占', '最新', '特集', '解説', '分析', 'について', 'における', 'に向けた'];
-  if (titleKeywords.some(kw => trimmed.includes(kw))) return '';
-  // 3. 「」や（）を含む（見出し的）
-  if (/[「」『』（）()]/.test(trimmed)) return '';
-  // 4. 句読点を含む
-  if (/[。、！？!?]/.test(trimmed)) return '';
-  return trimmed;
 }
 
 /**
@@ -467,11 +444,11 @@ ${factsList}
 【仮説モード適用】具体数字・固有名詞は不可。すべて「〜ではないでしょうか」「〜とお見受けいたします」形式。業界傾向は「〜業界では〜という傾向があると聞きます」の形式。`;
   }
 
-  // 冒頭の宛名フォーマット
+  // 冒頭の宛名フォーマット（人名不明時は役職名を使用。「ご担当者様」はCxOレターとして不適切）
   const recipientFormat = personName
     ? `${companyName} ${personPosition} ${personName}様`
     : companyName
-    ? `${companyName} ${personPosition || 'ご担当者'}様`
+    ? `${companyName} ${personPosition || '経営企画ご責任者'}様`
     : '';
 
   // citations出力指示
@@ -515,7 +492,7 @@ ${modeInstruction}${eventModeInstructions}${qualityEnhancementRules}${retryInstr
 4. 350-500文字。体言止め禁止（「です」「ます」で終える）
 5. 冒頭: 「${recipientFormat || '【企業名】【役職】【氏名】様'}」
 6. 構造: フック→課題仮説→解決策→実績→CTA
-7. 段落分け必須: 必ず4-6段落に分け、段落の間を改行(\\n\\n)で区切ること。1つの段落にまとめるのは絶対禁止
+7. 段落分け必須: 必ず3-4段落に分け、段落の間を改行(\\n\\n)で区切ること。1つの段落にまとめるのは絶対禁止
 
 【CTA（ネクストステップ）の書き方 — 厳守】
 良い例:
@@ -575,7 +552,7 @@ ${sanitizeForPrompt(overrides.mutual_connection, 500)}` : ''}
 ★重要: bodyフィールドは必ず段落ごとに改行(\\n\\n)で区切ること。1つの段落にまとめて書くのは禁止。
 {
   "subjects": ["件名候補1（25文字目安、抽象語禁止）", "件名候補2", "件名候補3", "件名候補4", "件名候補5"],
-  "body": "宛名行\\n\\n1段落目（フック・Why you/Why now）\\n\\n2段落目（課題仮説）\\n\\n3段落目（解決策・実績）\\n\\n4段落目（CTA）\\n\\n署名",
+  "body": "宛名行\\n\\n第1段落（フック+課題仮説: 相手企業の情報に触れ課題を提起）\\n\\n第2段落（解決策+実績: 自社サービスの価値と根拠）\\n\\n第3段落（CTA+署名: 具体的な次のステップ）",
   "rationale": [
     { "type": "timing", "content": "今連絡する理由" },
     { "type": "evidence", "content": "使用した証拠" },
@@ -628,47 +605,38 @@ function postProcessLetterBody(body: string, mode: 'draft' | 'complete' | 'event
   processed = processed.replace(/\[出典[:：][^\]]*\]/gi, '');
   processed = processed.replace(/【出典[:：][^】]*】/gi, '');
 
-  // 4. 段落分割フォールバック（改行が全くない場合にセンテンス境界で段落を作る）
+  // 4. 段落分割フォールバック（改行が全くない場合にセマンティック境界で段落を作る）
   const paragraphs = processed.split(/\n\n+/).filter(p => p.trim());
   if (paragraphs.length < 2 && processed.length > 150) {
-    // 改行がない巨大な段落 → 句点で分割してグルーピング
-    const sentences = processed.split(/(?<=。)/);
-    if (sentences.length >= 4) {
-      // 宛名行（〜様で終わる最初の文）を分離
-      const result: string[] = [];
-      let currentParagraph: string[] = [];
-      let sentenceCount = 0;
+    // 改行がない巨大な段落 → 転換語の直前で段落分割
+    const transitionPatterns = [
+      /(?=弊社は)/,        // 自社紹介の開始
+      /(?=つきましては)/,  // 結びへの転換
+      /(?=ぜひ)/,          // CTAの開始
+      /(?=まず)/,          // 提案の開始
+      /(?=具体的には)/,    // 具体化の開始
+    ];
 
-      for (const sentence of sentences) {
-        const trimmed = sentence.trim();
-        if (!trimmed) continue;
-
-        // 最初の「〜様」行は独立させる
-        if (result.length === 0 && /様\s*$/.test(trimmed)) {
-          result.push(trimmed);
-          continue;
-        }
-
-        currentParagraph.push(trimmed);
-        sentenceCount++;
-
-        // 2-3文ごとに段落を区切る
-        if (sentenceCount >= 2 && currentParagraph.length >= 2) {
-          result.push(currentParagraph.join(''));
-          currentParagraph = [];
-          sentenceCount = 0;
-        }
+    let result = processed;
+    for (const pattern of transitionPatterns) {
+      const parts = result.split(pattern);
+      if (parts.length >= 2 && parts[0].length > 50) {
+        result = parts.join('\n\n');
+        break;
       }
+    }
 
-      // 残りを最後の段落に追加
-      if (currentParagraph.length > 0) {
-        result.push(currentParagraph.join(''));
+    // 転換語で分割できなかった場合、宛名行の分離のみ行う
+    if (!result.includes('\n\n')) {
+      const salutationMatch = result.match(/^(.+?様)\s*/);
+      if (salutationMatch) {
+        result = salutationMatch[1] + '\n\n' + result.slice(salutationMatch[0].length);
       }
+    }
 
-      if (result.length >= 3) {
-        processed = result.join('\n\n');
-        devLog.warn('PostProcess: Applied fallback paragraph splitting');
-      }
+    if (result !== processed) {
+      processed = result;
+      devLog.warn('PostProcess: Applied fallback paragraph splitting');
     }
   }
 

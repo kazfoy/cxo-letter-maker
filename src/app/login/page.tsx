@@ -122,7 +122,7 @@ function LoginContent() {
       setMagicLinkSent(true);
       setMessage({
         type: 'success',
-        text: '登録用リンクを送信しました',
+        text: `登録用リンクを ${email} に送信しました。メールが届かない場合は迷惑メールフォルダもご確認ください。`,
       });
     } catch (error: unknown) {
       devLog.error('Signup error:', error);
@@ -430,13 +430,13 @@ function LoginContent() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-8">
             <div className="text-center">
-              <div className="text-7xl mb-6 animate-bounce">📧</div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-3">
+              <div className="text-5xl sm:text-7xl mb-4 sm:mb-6 animate-bounce">📧</div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">
                 メールを確認してください
               </h1>
-              <p className="text-lg text-slate-700 mb-6">
+              <p className="text-base sm:text-lg text-slate-700 mb-4 sm:mb-6">
                 登録用リンクを送信しました
               </p>
 
@@ -546,20 +546,52 @@ function LoginContent() {
                 </form>
               )}
 
-              <button
-                onClick={() => {
-                  setMagicLinkSent(false);
-                  setActiveTab('login');
-                  setEmail('');
-                  setPassword('');
-                  setOtpCode('');
-                  setMessage(null);
-                  setAuthMethod('magic_link');
-                }}
-                className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium"
-              >
-                ログイン画面に戻る
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    setMessage(null);
+                    try {
+                      const { error } = await supabase.auth.signInWithOtp({
+                        email,
+                        options: {
+                          emailRedirectTo: `${window.location.origin}/auth/callback`,
+                        },
+                      });
+                      if (error) throw error;
+                      setMessage({
+                        type: 'success',
+                        text: 'メールを再送信しました。迷惑メールフォルダもご確認ください。',
+                      });
+                    } catch (err: unknown) {
+                      setMessage({
+                        type: 'error',
+                        text: getAuthErrorMessage(err, 'signup'),
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="w-full bg-amber-100 text-amber-800 py-3 px-4 rounded-md hover:bg-amber-200 transition-all font-medium disabled:opacity-50"
+                >
+                  {loading ? '送信中...' : 'メールを再送信する'}
+                </button>
+                <button
+                  onClick={() => {
+                    setMagicLinkSent(false);
+                    setActiveTab('login');
+                    setEmail('');
+                    setPassword('');
+                    setOtpCode('');
+                    setMessage(null);
+                    setAuthMethod('magic_link');
+                  }}
+                  className="w-full bg-slate-100 text-slate-700 py-3 px-4 rounded-md hover:bg-slate-200 transition-all font-medium"
+                >
+                  ログイン画面に戻る
+                </button>
+              </div>
             </div>
           </div>
         </div>

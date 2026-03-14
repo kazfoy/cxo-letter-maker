@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Mail, Target, Zap, FileText, Download, Sparkles } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { UpgradeButton } from '@/components/UpgradeButton';
+import { PricingTabs } from '@/components/PricingTabs';
 
 export default function LandingPage() {
   // ログイン済みユーザーは自動的に /dashboard へリダイレクト
@@ -32,6 +33,18 @@ export default function LandingPage() {
         "price": "9800",
         "priceCurrency": "JPY",
         "name": "Premium Plan"
+      },
+      {
+        "@type": "Offer",
+        "price": "20000",
+        "priceCurrency": "JPY",
+        "name": "Team Plan"
+      },
+      {
+        "@type": "Offer",
+        "price": "50000",
+        "priceCurrency": "JPY",
+        "name": "Business Plan"
       }
     ],
     "description": "AIを活用して、企業の決裁者（CxO）に響く高品質なセールスレターやイベント招待状を自動生成。営業効率の向上をサポートします。",
@@ -627,214 +640,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
-            {/* Free Plan */}
-            <div className="bg-stone-50 rounded-2xl p-5 sm:p-8 border border-stone-200 shadow-sm flex flex-col">
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-stone-900 mb-2">Free Plan</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-stone-900">0</span>
-                  <span className="text-stone-600 font-medium">円 / 月</span>
-                </div>
-                <p className="text-stone-600 mt-4 text-sm mb-6">
-                  まずはお試しで使ってみたい方に
-                </p>
-                <Link
-                  href="/new?demo=true"
-                  className="block w-full py-3 px-4 min-h-[44px] bg-white border-2 border-stone-200 text-stone-900 font-bold text-center rounded-lg hover:bg-stone-50 transition-colors"
-                >
-                  無料で試す
-                </Link>
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <p className="text-sm font-bold text-stone-900">主な機能:</p>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3 text-stone-700">
-                    <svg className="w-5 h-5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>1日10回まで生成可能</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-700">
-                    <svg className="w-5 h-5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>最新10件の履歴保存</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-700">
-                    <svg className="w-5 h-5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>AIによる企業分析 & 生成</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-500">
-                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    <a href="#pricing" className="hover:text-amber-800 transition-colors">
-                      Word形式ダウンロード <span className="text-amber-700 font-semibold">Proで利用可</span>
-                    </a>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-500">
-                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                    <a href="#pricing" className="hover:text-amber-800 transition-colors">
-                      CSV一括生成 <span className="text-amber-700 font-semibold">Proで利用可</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="bg-white rounded-2xl p-5 sm:p-8 border-2 border-amber-800 shadow-xl relative flex flex-col">
-              <div className="absolute top-0 right-0 bg-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
-                おすすめ
-              </div>
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-amber-800 mb-2">Pro Plan</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-stone-900">1,980</span>
-                  <span className="text-stone-600 font-medium">円 / 月 (税込)</span>
-                </div>
-                <p className="text-stone-600 mt-4 text-sm mb-6">
-                  その企業にしか刺さらないレターで、商談数を最大化したい方に
-                </p>
-                <UpgradeButton
-                  plan="pro"
-                  label="7日間無料で試す"
-                  className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02] disabled:opacity-50"
-                />
-                <p className="text-xs text-stone-400 text-center mt-2">トライアル後 ¥1,980/月</p>
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <p className="text-sm font-bold text-stone-900">Freeプランとの違い:</p>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className="text-amber-800 font-bold">深層分析（最大12ページ探索）</span>
-                      <p className="text-xs text-stone-600 mt-0.5">Freeは1ページのみ。Proは企業サイトを深く分析</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className="text-amber-800 font-bold">品質スコア80点以上を自動保証</span>
-                      <p className="text-xs text-stone-600 mt-0.5">AIが自己修正ループで品質を担保</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span>3バリエーション同時生成 + 件名5候補</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className="text-amber-800 font-bold">CSV一括生成（100件/日）</span>
-                      <p className="text-xs text-stone-600 mt-0.5">月最大3,000件のリストを一括処理</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span>全モード対応 + 引用元トラッキング</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Premium Plan */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 sm:p-8 border-2 border-slate-700 shadow-2xl relative flex flex-col text-white">
-              <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-600 to-amber-800 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
-                BUSINESS
-              </div>
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-white mb-2">Premium Plan</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">9,800</span>
-                  <span className="text-slate-300 font-medium">円 / 月 (税込)</span>
-                </div>
-                <p className="text-slate-300 mt-4 text-sm mb-6">
-                  展示会やイベント後の大量リードを、即座に商談へ繋げたい方に
-                </p>
-                <UpgradeButton
-                  plan="premium"
-                  label="Premiumプランで始める"
-                  className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
-                />
-              </div>
-
-              <div className="flex-1 space-y-4">
-                <p className="text-sm font-bold text-white">Proプランの全機能に加え:</p>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3 text-white font-medium">
-                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
-                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className="text-amber-400 font-bold text-lg">展示会名刺も即日対応。1日1,000件</span>
-                      <p className="text-xs text-slate-300 mt-0.5">月間最大30,000件のレター生成で機会損失ゼロへ</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
-                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span>圧倒的コストパフォーマンス</span>
-                      <p className="text-xs text-slate-400 mt-0.5">1件あたり約0.3円。外注費の削減に貢献</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
-                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span>&ldquo;鉄は熱いうちに打て&rdquo;を実現</span>
-                      <p className="text-xs text-slate-400 mt-0.5">スピードフォローで競合に差をつける</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-200">
-                    <div className="bg-amber-500/20 rounded-full p-1 ring-2 ring-amber-400">
-                      <svg className="w-3 h-3 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span>専任カスタマーサポート</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <PricingTabs />
         </div>
       </section>
 

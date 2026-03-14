@@ -3,7 +3,7 @@
 import { useCheckout } from '@/hooks/useCheckout';
 
 interface UpgradeButtonProps {
-  plan: 'pro' | 'premium';
+  plan: 'pro' | 'premium' | 'team' | 'business';
   label: string;
   className: string;
 }

@@ -96,7 +96,7 @@ export default function TokushoPage() {
                                     </th>
                                     <td className="px-6 py-4 text-sm text-stone-700 leading-relaxed">
                                         各プランの申し込みページに表示された金額（表示価格/消費税込）とします。<br />
-                                        ・Proプラン: 月額980円（税込）<br />
+                                        ・Proプラン: 月額1,980円（税込）<br />
                                         ・Premiumプラン: 月額9,800円（税込）
                                     </td>
                                 </tr>

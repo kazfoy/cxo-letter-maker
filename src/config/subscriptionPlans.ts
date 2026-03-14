@@ -7,7 +7,7 @@
 
 import { MODEL_DEFAULT } from '@/lib/gemini';
 
-export type PlanType = 'free' | 'pro' | 'premium';
+export type PlanType = 'free' | 'pro' | 'premium' | 'team' | 'business';
 
 export interface PlanConfig {
   /** プラン名（表示用） */
@@ -50,16 +50,18 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     label: 'Pro',
     dailyBatchLimit: 100,
     maxBatchSizePerRequest: 100,
-    price: 980,
+    price: 1980,
     stripePriceId: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
     modelId: MODEL_DEFAULT,
-    description: '本格的な営業活動に最適なプラン',
+    description: 'その企業にしか刺さらないレターを生成',
     features: [
-      '手紙の個別生成（無制限）',
+      '深層分析（最大12ページ探索 + Google検索補完）',
+      '品質スコア付き自己修正（80点以上保証）',
+      '3バリエーション生成（標準/感情/相談）',
+      '件名候補5つ（A/Bテスト対応）',
+      '引用元トラッキング付きレター',
       'CSV一括生成（100件/日）',
-      '全履歴の無制限保存',
-      '最新AI（Gemini 2.5）による高度な生成',
-      '優先メールサポート',
+      '全モード対応（下書き/完成/イベント招待状）',
     ],
   },
   premium: {
@@ -78,6 +80,37 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       '優先メールサポート（最優先対応）',
     ],
   },
+  team: {
+    label: 'Team',
+    dailyBatchLimit: 500,
+    maxBatchSizePerRequest: 100,
+    price: 20000,
+    stripePriceId: process.env.STRIPE_PRICE_ID_TEAM_MONTHLY,
+    modelId: MODEL_DEFAULT,
+    description: 'チームで営業活動を効率化（5席）',
+    features: [
+      'Proプランの全機能',
+      'チームメンバー管理（5席）',
+      '共有テンプレート',
+      'チーム利用状況ダッシュボード',
+      'CSV一括生成（500件/日・チーム合計）',
+    ],
+  },
+  business: {
+    label: 'Business',
+    dailyBatchLimit: 2000,
+    maxBatchSizePerRequest: 500,
+    price: 50000,
+    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS_MONTHLY,
+    modelId: MODEL_DEFAULT,
+    description: '大規模チーム向けプラン（20席）',
+    features: [
+      'Teamプランの全機能',
+      'チームメンバー管理（20席）',
+      'CSV一括生成（2,000件/日・チーム合計）',
+      '優先サポート',
+    ],
+  },
 } as const;
 
 /**
@@ -88,10 +121,13 @@ export function getPlanConfig(planType: PlanType): PlanConfig {
   const plan = PLANS[planType];
 
   // サーバーサイドでの実行時、環境変数を再評価
-  const stripePriceId =
-    planType === 'pro' ? process.env.STRIPE_PRICE_ID_PRO_MONTHLY :
-      planType === 'premium' ? process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY :
-        undefined;
+  const priceIdMap: Partial<Record<PlanType, string | undefined>> = {
+    pro: process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+    premium: process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
+    team: process.env.STRIPE_PRICE_ID_TEAM_MONTHLY,
+    business: process.env.STRIPE_PRICE_ID_BUSINESS_MONTHLY,
+  };
+  const stripePriceId = priceIdMap[planType];
 
   return {
     ...plan,
@@ -102,7 +138,7 @@ export function getPlanConfig(planType: PlanType): PlanConfig {
 /**
  * プラン名の配列
  */
-export const PLAN_NAMES: PlanType[] = ['free', 'pro', 'premium'];
+export const PLAN_NAMES: PlanType[] = ['free', 'pro', 'premium', 'team', 'business'];
 
 /**
  * プランの比較順序（下位プラン < 上位プラン）
@@ -111,6 +147,8 @@ export const PLAN_TIER: Record<PlanType, number> = {
   free: 0,
   pro: 1,
   premium: 2,
+  team: 2,
+  business: 3,
 };
 
 /**

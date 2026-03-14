@@ -9,7 +9,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { apiGuard } from '@/lib/api-guard';
 import { generateJson, TEMPERATURE } from '@/lib/gemini';
-import { checkSubscriptionStatus } from '@/lib/subscription';
+import { checkSubscriptionStatus, getGenerationLimits } from '@/lib/subscription';
+import type { PlanType } from '@/config/subscriptionPlans';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { getClientIp } from '@/lib/get-client-ip';
 import { createClient } from '@/utils/supabase/server';
@@ -781,6 +782,19 @@ export async function POST(request: Request) {
         }
       }
 
+      // プランに基づく生成機能の制限を決定（1回のみチェック）
+      let userPlan: PlanType = 'free';
+      if (currentUser) {
+        try {
+          const sub = await checkSubscriptionStatus(currentUser.id);
+          userPlan = sub.plan;
+        } catch {
+          // デフォルトは free
+        }
+      }
+      const generationLimits = getGenerationLimits(userPlan);
+      devLog.log(`Generation limits for plan=${userPlan}:`, generationLimits);
+
       // Pro機能の認可チェック（complete/eventはPro以上が必要）
       const PRO_MODES = ['complete', 'event'] as const;
       if ((PRO_MODES as readonly string[]).includes(mode)) {
@@ -791,9 +805,7 @@ export async function POST(request: Request) {
           );
         }
 
-        // プランチェック
-        const { isPro, isPremium } = await checkSubscriptionStatus(currentUser.id);
-        if (!isPro && !isPremium) {
+        if (!(generationLimits.modes as readonly string[]).includes(mode)) {
           return NextResponse.json(
             { success: false, error: 'この機能はProプラン以上で利用できます', code: 'PLAN_UPGRADE_REQUIRED' },
             { status: 403 }
@@ -801,7 +813,8 @@ export async function POST(request: Request) {
         }
       }
 
-      const maxAttempts = 2; // 最大2回（初稿 + 1回リライト）
+      // Free: 品質ゲートなし（1回のみ）、Pro: 最大2回（初稿 + 1回リライト）
+      const maxAttempts = generationLimits.qualityGate ? 2 : 1;
       let bestResult: GenerateV2Output | null = null;
       let bestQuality: Quality = {
         score: null,
@@ -969,25 +982,32 @@ export async function POST(request: Request) {
               };
             });
 
+            // ティアに基づく出力制御
+            const limitedSubjects = result.subjects.slice(0, generationLimits.maxSubjects);
+            const limitedVariations = generationLimits.variations ? result.variations : undefined;
+            const limitedCitations = generationLimits.citationTracking ? citations : [];
+
             return NextResponse.json({
               success: true,
               data: {
-                subjects: result.subjects,
+                subjects: limitedSubjects,
                 body: result.body,
                 rationale: result.rationale,
                 quality: {
-                  score: detailedScore.total,
-                  passed: detailedScore.total >= 80 && validation.ok,
-                  issues: [...validation.reasons, ...detailedScore.suggestions],
-                  evaluation_comment: mode === 'event'
-                    ? `Event quality score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`
-                    : `Detailed score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`,
+                  score: generationLimits.qualityGate ? detailedScore.total : null,
+                  passed: generationLimits.qualityGate ? (detailedScore.total >= 80 && validation.ok) : false,
+                  issues: generationLimits.qualityGate ? [...validation.reasons, ...detailedScore.suggestions] : [],
+                  evaluation_comment: generationLimits.qualityGate
+                    ? (mode === 'event'
+                      ? `Event quality score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`
+                      : `Detailed score: ${detailedScore.total}/100 (${detailedScore.breakdown ? Object.entries(detailedScore.breakdown).map(([k, v]) => `${k}:${v}`).join(', ') : ''})`)
+                    : 'Proプランで品質スコアが表示されます',
                 },
-                variations: result.variations,
+                variations: limitedVariations,
                 // 追加フィールド
                 sources: analysis_result.sources || [],
                 factsForLetter: factsForLetter,
-                citations,  // Phase 6: citations追加
+                citations: limitedCitations,
               },
             });
           }
@@ -1034,14 +1054,14 @@ export async function POST(request: Request) {
               return NextResponse.json({
                 success: true,
                 data: {
-                  subjects: bestResult.subjects,
+                  subjects: bestResult.subjects.slice(0, generationLimits.maxSubjects),
                   body: bestResult.body,
                   rationale: bestResult.rationale,
                   quality: bestQuality,
-                  variations: bestResult.variations,
+                  variations: generationLimits.variations ? bestResult.variations : undefined,
                   sources: enrichedSources,
                   factsForLetter: factsForLetter,
-                  citations,  // Phase 6: citations追加
+                  citations: generationLimits.citationTracking ? citations : [],
                 },
               });
             }

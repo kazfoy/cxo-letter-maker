@@ -6,6 +6,7 @@
 
 import { createHash } from 'crypto';
 import { devLog } from '@/lib/logger';
+import type { UrlAnalysisCacheRow } from '@/types/database-extensions';
 
 interface CacheEntry<T> {
   data: T;
@@ -49,6 +50,27 @@ function hashUrl(normalizedUrl: string): string {
 }
 
 /**
+ * url_analysis_cache テーブルへの型安全なアクセスヘルパー
+ * supabase-js の from() は自動生成型にないテーブルでも string を受け付けるが、
+ * 戻り値が any になるため、ここで型を付け直す。
+ */
+function fromCacheTable(supabase: ReturnType<typeof import('@/lib/supabase-admin').getSupabaseAdmin>) {
+  return supabase.from('url_analysis_cache') as unknown as {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        gt: (column: string, value: string) => {
+          single: () => Promise<{ data: Pick<UrlAnalysisCacheRow, 'data'> | null; error: unknown }>;
+        };
+      };
+    };
+    upsert: (
+      values: UrlAnalysisCacheRow,
+      options?: { onConflict: string },
+    ) => Promise<{ error: { message: string } | null }>;
+  };
+}
+
+/**
  * キャッシュから分析結果を取得（L1 → L2 フォールスルー）
  */
 export async function getCachedAnalysis<T>(url: string): Promise<T | null> {
@@ -70,13 +92,11 @@ export async function getCachedAnalysis<T>(url: string): Promise<T | null> {
     const supabase = getSupabaseAdmin();
     const urlHash = hashUrl(key);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: row, error } = await (supabase as any)
-      .from('url_analysis_cache')
+    const { data: row, error } = await fromCacheTable(supabase)
       .select('data')
       .eq('url_hash', urlHash)
       .gt('expires_at', new Date().toISOString())
-      .single() as { data: { data: unknown } | null; error: unknown };
+      .single();
 
     if (error || !row) {
       return null;
@@ -110,12 +130,10 @@ export async function setCachedAnalysis<T>(url: string, data: T): Promise<void> 
     const urlHash = hashUrl(key);
     const expiresAt = new Date(Date.now() + L2_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
-      .from('url_analysis_cache')
+    const { error } = await fromCacheTable(supabase)
       .upsert(
         { url_hash: urlHash, url: key, data, expires_at: expiresAt },
-        { onConflict: 'url_hash' }
+        { onConflict: 'url_hash' },
       );
 
     if (error) {

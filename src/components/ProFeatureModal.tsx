@@ -38,19 +38,19 @@ export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModa
                             <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            <span><strong>Word出力</strong> - そのまま印刷・投函できる形式</span>
+                            <span><strong>深層分析</strong> - 最大12ページ探索で企業固有の情報を抽出</span>
                         </li>
                         <li className="flex items-start gap-2 text-sm text-stone-700">
                             <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            <span><strong>CSV一括生成</strong> - 毎日100件のリストを自動処理</span>
+                            <span><strong>品質保証</strong> - スコア80点以上を自動で保証</span>
                         </li>
                         <li className="flex items-start gap-2 text-sm text-stone-700">
                             <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            <span><strong>AI編集 無制限</strong> - 納得いくまで何度でも調整</span>
+                            <span><strong>3バリエーション</strong> - 標準/感情/相談の3パターンを同時生成</span>
                         </li>
                     </ul>
                 </div>
@@ -59,11 +59,11 @@ export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModa
                 <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
                     <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-center">
                         <p className="text-stone-400 font-medium mb-1">Free</p>
-                        <p className="text-stone-600">1日10回 / コピーのみ</p>
+                        <p className="text-stone-600">1ページ分析 / 品質スコアなし</p>
                     </div>
                     <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 text-center">
-                        <p className="text-amber-800 font-bold mb-1">Pro <span className="text-xs">980円/月</span></p>
-                        <p className="text-stone-700">無制限 / Word / CSV</p>
+                        <p className="text-amber-800 font-bold mb-1">Pro <span className="text-xs">1,980円/月</span></p>
+                        <p className="text-stone-700">深層分析 / 品質保証 / 3バリエーション</p>
                     </div>
                 </div>
 
@@ -75,7 +75,7 @@ export function ProFeatureModal({ isOpen, onClose, featureName }: ProFeatureModa
                     >
                         {checkoutLoading ? '処理中...' : '7日間無料で試す'}
                     </button>
-                    <p className="text-xs text-stone-400 text-center">トライアル後 ¥980/月・いつでもキャンセル可</p>
+                    <p className="text-xs text-stone-400 text-center">トライアル後 ¥1,980/月・いつでもキャンセル可</p>
                     <button
                         onClick={onClose}
                         className="block w-full py-3 px-4 text-stone-500 hover:text-stone-700 font-medium transition-colors"

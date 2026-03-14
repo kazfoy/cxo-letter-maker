@@ -26,7 +26,13 @@ export async function POST(request: Request) {
             });
 
             if (!plan || !plan.stripePriceId) {
-                const envVarName = planType === 'pro' ? 'STRIPE_PRICE_ID_PRO_MONTHLY' : 'STRIPE_PRICE_ID_PREMIUM_MONTHLY';
+                const envVarNameMap: Record<string, string> = {
+                    pro: 'STRIPE_PRICE_ID_PRO_MONTHLY',
+                    premium: 'STRIPE_PRICE_ID_PREMIUM_MONTHLY',
+                    team: 'STRIPE_PRICE_ID_TEAM_MONTHLY',
+                    business: 'STRIPE_PRICE_ID_BUSINESS_MONTHLY',
+                };
+                const envVarName = envVarNameMap[planType] || 'STRIPE_PRICE_ID_???';
                 const errorMsg = `Stripe Price ID is missing for plan: ${planType}. Please check if ${envVarName} is set in your environment variables (.env.local).`;
                 devLog.error(`[Checkout API Error] ${errorMsg}`);
                 return NextResponse.json({
@@ -68,9 +74,10 @@ export async function POST(request: Request) {
                 ],
                 success_url: `${baseUrl}/checkout/success?plan=${planType}`,
                 cancel_url: `${baseUrl}/dashboard/settings?canceled=true`,
-                // ユーザーIDをメタデータに含める（Webhookで紐付けに使用）
+                // ユーザーIDとプランタイプをメタデータに含める（Webhookで紐付けに使用）
                 metadata: {
                     userId: user.id,
+                    planType: planType,
                 },
                 // 既存顧客IDがあれば使用、なければemailをCustomer emailとしてセット（新規作成される）
                 customer: customerId || undefined,
@@ -80,6 +87,7 @@ export async function POST(request: Request) {
                 subscription_data: {
                     metadata: {
                         userId: user.id,
+                        planType: planType,
                     },
                     trial_period_days: 7,
                 },

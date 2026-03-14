@@ -12,6 +12,7 @@ import { sanitizeForPrompt } from '@/lib/prompt-sanitizer';
 import { devLog } from '@/lib/logger';
 import { extractFactsFromUrl, extractTextFromHtml } from '@/lib/urlAnalysis';
 import { getCachedAnalysis, setCachedAnalysis, type CachedUrlData } from '@/lib/url-cache';
+import { checkSubscriptionStatus, getAnalysisDepth } from '@/lib/subscription';
 import {
   AnalyzeInputRequestSchema,
   AnalysisResultSchema,
@@ -78,8 +79,19 @@ export async function POST(request: Request) {
   return await apiGuard(
     request,
     AnalyzeInputRequestSchema,
-    async (data, _user) => {
+    async (data, authUser) => {
       const { target_url, pdf_text, user_notes, sender_info } = data;
+
+      // プランに基づく分析深度を決定
+      let analysisDepth: 'basic' | 'deep' = 'basic';
+      if (authUser?.id) {
+        try {
+          const sub = await checkSubscriptionStatus(authUser.id);
+          analysisDepth = getAnalysisDepth(sub.plan);
+        } catch {
+          // デフォルトは basic
+        }
+      }
 
       let extractedContent = '';
       const riskFlags: { type: string; message: string; severity: string }[] = [];
@@ -140,9 +152,10 @@ export async function POST(request: Request) {
             });
           }
 
-          // Step 2: サブルート探索でファクト抽出（メインページ取得とは独立して実行）
+          // Step 2: ファクト抽出（depth に基づく探索範囲制御）
           try {
-            const factResult = await extractFactsFromUrl(target_url);
+            devLog.log(`Extracting facts with depth=${analysisDepth}`);
+            const factResult = await extractFactsFromUrl(target_url, analysisDepth);
             if (factResult) {
               extractedFacts = factResult.facts;
               extractedSources = factResult.sources;

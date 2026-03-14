@@ -10,6 +10,7 @@ import { createClient } from '@/utils/supabase/server';
 import { checkAndIncrementGuestUsage } from '@/lib/guest-limit';
 import { getClientIp } from '@/lib/get-client-ip';
 import { SAMPLE_SENDER_COMPANIES } from '@/lib/sampleData';
+import { checkSubscriptionStatus } from '@/lib/subscription';
 import type { LetterStructure, Industry, SSEEvent } from '@/types/letter';
 
 export const maxDuration = 60;
@@ -312,7 +313,16 @@ export async function POST(request: Request) {
         let fallbackSnippets: string | null = null;
         const companyNameForSearch = inputCompanyName || detectedCompanyName;
 
-        if (needsSupplementalInfo(extractedTexts) && companyNameForSearch) {
+        // Google検索フォールバックはPro以上のみ
+        let isPaidUser = false;
+        if (currentUser?.id) {
+          try {
+            const sub = await checkSubscriptionStatus(currentUser.id);
+            isPaidUser = sub.isPro || sub.isPremium;
+          } catch { /* default to free */ }
+        }
+
+        if (needsSupplementalInfo(extractedTexts) && companyNameForSearch && isPaidUser) {
           sendEvent(controller, encoder, {
             phase: 'searching',
             message: 'Web検索で情報を補完中...'

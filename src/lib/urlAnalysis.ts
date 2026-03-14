@@ -598,13 +598,18 @@ async function fetchArticlesFromListingPage(
   return articles;
 }
 
+export type AnalysisDepth = 'basic' | 'deep';
+
 /**
  * サブルート探索でファクトを抽出（ページ単位）
  * 一覧ページからは個別記事も取得
+ *
+ * @param baseUrl - 分析対象URL
+ * @param depth - 分析深度: 'basic'（トップページのみ）/ 'deep'（サブルート探索、記事クロール）
  */
-export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtractionResult | null> {
+export async function extractFactsFromUrl(baseUrl: string, depth: AnalysisDepth = 'deep'): Promise<FactExtractionResult | null> {
   try {
-    devLog.log('Starting page-level URL analysis:', baseUrl);
+    devLog.log(`Starting page-level URL analysis (depth=${depth}):`, baseUrl);
 
     // ソース追跡用Map
     const sourceMap = new Map<string, InformationSource>();
@@ -636,6 +641,32 @@ export async function extractFactsFromUrl(baseUrl: string): Promise<FactExtracti
       category: detectCategory(baseUrl),
       isPrimary: false,
     });
+
+    // basic depth: トップページのみで終了（サブルート探索・記事クロールをスキップ）
+    if (depth === 'basic') {
+      devLog.log('Basic depth: skipping sub-route exploration');
+
+      const pageFactResults = await Promise.allSettled(
+        pageContents.map(({ url, content, title }) => extractFactsFromPage(content, url, title))
+      );
+
+      const successfulResults: PageFactResult[] = [];
+      for (const result of pageFactResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          successfulResults.push(result.value);
+        }
+      }
+
+      if (successfulResults.length === 0) {
+        devLog.warn('No facts extracted from top page (basic depth)');
+        return null;
+      }
+
+      const mergedFacts = mergePageResults(successfulResults);
+      const sources = prioritizeSources(Array.from(sourceMap.values()));
+
+      return { facts: mergedFacts, sources };
+    }
 
     // サブルートを並列取得（HTMLも保持）
     const subRouteUrls = buildSubRouteUrls(baseUrl);

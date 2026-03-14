@@ -23,7 +23,7 @@ export default function LandingPage() {
       },
       {
         "@type": "Offer",
-        "price": "980",
+        "price": "1980",
         "priceCurrency": "JPY",
         "name": "Pro Plan"
       },
@@ -58,7 +58,7 @@ export default function LandingPage() {
         "name": "本当に無料で使えますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "はい、無料プランをご用意しております。1日10回までの生成、履歴の閲覧は最新10件まで、テキストコピーでのご利用が可能です。Word形式ダウンロードやCSV一括生成はProプラン以上でご利用いただけます。Proプラン（月額980円）またはPremiumプラン（月額9,800円）をご検討ください。"
+          "text": "はい、無料プランをご用意しております。1日10回までの生成、基本的なAI分析でのご利用が可能です。Proプラン（月額1,980円）では深層分析・品質保証・3バリエーション生成など、より高品質なレター生成をご利用いただけます。"
         }
       },
       {
@@ -122,7 +122,7 @@ export default function LandingPage() {
         "name": "何通まで生成できますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "プランごとに生成可能な件数が異なります。無料プランは1日10通まで（個別生成のみ）、Proプラン（月額980円）は個別生成無制限 + CSV一括生成100件/日、Premiumプラン（月額9,800円）は個別生成無制限 + CSV一括生成1,000件/日となっています。"
+          "text": "無料プランは1日10通まで（個別生成のみ）、Proプラン（月額1,980円）は個別生成無制限 + CSV一括生成100件/日となっています。Proプランでは深層分析や品質保証など、レターの質が大幅に向上します。"
         }
       }
     ]
@@ -696,22 +696,22 @@ export default function LandingPage() {
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-amber-800 mb-2">Pro Plan</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-stone-900">980</span>
+                  <span className="text-4xl font-bold text-stone-900">1,980</span>
                   <span className="text-stone-600 font-medium">円 / 月 (税込)</span>
                 </div>
                 <p className="text-stone-600 mt-4 text-sm mb-6">
-                  毎日のリスト消化を自動化し、商談数を最大化したい方に
+                  その企業にしか刺さらないレターで、商談数を最大化したい方に
                 </p>
                 <UpgradeButton
                   plan="pro"
                   label="7日間無料で試す"
                   className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02] disabled:opacity-50"
                 />
-                <p className="text-xs text-stone-400 text-center mt-2">トライアル後 ¥980/月</p>
+                <p className="text-xs text-stone-400 text-center mt-2">トライアル後 ¥1,980/月</p>
               </div>
 
               <div className="flex-1 space-y-4">
-                <p className="text-sm font-bold text-stone-900">Freeプランの全機能に加え:</p>
+                <p className="text-sm font-bold text-stone-900">Freeプランとの違い:</p>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3 text-stone-900 font-medium">
                     <div className="bg-amber-100 rounded-full p-1">
@@ -719,23 +719,10 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span>無制限に生成可能</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
+                    <div>
+                      <span className="text-amber-800 font-bold">深層分析（最大12ページ探索）</span>
+                      <p className="text-xs text-stone-600 mt-0.5">Freeは1ページのみ。Proは企業サイトを深く分析</p>
                     </div>
-                    <span>全履歴の無期限保存</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-stone-900 font-medium">
-                    <div className="bg-amber-100 rounded-full p-1">
-                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span>Word形式ダウンロード</span>
                   </li>
                   <li className="flex items-start gap-3 text-stone-900 font-medium">
                     <div className="bg-amber-100 rounded-full p-1">
@@ -744,7 +731,26 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <span className="text-amber-800 font-bold">毎日100件のアプローチを自動化</span>
+                      <span className="text-amber-800 font-bold">品質スコア80点以上を自動保証</span>
+                      <p className="text-xs text-stone-600 mt-0.5">AIが自己修正ループで品質を担保</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 text-stone-900 font-medium">
+                    <div className="bg-amber-100 rounded-full p-1">
+                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span>3バリエーション同時生成 + 件名5候補</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-stone-900 font-medium">
+                    <div className="bg-amber-100 rounded-full p-1">
+                      <svg className="w-3 h-3 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-amber-800 font-bold">CSV一括生成（100件/日）</span>
                       <p className="text-xs text-stone-600 mt-0.5">月最大3,000件のリストを一括処理</p>
                     </div>
                   </li>
@@ -754,7 +760,7 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span>優先メールサポート</span>
+                    <span>全モード対応 + 引用元トラッキング</span>
                   </li>
                 </ul>
               </div>
@@ -862,10 +868,9 @@ export default function LandingPage() {
                   <li>CSV一括生成はProプラン以上で利用可能</li>
                 </ul>
                 <br />
-                より高度な機能が必要な場合は、以下の有料プランをご検討ください：
+                より高品質なレターが必要な場合は、Proプランをご検討ください：
                 <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600 mt-2">
-                  <li><strong>Proプラン（月額980円）</strong>: CSV一括生成100件/日、履歴無制限</li>
-                  <li><strong>Premiumプラン（月額9,800円）</strong>: CSV一括生成1,000件/日、優先サポート</li>
+                  <li><strong>Proプラン（月額1,980円）</strong>: 深層分析、品質保証、3バリエーション、CSV一括生成100件/日</li>
                 </ul>
               </div>
             </details>
@@ -974,8 +979,7 @@ export default function LandingPage() {
                 プランごとに生成可能な件数が異なります：<br /><br />
                 <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600">
                   <li><strong>無料プラン</strong>: 1日10通まで（個別生成のみ）</li>
-                  <li><strong>Proプラン（月額980円）</strong>: 個別生成無制限 + CSV一括生成100件/日</li>
-                  <li><strong>Premiumプラン（月額9,800円）</strong>: 個別生成無制限 + CSV一括生成1,000件/日</li>
+                  <li><strong>Proプラン（月額1,980円）</strong>: 個別生成無制限 + 深層分析 + 品質保証 + CSV一括生成100件/日</li>
                 </ul>
               </div>
             </details>

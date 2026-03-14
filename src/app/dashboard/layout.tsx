@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { Home, PencilLine, Upload, Clock, Settings, HelpCircle } from 'lucide-react';
+import { Home, PencilLine, Upload, Clock, Settings, HelpCircle, Users } from 'lucide-react';
 import { EXTERNAL_LINKS } from '@/lib/constants';
 
 export default function DashboardLayout({
@@ -42,6 +42,7 @@ export default function DashboardLayout({
     { href: '/new', label: '新規作成', icon: PencilLine },
     { href: '/bulk', label: '一括作成', icon: Upload },
     { href: '/dashboard/history', label: '履歴', icon: Clock },
+    { href: '/dashboard/team', label: 'チーム管理', icon: Users },
     { href: '/dashboard/settings', label: '設定', icon: Settings },
   ];
 

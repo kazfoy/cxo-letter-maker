@@ -111,3 +111,28 @@
 - ビルド: `npm run build`
 - リント: `npm run lint`
 - E2Eテスト: `npm run test:e2e`
+
+## Workflow Orchestration
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately
+- Write detailed specs upfront to reduce ambiguity
+
+## Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- One task per subagent for focused execution
+
+## Self-Improvement Loop
+- After ANY correction from the user: update tasks/lessons.md with the pattern
+- Write rules that prevent the same mistake from recurring
+- Review lessons at session start
+
+## Verification Before Done
+- Never mark a task complete without proving it works
+- Run tests, check logs, demonstrate correctness
+- Ask yourself: "Would a staff engineer approve this?"
+
+## Core Principles
+- Simplicity First: Make every change as simple as possible
+- No Laziness: Find root causes. No temporary fixes
+- Minimal Impact: Only touch what's necessary. Avoid introducing bugs

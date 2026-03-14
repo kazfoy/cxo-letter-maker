@@ -20,17 +20,18 @@ import {
 
 interface TeamMember {
   id: string;
+  userId: string;
   email: string;
-  user_name: string | null;
+  name: string | null;
   role: 'admin' | 'member';
-  joined_at: string;
+  joinedAt: string;
 }
 
 interface PendingInvitation {
   id: string;
   email: string;
   status: 'pending' | 'accepted' | 'expired';
-  invited_at: string;
+  created_at: string;
   expires_at: string;
 }
 
@@ -43,7 +44,7 @@ interface TeamInfo {
 
 export default function TeamDashboardPage() {
   const { user } = useAuth();
-  const { teamId, teamName, isTeamPlan, loading: planLoading } = useUserPlan();
+  const { teamId, teamName, loading: planLoading } = useUserPlan();
 
   const [team, setTeam] = useState<TeamInfo | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -64,7 +65,7 @@ export default function TeamDashboardPage() {
   // Remove member
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const currentUserRole = members.find((m) => m.id === user?.id)?.role;
+  const currentUserRole = members.find((m) => m.userId === user?.id)?.role;
   const isAdmin = currentUserRole === 'admin';
 
   const fetchTeamData = useCallback(async () => {
@@ -83,7 +84,7 @@ export default function TeamDashboardPage() {
 
       if (teamRes.ok) {
         const teamData = await teamRes.json();
-        setTeam(teamData);
+        setTeam(teamData.team);
       }
 
       if (membersRes.ok) {
@@ -166,16 +167,16 @@ export default function TeamDashboardPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: string) => {
+  const handleRemoveMember = async (memberUserId: string) => {
     if (!confirm('このメンバーをチームから削除してもよろしいですか？')) return;
 
-    setRemovingId(memberId);
+    setRemovingId(memberUserId);
 
     try {
       const res = await fetch('/api/teams/members', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId }),
+        body: JSON.stringify({ userId: memberUserId }),
       });
 
       if (!res.ok) {
@@ -183,7 +184,7 @@ export default function TeamDashboardPage() {
         throw new Error(data.error || 'メンバーの削除に失敗しました');
       }
 
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      setMembers((prev) => prev.filter((m) => m.userId !== memberUserId));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -364,14 +365,14 @@ export default function TeamDashboardPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
                       <span className="text-slate-600 font-medium text-sm">
-                        {(member.user_name || member.email).charAt(0).toUpperCase()}
+                        {(member.name || member.email).charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-900">
-                        {member.user_name || member.email}
+                        {member.name || member.email}
                       </p>
-                      {member.user_name && (
+                      {member.name && (
                         <p className="text-xs text-slate-500">{member.email}</p>
                       )}
                     </div>
@@ -387,10 +388,10 @@ export default function TeamDashboardPage() {
                     </span>
                   </div>
 
-                  {isAdmin && member.id !== user?.id && (
+                  {isAdmin && member.userId !== user?.id && (
                     <button
-                      onClick={() => handleRemoveMember(member.id)}
-                      disabled={removingId === member.id}
+                      onClick={() => handleRemoveMember(member.userId)}
+                      disabled={removingId === member.userId}
                       className="text-slate-400 hover:text-red-500 transition-colors p-2 disabled:opacity-50"
                       title="メンバーを削除"
                     >
@@ -424,7 +425,7 @@ export default function TeamDashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-slate-900">{invite.email}</p>
                       <p className="text-xs text-slate-500">
-                        {new Date(invite.invited_at).toLocaleDateString('ja-JP')} に招待
+                        {new Date(invite.created_at).toLocaleDateString('ja-JP')} に招待
                       </p>
                     </div>
                   </div>

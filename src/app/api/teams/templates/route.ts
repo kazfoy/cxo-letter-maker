@@ -116,7 +116,34 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'チームに所属していません' }, { status: 403 });
         }
 
-        // テンプレートの所有者またはチームadminかチェック（RLSでも制御されるが念のため）
+        // テンプレートを取得して所有者を確認
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: template, error: fetchError } = await (supabase as any)
+            .from('shared_templates')
+            .select('id, created_by')
+            .eq('id', templateId)
+            .eq('team_id', profile.team_id)
+            .single();
+
+        if (fetchError || !template) {
+            return NextResponse.json({ error: 'テンプレートが見つかりません' }, { status: 404 });
+        }
+
+        // テンプレートの作成者本人か、チームのadminかを確認
+        if (template.created_by !== user.id) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: membership } = await (supabase as any)
+                .from('team_members')
+                .select('role')
+                .eq('team_id', profile.team_id)
+                .eq('user_id', user.id)
+                .single();
+
+            if (!membership || membership.role !== 'admin') {
+                return NextResponse.json({ error: 'テンプレートを削除する権限がありません' }, { status: 403 });
+            }
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase as any)
             .from('shared_templates')

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLetterStore, EMPTY_FORM } from '@/stores/letterStore';
+import { useLetterStore } from '@/stores/letterStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestLimit } from '@/hooks/useGuestLimit';

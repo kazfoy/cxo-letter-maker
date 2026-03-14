@@ -9,7 +9,7 @@ import { ArrowLeft, CreditCard, Building2, Rocket } from 'lucide-react';
 import { devLog } from '@/lib/logger';
 
 export default function TeamSettingsPage() {
-  const { user } = useAuth();
+  useAuth();
   const { teamId, teamName, plan, isTeamPlan, loading: planLoading } = useUserPlan();
 
   const [editName, setEditName] = useState('');

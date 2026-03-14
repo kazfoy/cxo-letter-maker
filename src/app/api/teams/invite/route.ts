@@ -277,6 +277,22 @@ async function handleAcceptInvitation(
       return NextResponse.json({ error: 'この招待は期限切れです' }, { status: 400 });
     }
 
+    // C-1: 招待メールアドレスとログインユーザーのメールアドレスを照合
+    if (!user.email || user.email.toLowerCase() !== invite.email.toLowerCase()) {
+      return NextResponse.json({ error: 'この招待は別のメールアドレス宛てです' }, { status: 403 });
+    }
+
+    // C-4: 既存チーム所属チェック
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('team_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userProfile?.team_id) {
+      return NextResponse.json({ error: '既にチームに所属しています。現在のチームを脱退してから招待を承諾してください' }, { status: 409 });
+    }
+
     // チームにメンバーとして追加
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: memberError } = await (supabase as any)
@@ -293,10 +309,23 @@ async function handleAcceptInvitation(
     }
 
     // profilesにteam_idを設定
-    await supabase
+    // C-3: profiles更新のエラーをチェックし、失敗時はロールバック
+    const { error: profileUpdateError } = await supabase
       .from('profiles')
-      .update({ team_id: invite.team_id })
+      .update({ team_id: invite.team_id } as never)
       .eq('id', user.id);
+
+    if (profileUpdateError) {
+      devLog.error('Failed to update profile team_id:', profileUpdateError);
+      // team_membersのinsertをロールバック（削除）
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('team_members')
+        .delete()
+        .eq('team_id', invite.team_id)
+        .eq('user_id', user.id);
+      return NextResponse.json({ error: 'プロフィールの更新に失敗しました' }, { status: 500 });
+    }
 
     // 招待ステータスを更新
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -55,17 +55,18 @@ interface PreviewAreaProps {
 }
 
 function GenerationProgress({ isAnalyzing, isGenerating }: { isAnalyzing: boolean; isGenerating: boolean }) {
+  const isActive = isAnalyzing || isGenerating;
   const [elapsed, setElapsed] = useState(0);
 
+  // Timer reset on activity change is intentional — this synchronizes
+  // elapsed state with the external "analyzing/generating" lifecycle.
   useEffect(() => {
-    if (!isAnalyzing && !isGenerating) {
-      setElapsed(0);
-      return;
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- timer reset on dependency change
     setElapsed(0);
+    if (!isActive) return;
     const timer = setInterval(() => setElapsed(prev => prev + 1), 1000);
     return () => clearInterval(timer);
-  }, [isAnalyzing, isGenerating]);
+  }, [isActive]);
 
   const steps = [
     { label: '企業サイトを分析中...', active: isAnalyzing },

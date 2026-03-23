@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const SEEN_KEY = 'cxo_success_guide_seen';
 
@@ -30,16 +30,15 @@ const STEPS = [
 ];
 
 export function SuccessGuide({ isFirstGeneration }: SuccessGuideProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const seen = localStorage.getItem(SEEN_KEY);
     if (!seen && isFirstGeneration) {
-      setIsExpanded(true);
       localStorage.setItem(SEEN_KEY, 'true');
+      return true;
     }
-  }, [isFirstGeneration]);
+    return false;
+  });
 
   return (
     <div className="mt-6 border border-amber-200 rounded-lg bg-amber-50/50 overflow-hidden">

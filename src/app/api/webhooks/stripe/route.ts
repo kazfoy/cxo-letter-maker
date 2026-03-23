@@ -49,7 +49,7 @@ export async function POST(req: Request) {
                     if (isTeamPlan) {
                         // チームプランの場合: teamsテーブルを作成/更新
                         const maxSeats = planType === 'business' ? 20 : 5;
-                        const { data: team } = await supabase
+                        const { data: team, error: teamError } = await supabase
                             .from('teams')
                             .insert({
                                 name: `${userId}のチーム`,
@@ -63,18 +63,26 @@ export async function POST(req: Request) {
                             .select('id')
                             .single();
 
+                        if (teamError) {
+                            devLog.error(`[Webhook] Failed to create team for user ${userId}:`, teamError.message);
+                            return NextResponse.json({ error: 'Failed to create team' }, { status: 500 });
+                        }
+
                         if (team) {
                             // オーナーをadminとしてチームに追加
-                            await supabase
+                            const { error: memberError } = await supabase
                                 .from('team_members')
                                 .insert({
                                     team_id: team.id,
                                     user_id: userId,
                                     role: 'admin',
                                 });
+                            if (memberError) {
+                                devLog.error(`[Webhook] Failed to add team member for user ${userId}:`, memberError.message);
+                            }
 
                             // profilesにteam_idを設定
-                            await supabase
+                            const { error: profileError } = await supabase
                                 .from('profiles')
                                 .update({
                                     stripe_customer_id: customerId,
@@ -83,6 +91,10 @@ export async function POST(req: Request) {
                                     ...(subscription.trial_end ? { trial_end: new Date(subscription.trial_end * 1000).toISOString() } : {}),
                                 })
                                 .eq('id', userId);
+                            if (profileError) {
+                                devLog.error(`[Webhook] Failed to update profile for user ${userId}:`, profileError.message);
+                                return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+                            }
                         }
                     } else {
                         // 個人プランの場合: profilesを更新
@@ -96,10 +108,14 @@ export async function POST(req: Request) {
                             updateData.trial_end = new Date(subscription.trial_end * 1000).toISOString();
                         }
 
-                        await supabase
+                        const { error: updateError } = await supabase
                             .from('profiles')
                             .update(updateData)
                             .eq('id', userId);
+                        if (updateError) {
+                            devLog.error(`[Webhook] Failed to update profile for user ${userId}:`, updateError.message);
+                            return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+                        }
                     }
                 }
                 break;
@@ -116,13 +132,17 @@ export async function POST(req: Request) {
 
                 if (isTeamPlan) {
                     // チームプラン: teamsテーブルを更新
-                    await supabase
+                    const { error: teamUpdateError } = await supabase
                         .from('teams')
                         .update({
                             subscription_status: status,
                             plan: isActive ? planType : 'free',
                         })
                         .eq('stripe_subscription_id', subscription.id);
+                    if (teamUpdateError) {
+                        devLog.error(`[Webhook] Failed to update team subscription:`, teamUpdateError.message);
+                        return NextResponse.json({ error: 'Failed to update team' }, { status: 500 });
+                    }
                 } else {
                     // 個人プラン: profilesを更新
                     let targetUserId = userId;
@@ -149,10 +169,14 @@ export async function POST(req: Request) {
                             updateData.trial_end = null;
                         }
 
-                        await supabase
+                        const { error: profileUpdateError } = await supabase
                             .from('profiles')
                             .update(updateData)
                             .eq('id', targetUserId);
+                        if (profileUpdateError) {
+                            devLog.error(`[Webhook] Failed to update profile for user ${targetUserId}:`, profileUpdateError.message);
+                            return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+                        }
                     }
                 }
                 break;
@@ -165,12 +189,16 @@ export async function POST(req: Request) {
 
                 if (isTeamPlan) {
                     // チームプラン: teamsテーブルを更新
-                    await supabase
+                    const { error: teamCancelError } = await supabase
                         .from('teams')
                         .update({
                             subscription_status: 'canceled',
                         })
                         .eq('stripe_subscription_id', subscription.id);
+                    if (teamCancelError) {
+                        devLog.error(`[Webhook] Failed to cancel team subscription:`, teamCancelError.message);
+                        return NextResponse.json({ error: 'Failed to cancel team' }, { status: 500 });
+                    }
                 } else {
                     // 個人プラン: profilesを更新
                     let targetUserId = subscription.metadata?.userId;
@@ -184,13 +212,17 @@ export async function POST(req: Request) {
                     }
 
                     if (targetUserId) {
-                        await supabase
+                        const { error: cancelError } = await supabase
                             .from('profiles')
                             .update({
                                 subscription_status: 'canceled',
                                 plan: 'free',
                             })
                             .eq('id', targetUserId);
+                        if (cancelError) {
+                            devLog.error(`[Webhook] Failed to cancel profile for user ${targetUserId}:`, cancelError.message);
+                            return NextResponse.json({ error: 'Failed to cancel profile' }, { status: 500 });
+                        }
                     }
                 }
                 break;

@@ -206,11 +206,13 @@ export function PricingTabs() {
               <p className="text-stone-600 mt-3 text-sm mb-6">
                 チーム全員でPro品質のレターを共有・活用したい方に
               </p>
-              <UpgradeButton
-                plan="team"
-                label="チームプランを始める"
-                className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02] disabled:opacity-50"
-              />
+              {/* TODO: STRIPE_PRICE_ID_TEAM_MONTHLY 設定後に UpgradeButton に戻す */}
+              <a
+                href="mailto:fairlucia+support@gmail.com?subject=Teamプランのお問い合わせ"
+                className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-md transform hover:scale-[1.02]"
+              >
+                お問い合わせ
+              </a>
             </div>
 
             <div className="flex-1 space-y-4">
@@ -257,11 +259,13 @@ export function PricingTabs() {
               <p className="text-slate-300 mt-3 text-sm mb-6">
                 大規模チームで営業活動を一括効率化したい企業に
               </p>
-              <UpgradeButton
-                plan="business"
-                label="Businessプランを始める"
-                className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
-              />
+              {/* TODO: STRIPE_PRICE_ID_BUSINESS_MONTHLY 設定後に UpgradeButton に戻す */}
+              <a
+                href="mailto:fairlucia+support@gmail.com?subject=Businessプランのお問い合わせ"
+                className="block w-full py-3 px-4 bg-gradient-to-r from-amber-700 to-amber-900 text-white font-bold text-center rounded-lg hover:from-amber-800 hover:to-amber-950 transition-all shadow-lg transform hover:scale-[1.02]"
+              >
+                お問い合わせ
+              </a>
             </div>
 
             <div className="flex-1 space-y-4">

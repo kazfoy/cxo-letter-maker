@@ -4,8 +4,15 @@ import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { authGuard } from '@/lib/api-guard';
 import { createClient } from '@/utils/supabase/server';
-import { PlanType, getPlanConfig } from '@/config/subscriptionPlans';
+import { getPlanConfig } from '@/config/subscriptionPlans';
 import { devLog } from '@/lib/logger';
+import { z } from 'zod';
+
+const CheckoutRequestSchema = z.object({
+    planType: z.enum(['pro', 'premium', 'team', 'business'] as const, {
+        errorMap: () => ({ message: `Invalid plan. Must be one of: pro, premium, team, business` }),
+    }),
+});
 
 export async function POST(request: Request) {
     return await authGuard(async (user) => {
@@ -14,11 +21,26 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'User email is required' }, { status: 400 });
             }
 
-            const { planType = 'pro' } = await request.json();
+            let body: unknown;
+            try {
+                body = await request.json();
+            } catch {
+                return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+            }
+
+            const parsed = CheckoutRequestSchema.safeParse(body);
+            if (!parsed.success) {
+                return NextResponse.json(
+                    { error: parsed.error.issues[0]?.message || 'Invalid request' },
+                    { status: 400 }
+                );
+            }
+
+            const { planType } = parsed.data;
             devLog.log(`[Checkout API] planType received: ${planType}`);
 
             // USE getPlanConfig for robust environment variable resolution
-            const plan = getPlanConfig(planType as PlanType);
+            const plan = getPlanConfig(planType);
             devLog.log(`[Checkout API] Resolved plan configuration:`, {
                 label: plan.label,
                 hasPriceId: !!plan.stripePriceId,

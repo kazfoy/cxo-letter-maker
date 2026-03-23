@@ -55,11 +55,6 @@ export default function LandingPage() {
       "Word形式でダウンロード可能",
       "CSV一括生成機能で大量のレター作成に対応"
     ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "95"
-    }
   };
 
   const faqSchema = {
@@ -141,39 +136,8 @@ export default function LandingPage() {
     ]
   };
 
-  // レビュー構造化データ（テスティモニアルをGoogle検索結果に反映）
-  const reviewSchema = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": "CxO Letter Maker",
-    "description": "AIを活用した決裁者向けセールスレター自動生成ツール",
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "bestRating": "5",
-      "ratingCount": "95"
-    },
-    "review": [
-      {
-        "@type": "Review",
-        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-        "author": { "@type": "Person", "name": "SaaS企業 営業マネージャー" },
-        "reviewBody": "月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。（個人の感想であり、効果を保証するものではありません）"
-      },
-      {
-        "@type": "Review",
-        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-        "author": { "@type": "Person", "name": "コンサルティング企業 代表取締役" },
-        "reviewBody": "5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。（個人の感想であり、効果を保証するものではありません）"
-      },
-      {
-        "@type": "Review",
-        "reviewRating": { "@type": "Rating", "ratingValue": "5", "bestRating": "5" },
-        "author": { "@type": "Person", "name": "スタートアップ 事業開発責任者" },
-        "reviewBody": "創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に丁寧なお手紙をありがとうと言われることも。（個人の感想であり、効果を保証するものではありません）"
-      }
-    ]
-  };
+  // NOTE: レビュー構造化データ（reviewSchema）は実績に基づくレビュー取得後に追加する
+  // 架空のaggregateRating/reviewはGoogleガイドライン違反のため削除済み
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -187,10 +151,6 @@ export default function LandingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewSchema) }}
-      />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -202,7 +162,7 @@ export default function LandingPage() {
               <div className="inline-block animate-fade-in">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold shadow-lg animate-pulse">
                   <Sparkles className="w-4 h-4 text-white" />
-                  累計生成数 1,000通突破
+                  登録不要ですぐに試せます
                 </span>
               </div>
 
@@ -219,12 +179,12 @@ export default function LandingPage() {
                   href="/new?demo=true"
                   className="group inline-flex items-center justify-center gap-2 px-10 py-4 min-h-[44px] bg-amber-800 text-white rounded-md font-bold text-lg hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                 >
-                  無料で試す
+                  いますぐレターを作成する（無料）
                   <Mail className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
               <p className="text-sm text-stone-400 pt-3">
-                登録不要・30秒で完成・クレカ不要
+                登録不要・企業URL入力だけ・クレカ不要
               </p>
             </div>
 
@@ -408,11 +368,11 @@ export default function LandingPage() {
               href="/new?demo=true"
               className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
-              無料で試す
+              いますぐレターを作成する（無料）
               <Mail className="w-5 h-5" />
             </Link>
             <p className="text-sm text-stone-400 mt-3">
-              登録不要・30秒で完成・クレカ不要
+              登録不要・企業URL入力だけ・クレカ不要
             </p>
           </div>
         </div>
@@ -507,27 +467,121 @@ export default function LandingPage() {
               href="/new?demo=true"
               className="group inline-flex items-center justify-center gap-2 px-12 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              無料で試す
+              いますぐレターを作成する（無料）
               <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
             </Link>
             <p className="mt-4 text-sm text-stone-400 font-medium">
-              登録不要・30秒で完成・クレカ不要
+              登録不要・企業URL入力だけ・クレカ不要
             </p>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Use Cases by Target */}
       <section className="py-24 md:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">
-              導入企業の声
+              あなたの営業スタイルに合わせて
             </h2>
             <p className="text-xl text-stone-600">
-              ご利用いただいた方の声をご紹介します。
+              業種・規模を問わず、CxO向け営業の成果を最大化します。
             </p>
-            <p className="text-sm text-stone-400 mt-2">※ 掲載内容は個人の感想であり、効果を保証するものではありません。成果には個人差があります。</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Use Case 1: 営業代行 */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-8 border border-amber-200 hover:shadow-lg transition-shadow">
+              <div className="w-14 h-14 bg-amber-800/10 rounded-xl flex items-center justify-center mb-6">
+                <Zap className="w-7 h-7 text-amber-800" />
+              </div>
+              <h3 className="text-xl font-bold text-stone-900 mb-3">営業代行会社</h3>
+              <p className="text-stone-600 leading-relaxed mb-4">
+                CSV一括生成で1日100通のレターを自動作成。外注費1通5,000円が、<span className="font-bold text-amber-800">月額9,800円で1,000通</span>に。
+              </p>
+              <ul className="space-y-2 text-sm text-stone-600">
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  CSV一括生成で大量対応
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  企業ごとに個別最適化
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-amber-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Word出力でそのまま納品
+                </li>
+              </ul>
+              <p className="mt-4 text-sm font-semibold text-amber-800">Premium ¥9,800/月</p>
+            </div>
+
+            {/* Use Case 2: ISチーム */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-200 hover:shadow-lg transition-shadow">
+              <div className="w-14 h-14 bg-blue-800/10 rounded-xl flex items-center justify-center mb-6">
+                <Target className="w-7 h-7 text-blue-800" />
+              </div>
+              <h3 className="text-xl font-bold text-stone-900 mb-3">インサイドセールスチーム</h3>
+              <p className="text-stone-600 leading-relaxed mb-4">
+                チーム全員のレター品質を標準化。<span className="font-bold text-blue-800">共有テンプレート</span>で属人化を解消し、ABMキャンペーンを加速。
+              </p>
+              <ul className="space-y-2 text-sm text-stone-600">
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  チーム共有テンプレート
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  メンバー管理（最大20席）
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  チーム利用状況を可視化
+                </li>
+              </ul>
+              <p className="mt-4 text-sm font-semibold text-blue-800">Team ¥20,000/月〜</p>
+            </div>
+
+            {/* Use Case 3: 個人・フリーランス */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-8 border border-emerald-200 hover:shadow-lg transition-shadow">
+              <div className="w-14 h-14 bg-emerald-800/10 rounded-xl flex items-center justify-center mb-6">
+                <FileText className="w-7 h-7 text-emerald-800" />
+              </div>
+              <h3 className="text-xl font-bold text-stone-900 mb-3">フリーランス・個人営業</h3>
+              <p className="text-stone-600 leading-relaxed mb-4">
+                <span className="font-bold text-emerald-800">月額1,980円</span>で高品質なレターを無制限生成。品質スコア付きで「使えるレター」を確実に。
+              </p>
+              <ul className="space-y-2 text-sm text-stone-600">
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  3バリエーション生成
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  AI品質スコアで品質保証
+                </li>
+                <li className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  深層分析で差別化
+                </li>
+              </ul>
+              <p className="mt-4 text-sm font-semibold text-emerald-800">Pro ¥1,980/月</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-24 md:py-32 bg-stone-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-6">
+              こんな使い方ができます
+            </h2>
+            <p className="text-xl text-stone-600">
+              CxO Letter Makerの活用イメージをご紹介します。
+            </p>
+            <p className="text-sm text-stone-400 mt-2">※ 以下は想定される活用シーンです。実際の成果は利用状況により異なります。</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -541,16 +595,16 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-stone-700 leading-relaxed mb-4">
-                「月間30通のレターを作成していますが、1通あたりの作成時間が20分から30秒に短縮。しかも企業ごとに個別分析してくれるので、アポ率が1.5%から4.2%に改善しました。」
+                企業URLを入力するだけで、相手の事業内容に合わせた営業レターが30秒で完成。手作業で20分かかっていたリサーチと文面作成を大幅に効率化できます。
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 6ヶ月 / 月間生成数: 約30通 ※個人の感想であり、効果を保証するものではありません</p>
+              <p className="text-xs text-stone-400 mb-4">想定シーン: 月間30通程度の新規開拓レター作成</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-800 font-bold text-sm">
                   SaaS
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">SaaS企業・営業マネージャー</p>
-                  <p className="text-sm text-stone-500">従業員300名規模</p>
+                  <p className="font-semibold text-stone-900">SaaS企業の営業チーム</p>
+                  <p className="text-sm text-stone-500">新規開拓・ABM施策</p>
                 </div>
               </div>
             </div>
@@ -565,16 +619,16 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-stone-700 leading-relaxed mb-4">
-                「5名のチームで大手企業50社にアプローチ。CSV一括生成で全社分のレターを1日で作成し、返信率が従来の手書きの2倍以上に。クライアントへの提案にも活用しています。」
+                CSV一括生成で数十社分のレターをまとめて作成。チーム全員が同じ品質のレターを送れるので、属人化の解消にも役立ちます。
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 4ヶ月 / CSV一括生成を活用 ※個人の感想であり、効果を保証するものではありません</p>
+              <p className="text-xs text-stone-400 mb-4">想定シーン: 営業代行・チームでの大量アプローチ</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-bold text-sm">
                   BPO
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">コンサルティング企業・代表取締役</p>
-                  <p className="text-sm text-stone-500">従業員15名規模</p>
+                  <p className="font-semibold text-stone-900">営業代行・コンサルティング企業</p>
+                  <p className="text-sm text-stone-500">チームでの一括活用</p>
                 </div>
               </div>
             </div>
@@ -589,40 +643,35 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="text-stone-700 leading-relaxed mb-4">
-                「創業初期で営業リソースがゼロの状態から、3ヶ月で大手企業の部長クラス50名超とのアポイントを獲得。手紙の質が高く、返信時に"丁寧なお手紙をありがとう"と言われることも。」
+                営業リソースが限られていても、AIが企業分析からレター作成までを自動化。経営層向けの丁寧な手紙を、短時間で量産できます。
               </p>
-              <p className="text-xs text-stone-400 mb-4">利用期間: 3ヶ月 / 導入初月から成果 ※個人の感想であり、効果を保証するものではありません</p>
+              <p className="text-xs text-stone-400 mb-4">想定シーン: スタートアップの新規事業開発</p>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-bold text-sm">
                   Tech
                 </div>
                 <div>
-                  <p className="font-semibold text-stone-900">スタートアップ・事業開発責任者</p>
-                  <p className="text-sm text-stone-500">シリーズA / 従業員20名規模</p>
+                  <p className="font-semibold text-stone-900">スタートアップ・新規事業チーム</p>
+                  <p className="text-sm text-stone-500">リソース効率化</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-            <div className="text-center group">
-              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">3倍<span className="text-lg align-top">※</span></p>
-              <p className="text-stone-600 font-medium">導入企業の平均アポ率</p>
-              <p className="text-xs text-stone-400 mt-1">※ 自社調べ。2024年実施、導入企業の実績に基づく平均値。効果には個人差があります</p>
-            </div>
+          {/* Stats — 検証可能な事実のみ表示 */}
+          <div className="mt-16 grid grid-cols-3 gap-4 sm:gap-8 max-w-3xl mx-auto">
             <div className="text-center group">
               <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">30秒</p>
               <p className="text-stone-600 font-medium">平均作成時間</p>
             </div>
             <div className="text-center group">
-              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">1,000+</p>
-              <p className="text-stone-600 font-medium">累計生成レター数</p>
+              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">5</p>
+              <p className="text-stone-600 font-medium">対応プラン数</p>
             </div>
             <div className="text-center group">
-              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">95%</p>
-              <p className="text-stone-600 font-medium">ユーザー満足度</p>
-              <p className="text-xs text-stone-400 mt-1">※ 自社調べ（2024年利用者アンケート結果）</p>
+              <p className="text-4xl md:text-5xl font-serif font-bold text-amber-800 mb-2 transition-transform group-hover:scale-110">100件</p>
+              <p className="text-stone-600 font-medium">CSV一括生成/日</p>
+              <p className="text-xs text-stone-400 mt-1">Proプラン</p>
             </div>
           </div>
         </div>
@@ -800,7 +849,7 @@ export default function LandingPage() {
               href="/new?demo=true"
               className="inline-flex items-center gap-2 px-8 py-3 min-h-[44px] bg-amber-800 text-white rounded-md font-bold hover:bg-amber-900 transition-all shadow-lg hover:shadow-xl"
             >
-              無料で試す
+              いますぐレターを作成する（無料）
               <Mail className="w-5 h-5" />
             </Link>
           </div>
@@ -821,11 +870,11 @@ export default function LandingPage() {
             href="/new?demo=true"
             className="group inline-flex items-center justify-center gap-3 px-14 py-6 min-h-[44px] bg-amber-800 text-white rounded-lg font-bold text-xl hover:bg-amber-900 transition-all shadow-2xl hover:shadow-xl hover:scale-105"
           >
-            無料で試す
+            いますぐレターを作成する（無料）
             <Mail className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </Link>
           <p className="text-sm text-stone-400 mt-4">
-            登録不要・30秒で完成・クレカ不要
+            登録不要・企業URL入力だけ・クレカ不要
           </p>
 
           <div className="mt-12 pt-12 border-t border-stone-200">

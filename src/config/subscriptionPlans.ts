@@ -41,7 +41,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     modelId: MODEL_DEFAULT,
     description: '個人利用向けの無料プラン',
     features: [
-      '手紙の個別生成（無制限）',
+      '手紙の個別生成（1日10回まで）',
       '基本的なAI生成機能',
       '履歴の保存（最新10件）',
     ],

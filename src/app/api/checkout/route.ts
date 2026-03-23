@@ -9,8 +9,8 @@ import { devLog } from '@/lib/logger';
 import { z } from 'zod';
 
 const CheckoutRequestSchema = z.object({
-    planType: z.enum(['pro', 'premium', 'team', 'business'] as const, {
-        errorMap: () => ({ message: `Invalid plan. Must be one of: pro, premium, team, business` }),
+    planType: z.enum(['pro', 'premium', 'team', 'business'], {
+        message: 'Invalid plan. Must be one of: pro, premium, team, business',
     }),
 });
 

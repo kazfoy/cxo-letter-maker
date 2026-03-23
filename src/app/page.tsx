@@ -66,7 +66,7 @@ export default function LandingPage() {
         "name": "本当に無料で使えますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "はい、無料プランをご用意しております。1日10回までの生成、基本的なAI分析でのご利用が可能です。Proプラン（月額1,980円）では深層分析・品質保証・3バリエーション生成など、より高品質なレター生成をご利用いただけます。"
+          "text": "はい、アカウント登録なしでもゲストとして1日3回までお試しいただけます。無料アカウントを登録すると1日10回まで生成可能です。Proプラン（月額1,980円）では深層分析・品質保証・3バリエーション生成など、より高品質なレター生成をご利用いただけます。"
         }
       },
       {
@@ -344,7 +344,8 @@ export default function LandingPage() {
                     <td className="px-6 py-5 text-stone-900 font-medium">スケーラビリティ</td>
                     <td className="px-6 py-5 text-center text-stone-600">1日5〜10通が限界</td>
                     <td className="px-6 py-5 text-center bg-amber-50/30 border-l border-stone-200">
-                      <span className="text-amber-800 font-bold">無制限に生成可能</span>
+                      <span className="text-amber-800 font-bold">大量生成に対応</span>
+                      <p className="text-xs text-stone-500 mt-1">※ Proプラン以上でCSV一括生成対応</p>
                     </td>
                   </tr>
                   <tr>
@@ -497,7 +498,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-stone-900 mb-3">営業代行会社</h3>
               <p className="text-stone-600 leading-relaxed mb-4">
-                CSV一括生成で1日100通のレターを自動作成。外注費1通5,000円が、<span className="font-bold text-amber-800">月額9,800円で1,000通</span>に。
+                CSV一括生成で1日最大1,000通のレターを自動作成。外注費1通5,000円が、<span className="font-bold text-amber-800">月額9,800円で使い放題</span>に。
               </p>
               <ul className="space-y-2 text-sm text-stone-600">
                 <li className="flex items-center gap-2">
@@ -532,7 +533,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  メンバー管理（最大20席）
+                  メンバー管理（最大5席）
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -715,9 +716,9 @@ export default function LandingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-5 text-stone-700 leading-relaxed">
-                はい、無料プランをご用意しております。ただし、以下の制限がございます：<br /><br />
+                はい、アカウント登録なしでもゲストとして1日3回までお試しいただけます。無料アカウントを登録すると、以下の範囲でご利用いただけます：<br /><br />
                 <ul className="list-disc list-inside space-y-1 ml-2 text-stone-600">
-                  <li>1日10回までの生成</li>
+                  <li>1日10回までの生成（ゲストは1日3回まで）</li>
                   <li>履歴の閲覧は最新10件まで</li>
                   <li>テキストコピーが可能（Word形式ダウンロードはProプラン以上）</li>
                   <li>CSV一括生成はProプラン以上で利用可能</li>
